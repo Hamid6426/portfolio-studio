@@ -7,3 +7,67 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+# Portfolio Studio
+
+Multi-tenant portfolio CMS (dashboard + public renderer) in one Next.js app. Not a static-site CLI.
+
+## Stack
+
+Bun · Next.js 16 App Router · React 19 (+ Compiler) · TS · Tailwind 4 · shadcn/Base UI · Drizzle · Postgres · Zod · next-auth · UploadThing
+
+## Layout
+
+```
+src/app/(auth)/     # /setup /setup-guide /login
+src/app/dashboard/  # /dashboard → /dashboard/overview
+src/app/[slug]/     # public portfolio
+src/app/error/      # /error/database
+src/components/ui/  # shadcn (Base UI). Button: custom `render` ⇒ nativeButton=false (defaulted in button.tsx)
+src/config/         # env, startup gate, db/migration checks, storage-keys
+src/db/             # schema, client, enums
+src/payloads/       # Zod request payloads (e.g. auth)
+src/responses/      # ApiSuccess / ApiPaginatedSuccess / ApiError (+ domain unions)
+src/lib/axiosInstance.ts  # Axios + 401 refresh interceptor (3 retries)
+src/lib/auth/             # cookies, tokens, session helpers
+src/services/       # Frontend services (Axios → /api)
+src/repositories/   # Backend services + DB for API controllers
+src/queries/        # TanStack Query hooks (use frontend services)
+src/proxy.ts        # x-pathname + optimistic /dashboard auth gate
+```
+
+## Startup gate
+
+`layout.tsx` calls `getStartupState()` unless path starts with PUBLIC_ROUTES (`/setup`, `/error/database` — `/setup` also covers `/setup-guide`).
+
+| state | redirect |
+|---|---|
+| database-connection-failed | `/error/database` |
+| needs-migration \| needs-setup | `/setup` |
+| ready | continue |
+
+Keep gate redirect targets in PUBLIC_ROUTES or loops occur.
+
+## Auth gate (dashboard)
+
+1. `proxy.ts` — optimistic: `/dashboard/*` needs access or refresh cookie, else → `/login?next=`
+2. `dashboard/layout.tsx` — verifies access JWT; if expired but refresh exists → `/api/auth/session/refresh`; else → `/login`
+
+## Routes (do not invent)
+
+`/` · `/setup` · `/setup-guide` · `/login` · `/dashboard/overview` · `/error/database` · `/[slug]`
+
+## Env
+
+`.env.local`: `DATABASE_URL` (Postgres), `AUTH_SECRET` (≥32), `NODE_ENV` (`development`|`production`|`test`). Parsed in `src/config/env.ts`. Drizzle loads `.env.local` via `drizzle.config.ts`.
+
+## Commands
+
+`bun dev` · `bun run db:generate` · `bun run db:migrate` · `bun run db:studio`
+
+## Conventions
+
+- Prefer Server Components; client mutations via TanStack Query (`src/queries`) → frontend `src/services` → `src/app/api` → backend `src/repositories`.
+- Alias `@/*` → `src/*`. Match existing UI patterns; don't swap Base UI for Radix.
+- Schema changes → drizzle generate + migrate. Tables use `baseColumns`.
+- Spec/vision: `.docs/portfolio-studio.md` (read when building features).
