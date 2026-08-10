@@ -1,11 +1,25 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/db/client";
+import { getPostgresErrorCode } from "@/lib/db/errors";
 
 export type DatabaseCheckResult =
   | { success: true; message: "" }
   | { success: false; message: string };
 
 function humanizeError(error: unknown): string {
+  const code = getPostgresErrorCode(error);
+
+  switch (code) {
+    case "42P01":
+      return "Your database is missing required tables. Run `bun run db:migrate`, then try again.";
+    case "3D000":
+      return "The database in your connection string does not exist. Create it, then run migrations.";
+    case "28P01":
+      return "Database authentication failed. Check the password in DATABASE_URL.";
+    default:
+      break;
+  }
+
   if (!(error instanceof Error)) {
     return "We couldn't reach the database, but we're not sure why. Please try again.";
   }

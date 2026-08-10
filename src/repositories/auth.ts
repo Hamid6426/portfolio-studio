@@ -22,6 +22,7 @@ import type {
   LogoutResponse,
   RefreshResponse,
 } from "@/responses/auth";
+import { apiErrorFromPostgres } from "@/lib/db/errors";
 
 function firstIssueField<T extends string>(
   path: PropertyKey | undefined,
@@ -125,12 +126,10 @@ export async function loginUser(
     console.error("Login failed:", error);
 
     return {
-      response: {
-        success: false,
-        statusCode: 500,
-        message:
-          "Something went wrong while signing you in. Please try again in a moment.",
-      },
+      response: apiErrorFromPostgres(
+        error,
+        "Something went wrong while signing you in. Please try again in a moment.",
+      ),
     };
   }
 }
@@ -206,12 +205,10 @@ export async function refreshSession(
     console.error("Refresh failed:", error);
 
     return {
-      response: {
-        success: false,
-        statusCode: 500,
-        message:
-          "Something went wrong while refreshing your session. Please try again.",
-      },
+      response: apiErrorFromPostgres(
+        error,
+        "Something went wrong while refreshing your session. Please try again.",
+      ),
     };
   }
 }
@@ -297,12 +294,10 @@ export async function createAdminUser(
   } catch (error) {
     console.error("Failed to create admin account:", error);
 
-    return {
-      success: false,
-      statusCode: 500,
-      message:
-        "Something went wrong while creating your account. Please try again in a moment.",
-    };
+    return apiErrorFromPostgres(
+      error,
+      "Something went wrong while creating your account. Please try again in a moment.",
+    );
   }
 
   return {
