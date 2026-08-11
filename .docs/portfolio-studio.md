@@ -25,11 +25,16 @@ Think of it as:
 
 - Build a complete portfolio management system
 - Support multiple users
-- Allow one-click theme switching
+- Allow theme switching (design tokens / layout blocks — content stays in the page editor)
 - Create reusable portfolio blocks
 - Build a drag-and-drop page builder
 - Support custom domains
 - Make the platform scalable from day one
+
+> **Content model (resolved):** Portfolio content is **blocks only** — authored in
+> the visual page editor as versioned block trees (`pages.content` /
+> `blocks.children`). There are no separate Projects/Skills/Experience tables.
+> See `.docs/roadmap.md`.
 
 ---
 
@@ -114,7 +119,9 @@ Users should be able to manage:
 
 ## Portfolio Themes
 
-Users can switch between multiple themes without changing their content.
+Users can switch between multiple themes. Under the **blocks-only** content model,
+themes change appearance (CSS variables, fonts, spacing tokens) and may swap
+reusable layout blocks — they do not re-query structured entity tables.
 
 Example:
 
@@ -130,7 +137,7 @@ Professional
 Developer
 ```
 
-Each theme consumes the same portfolio data.
+Page content remains the authored block tree; a theme should not require rewriting it.
 
 ---
 
@@ -225,19 +232,14 @@ The renderer dynamically maps each block to its React component.
 
 Main entities include:
 
-- Users
-- Portfolios
-- Projects
-- Skills
-- Experience
-- Education
-- Blogs
-- Testimonials
-- Social Links
-- Theme Settings
-- Page Layout
+- Users / Roles
+- Pages (draft `content` + `published_snapshot` block documents)
+- Blocks (reusable / layout trees)
+- Theme Settings (Phase 3)
 
-Structured content will be stored in relational tables, while flexible settings such as layouts and theme configuration will use PostgreSQL JSONB.
+Portfolio sections (projects, skills, experience, etc.) are **block trees**, not
+relational rows. Flexible page/block bodies use PostgreSQL JSONB
+(`BlockDocument`: `{ version, nodes }`).
 
 ---
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { and, count, isNotNull, isNull } from "drizzle-orm";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -9,15 +10,19 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { db } from "@/db/client";
-import { portfolioTable, userTable } from "@/db/schema";
-import { count } from "drizzle-orm";
+import { pagesTable, userTable } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 
 export default async function OverviewPage() {
-  const [userCount, portfolioCount] = await Promise.all([
+  const [userCount, publishedPageCount] = await Promise.all([
     db.select({ value: count() }).from(userTable),
-    db.select({ value: count() }).from(portfolioTable),
+    db
+      .select({ value: count() })
+      .from(pagesTable)
+      .where(
+        and(isNotNull(pagesTable.publishedAt), isNull(pagesTable.deletedAt)),
+      ),
   ]);
 
   return (
@@ -43,12 +48,12 @@ export default async function OverviewPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Portfolios</CardTitle>
-            <CardDescription>Published portfolios</CardDescription>
+            <CardTitle>Published pages</CardTitle>
+            <CardDescription>Live on the public site</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold">
-              {portfolioCount[0]?.value ?? 0}
+              {publishedPageCount[0]?.value ?? 0}
             </p>
           </CardContent>
         </Card>
@@ -58,12 +63,12 @@ export default async function OverviewPage() {
         <CardHeader>
           <CardTitle>Getting started</CardTitle>
           <CardDescription>
-            The dashboard is still taking shape. Here is what you can do next.
+            Build pages in the editor, then publish them to the public site.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 sm:flex-row">
-          <Button render={<Link href="/login" />} variant="outline">
-            Sign in
+          <Button render={<Link href="/dashboard/pages" />} variant="outline">
+            Manage pages
           </Button>
           <Button render={<Link href="/setup-guide" />} variant="outline">
             Read setup guide

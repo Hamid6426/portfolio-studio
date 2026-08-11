@@ -63,67 +63,31 @@ These cost real debugging time to discover. Do not rediscover them.
 
 ## Phase 2 — content sections
 
-The spec (`.docs/portfolio-studio.md`) calls for structured sections: projects, skills,
-experience, education, certificates, testimonials, blog, contact, social links.
+**Decision: Blocks only.** Portfolio content is authored entirely in the page
+editor as freeform block trees. There are no structured content entity tables.
 
-### Decide this first — it shapes everything
+Rationale: Phase 1 already ships a working block editor and a seeded CV that
+uses none of the old content tables. Keeping a second parallel content model
+would split the product. Themes (Phase 3) restyle via CSS tokens / layout
+blocks; they do not re-bind the same relational rows into different layouts.
 
-There is an unresolved tension in the design:
+The eleven unused `user_*` / `portfolios` tables were dropped in migration
+`0010`. Phase 2 work is therefore editor/block improvements (new block types,
+better section presets in seed builders), not CRUD screens for entities.
+See `.docs/portfolio-studio.md` for the updated vision note.
 
-- The page editor is **freeform blocks**. The seeded portfolio expresses an entire CV
-  as block trees, using none of the content tables.
-- The spec wants **structured entities** with their own dashboard screens.
+### ~~Decide this first~~ (resolved — Blocks only)
 
-Three coherent answers, pick one deliberately:
-
-| Approach | What it means | Cost |
-|---|---|---|
-| **Blocks only** | Delete the dead tables. Everything is authored in the editor. | Simplest, but no reusable structured data, no "switch theme, same content" |
-| **Entities only** | Content lives in tables; pages compose them via section blocks | Matches the spec's theme story; needs new block types bound to queries |
-| **Both** | Blocks for layout, entity-backed blocks for structured lists | Most capable, most complexity |
-
-The spec's one-click theme switching ("each theme consumes the same portfolio data")
-only works under **entities only** or **both**. If you choose blocks only, say so in
-`.docs/portfolio-studio.md`, because it contradicts the stated vision.
-
-### The head start: 11 dead tables
-
-These exist in `src/db/schema.ts` with migrations applied, and have **zero** code —
-no repository, no API route, no payload, no service, no query hook, no UI:
-
-`user_profiles` · `user_socials` · `user_educations` · `user_experiences` ·
-`user_skills` · `user_projects` · `user_achievements` · `user_publications` ·
-`user_awards` · `user_services` · `portfolios`
-
-Two warnings:
-
-- **They are too thin to use as-is.** `user_skills` is a single `skill` column;
-  `user_projects` a single `project`; `user_experiences` only `company` + `position`
-  with no dates or description. Real content needs more columns — expect to extend
-  them, not just wire them up.
-- **They are `user_id`-scoped**, which is a multi-tenant shape. This product is
-  single-site (see `AGENTS.md`). Decide whether `user_id` means "owner" or should be
-  dropped before building on them.
+| Approach | Status |
+|---|---|
+| **Blocks only** | **Chosen** — dead tables removed |
+| **Entities only** | Rejected for now |
+| **Both** | Rejected for now |
 
 ### Per-entity checklist
 
-Every entity needs all seven layers, in this order. Copy the `pages` or `blocks` slice
-as the reference implementation — both are complete and consistent.
-
-1. `src/db/schema.ts` — extend columns, then `bun run db:generate` (never hand-write SQL)
-2. `src/payloads/<entity>.ts` — Zod create/update
-3. `src/repositories/<entity>.ts` — validate in the repo, return `ApiSuccess|ApiError`,
-   route errors through `apiErrorFromPostgres`
-4. `src/app/api/<entity>/` — `requireRoutePermission` for reads,
-   `requireButtonPermission` for writes
-5. `src/config/permissions.ts` — new permission keys, added to the default role sets
-6. `src/services/<entity>.ts` + `src/queries/<entity>.ts` — keys in `src/config/storage-keys.ts`
-7. Dashboard screen — match the dialog/toast/`canShowButton` idiom in
-   `pages-page-client.tsx`
-
-Blog additionally needs public routes. Current slug routing is single-segment only
-(`/[slug]`), so `/blog/<post>` requires a new segment — this is the one place Phase 2
-touches the public renderer.
+Not applicable under Blocks only. Prefer new `BlockType`s and seed section
+builders (`scripts/sections.ts`) when you need reusable section patterns.
 
 ---
 
@@ -135,9 +99,9 @@ Nothing exists: no `themes` table, one fixed `:root` token block in
 `src/app/globals.css`, no `.dark` block, no switcher. `next-themes` was deliberately
 removed in commit `a4e2e87` — check why before reintroducing it.
 
-This phase depends on the Phase 2 decision. "Switch theme, keep content" is only
-meaningful if content is structured; with freeform blocks a theme can only restyle
-tokens, not relayout.
+This phase depends on the Phase 2 decision. **Blocks only** means a theme can
+restyle design tokens (and optionally swap layout blocks), not remount the same
+relational rows into different section layouts.
 
 Suggested shape: themes as CSS-variable token sets over Tailwind 4's `@theme`, stored
 per-site with per-theme settings. Note that block `styles` are inline per-node and will
