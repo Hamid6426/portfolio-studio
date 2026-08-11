@@ -1,4 +1,4 @@
-import { pgTable, timestamp, varchar, text } from "drizzle-orm/pg-core";
+import { jsonb, pgTable, timestamp, varchar, text } from "drizzle-orm/pg-core";
 import { baseColumns } from "./base-columns";
 
 export const rolesTable = pgTable("roles", {
@@ -127,4 +127,30 @@ export const portfolioTable = pgTable("portfolios", {
         .references(() => userTable.id),
     title: varchar("title", { length: 255 }).notNull(),
     description: varchar("description").notNull(),
+});
+
+/** Block entry stored in a layout's JSON structure. */
+export type LayoutBlock = {
+  type: string;
+  [key: string]: unknown;
+};
+
+export const layoutsTable = pgTable("layouts", {
+  ...baseColumns,
+  name: varchar("name", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  description: text("description").notNull().default(""),
+  /** Ordered block list rendered by the public site. */
+  structure: jsonb("structure")
+    .$type<LayoutBlock[]>()
+    .notNull()
+    .default([]),
+});
+
+export const pagesTable = pgTable("pages", {
+  ...baseColumns,
+  title: varchar("title", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  description: text("description").notNull().default(""),
+  layoutId: varchar("layout_id").references(() => layoutsTable.id),
 });

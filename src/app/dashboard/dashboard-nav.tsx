@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import {
+  FileTextIcon,
   LayoutDashboardIcon,
+  LayoutTemplateIcon,
   ShieldIcon,
   UsersIcon,
 } from "lucide-react";
@@ -15,6 +17,8 @@ const ICONS = {
   overview: LayoutDashboardIcon,
   users: UsersIcon,
   roles: ShieldIcon,
+  pages: FileTextIcon,
+  layouts: LayoutTemplateIcon,
 } as const;
 
 export type DashboardNavItem = {

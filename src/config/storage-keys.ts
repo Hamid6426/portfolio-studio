@@ -17,3 +17,6 @@ export const ROLES_QUERY_KEY = ["roles"] as const;
 export const ROLES_CREATE_MUTATION_KEY = ["roles", "create"] as const;
 export const ROLES_UPDATE_MUTATION_KEY = ["roles", "update"] as const;
 export const ROLES_DELETE_MUTATION_KEY = ["roles", "delete"] as const;
+
+export const PAGES_QUERY_KEY = ["pages"] as const;
+export const LAYOUTS_QUERY_KEY = ["layouts"] as const;

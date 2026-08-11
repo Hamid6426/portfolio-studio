@@ -55,7 +55,7 @@ Keep gate redirect targets in PUBLIC_ROUTES or loops occur.
 
 ## Routes (do not invent)
 
-`/` · `/setup` · `/setup-guide` · `/login` · `/dashboard/overview` · `/error/database` · `/[slug]`
+`/` · `/setup` · `/setup-guide` · `/login` · `/dashboard/overview` · `/dashboard/pages` · `/dashboard/layouts` · `/dashboard/users` · `/dashboard/roles` · `/error/database` · `/[slug]`
 
 ## Env
 

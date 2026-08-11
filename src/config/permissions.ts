@@ -11,6 +11,8 @@ export const ROUTE_PERMISSIONS = {
   dashboardOverview: "route:/dashboard/overview",
   dashboardUsers: "route:/dashboard/users",
   dashboardRoles: "route:/dashboard/roles",
+  dashboardPages: "route:/dashboard/pages",
+  dashboardLayouts: "route:/dashboard/layouts",
   setup: "route:/setup",
   setupGuide: "route:/setup-guide",
   login: "route:/login",
@@ -27,6 +29,12 @@ export const BUTTON_PERMISSIONS = {
   rolesCreate: "button:roles-create",
   rolesEdit: "button:roles-edit",
   rolesDelete: "button:roles-delete",
+  pagesCreate: "button:pages-create",
+  pagesEdit: "button:pages-edit",
+  pagesDelete: "button:pages-delete",
+  layoutsCreate: "button:layouts-create",
+  layoutsEdit: "button:layouts-edit",
+  layoutsDelete: "button:layouts-delete",
 } as const;
 
 export const PERMISSIONS = {

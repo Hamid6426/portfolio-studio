@@ -22,6 +22,16 @@ const navItems: DashboardNavItem[] = [
     icon: "overview",
   },
   {
+    href: "/dashboard/pages",
+    label: "Pages",
+    icon: "pages",
+  },
+  {
+    href: "/dashboard/layouts",
+    label: "Layouts",
+    icon: "layouts",
+  },
+  {
     href: "/dashboard/users",
     label: "Users",
     icon: "users",
