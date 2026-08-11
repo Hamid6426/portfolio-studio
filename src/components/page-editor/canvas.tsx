@@ -27,7 +27,13 @@ type CanvasProps = {
   onReorder: (nodeId: string, parentId: string | null, index: number) => void;
 };
 
-function SortableRootItem({
+type SortableTreeProps = {
+  nodes: BlockNode[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+};
+
+function SortableBlock({
   node,
   selectedId,
   onSelect,
@@ -47,22 +53,45 @@ function SortableRootItem({
         transition,
         opacity: isDragging ? 0.5 : 1,
       }}
-      className="relative"
+      className={cn("relative", isDragging ? "cursor-grabbing" : "cursor-grab")}
+      {...attributes}
+      {...listeners}
     >
-      <button
-        type="button"
-        className="absolute top-1 right-1 z-10 rounded bg-background/80 px-1.5 py-0.5 text-[10px] text-muted-foreground ring-1 ring-border"
-        {...attributes}
-        {...listeners}
-      >
-        Drag
-      </button>
       {renderBlockTree([node], {
         editable: true,
         selectedId,
         onSelect,
+        renderChildren: (children) => (
+          <SortableTree
+            nodes={children}
+            selectedId={selectedId}
+            onSelect={onSelect}
+          />
+        ),
       })}
     </div>
+  );
+}
+
+function SortableTree({ nodes, selectedId, onSelect }: SortableTreeProps) {
+  if (nodes.length === 0) return null;
+
+  return (
+    <SortableContext
+      items={nodes.map((node) => node.id)}
+      strategy={verticalListSortingStrategy}
+    >
+      <div className="flex flex-col">
+        {nodes.map((node) => (
+          <SortableBlock
+            key={node.id}
+            node={node}
+            selectedId={selectedId}
+            onSelect={onSelect}
+          />
+        ))}
+      </div>
+    </SortableContext>
   );
 }
 
@@ -84,9 +113,12 @@ export function EditorCanvas({
     const overLoc = findParent(content, String(over.id));
     if (!activeLoc || !overLoc) return;
 
-    // Root-level reorder only for sortable roots (same parent null)
-    if (activeLoc.parent === null && overLoc.parent === null) {
-      onReorder(String(active.id), null, overLoc.index);
+    const activeParentId = activeLoc.parent?.id ?? null;
+    const overParentId = overLoc.parent?.id ?? null;
+
+    // Reorder within the same parent (root or nested)
+    if (activeParentId === overParentId) {
+      onReorder(String(active.id), activeParentId, overLoc.index);
     }
   }
 
@@ -113,21 +145,11 @@ export function EditorCanvas({
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
-            <SortableContext
-              items={content.map((node) => node.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="flex flex-col">
-                {content.map((node) => (
-                  <SortableRootItem
-                    key={node.id}
-                    node={node}
-                    selectedId={selectedId}
-                    onSelect={onSelect}
-                  />
-                ))}
-              </div>
-            </SortableContext>
+            <SortableTree
+              nodes={content}
+              selectedId={selectedId}
+              onSelect={onSelect}
+            />
           </DndContext>
         )}
       </div>

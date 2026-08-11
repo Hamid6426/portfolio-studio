@@ -10,7 +10,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Portfolio Studio
 
-Multi-tenant portfolio CMS (dashboard + public renderer) in one Next.js app. Not a static-site CLI.
+Self-hosted, single-site portfolio CMS (dashboard + public renderer) in one Next.js app. Not a static-site CLI, not multi-tenant.
+
+One deployment serves one website. The dashboard (`/dashboard/*`) and the public site (`/[slug]`) share the same domain. `users`/`roles` exist for collaborators on that one site, not for tenants.
 
 ## Stack
 

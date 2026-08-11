@@ -77,7 +77,7 @@ export function usePageEditor(page: PageSummary) {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Backspace" && event.key !== "Delete") return;
+      if (event.key !== "Delete") return;
       if (isTypingTarget(event.target)) return;
       if (!selectedId) return;
 

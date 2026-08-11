@@ -136,6 +136,8 @@ type RenderOpts = {
   selectedId?: string | null;
   onSelect?: (id: string) => void;
   editable?: boolean;
+  /** Editor canvas: render nested children (e.g. sortable wrappers). */
+  renderChildren?: (children: BlockNode[], parent: BlockNode) => ReactNode;
 };
 
 export function renderBlockTree(
@@ -175,17 +177,16 @@ function BlockRenderer({
     "data-block-id": node.id,
   } as const;
 
+  const children =
+    opts.renderChildren && node.children
+      ? opts.renderChildren(node.children, node)
+      : renderBlockTree(node.children ?? [], opts);
+
   switch (node.type) {
     case "section":
-      return (
-        <section {...common}>
-          {renderBlockTree(node.children ?? [], opts)}
-        </section>
-      );
+      return <section {...common}>{children}</section>;
     case "container":
-      return (
-        <div {...common}>{renderBlockTree(node.children ?? [], opts)}</div>
-      );
+      return <div {...common}>{children}</div>;
     case "heading": {
       const level = Number(node.props.level ?? 2);
       const text = String(node.props.text ?? "");
@@ -232,7 +233,7 @@ function BlockRenderer({
       return (
         <div {...common}>
           Unknown block: {node.type}
-          {renderBlockTree(node.children ?? [], opts)}
+          {children}
         </div>
       );
   }
