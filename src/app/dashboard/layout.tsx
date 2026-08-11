@@ -3,7 +3,10 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { canAccessRoute } from "@/config/permissions";
-import { REFRESH_TOKEN_COOKIE } from "@/config/storage-keys";
+import {
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+} from "@/config/storage-keys";
 import { getAccessSession } from "@/lib/auth/session";
 import {
   ensureDefaultRoles,
@@ -14,6 +17,7 @@ import {
   DashboardNav,
   type DashboardNavItem,
 } from "./dashboard-nav";
+import { DashboardSignOut } from "./dashboard-sign-out";
 
 const navItems: DashboardNavItem[] = [
   {
@@ -62,6 +66,9 @@ export default async function DashboardLayout({
       );
     }
 
+    // Stale/invalid access cookie with no refresh used to bounce
+    // /login ↔ /dashboard forever (proxy treated cookie presence as signed-in).
+    jar.delete(ACCESS_TOKEN_COOKIE);
     redirect(`/login?next=${encodeURIComponent(pathname)}`);
   }
 
@@ -70,6 +77,10 @@ export default async function DashboardLayout({
   const visibleNav = navItems.filter((item) =>
     canAccessRoute(permissions, item.href),
   );
+
+  if (!canAccessRoute(permissions, pathname)) {
+    redirect("/dashboard/overview");
+  }
 
   return (
     <div className="grid min-h-screen flex-1 grid-cols-[14rem_1fr]">
@@ -85,10 +96,11 @@ export default async function DashboardLayout({
 
         <DashboardNav items={visibleNav} />
 
-        <div className="border-t border-border px-5 py-4">
-          <p className="truncate text-xs text-muted-foreground">
+        <div className="mt-auto space-y-3 border-t border-border px-3 py-4">
+          <p className="truncate px-2 text-xs text-muted-foreground">
             {session.email}
           </p>
+          <DashboardSignOut permissions={permissions} />
         </div>
       </aside>
 

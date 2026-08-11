@@ -13,10 +13,6 @@ function hasAuthCookies(request: NextRequest): boolean {
   );
 }
 
-function hasAccessCookie(request: NextRequest): boolean {
-  return Boolean(request.cookies.get(ACCESS_TOKEN_COOKIE)?.value);
-}
-
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -27,10 +23,9 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Already signed in — skip the login page.
-  if (pathname === "/login" && hasAccessCookie(request)) {
-    return NextResponse.redirect(new URL("/dashboard/overview", request.url));
-  }
+  // Do not bounce /login → /dashboard on cookie presence alone. An invalid
+  // access token with no refresh caused an infinite redirect loop; the login
+  // page (and dashboard layout) verify the JWT instead.
 
   // Forward pathname on the *request* so Server Components can read it via
   // `headers()` (response headers are not visible there).

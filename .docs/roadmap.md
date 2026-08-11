@@ -118,30 +118,25 @@ design this product explicitly is not.
 
 ## Carried-over defects
 
-Found while building Phase 1, deliberately left. Each is small and independent.
+Found while building Phase 1. Checked off items were fixed after the Blocks-only
+decision.
 
-- **No sign-out anywhere in the UI.** `POST /api/auth/logout`, `logoutRequest()` and the
-  `button:sign-out` permission all exist; nothing calls them. There is no
-  `useLogoutMutation`.
-- **`editor` and `viewer` roles have identical permissions** (`src/config/permissions.ts`)
-  — the `editor` role cannot edit anything.
-- **`/dashboard/overview` never checks its own route permission**, unlike every other
-  dashboard page.
-- **Redirect loop:** an access cookie that is present but invalid (e.g. rotated
-  `AUTH_SECRET`) with no refresh cookie bounces `/login` ↔ `/dashboard/overview` forever.
-- **Setup is not transactional** — two concurrent `POST /api/auth/setup` calls can both
-  pass `checkAdminExists()` and create two admins.
-- **Dead server actions** in `src/app/(auth)/setup/actions.ts` and
-  `src/app/(auth)/login/actions.ts` — unreferenced duplicates. The setup one omits
-  `ensureDefaultRoles()` and would fail on the role FK if ever wired up.
-- **Migration check is shallow** (`src/config/migration.ts`) — it only tests that the
-  `drizzle.__drizzle_migrations` table exists, so a half-migrated database reports
-  `ready`.
-- **Deletes are hard deletes.** `deleted_at` is filtered on reads but never written.
-  Soft delete needs a partial unique index first, because `pages.slug` is UNIQUE and a
-  soft-deleted row would squat its slug forever.
-- **No Drizzle `relations()` are declared**, so the relational query API cannot traverse;
-  all joins are hand-written.
+- [x] **No sign-out in the UI** — sidebar `DashboardSignOut` + `useLogoutMutation`.
+- [x] **`editor` == `viewer` permissions** — editor now gets pages/blocks routes and
+  CRUD buttons; `ensureDefaultRoles` merges the new defaults on next dashboard load.
+- [x] **Overview route permission** — dashboard layout rejects any pathname the role
+  cannot access (including overview).
+- [x] **Redirect loop** on invalid access cookie — proxy no longer treats cookie
+  presence as signed-in; layout deletes a stale access cookie before sending to
+  `/login`; login page redirects only after a verified session.
+- [x] **Dead server actions** — removed `login/actions.ts` and `setup/actions.ts`.
+- [ ] **Setup is not transactional** — two concurrent `POST /api/auth/setup` calls can
+  both pass `checkAdminExists()` and create two admins.
+- [ ] **Migration check is shallow** (`src/config/migration.ts`) — only tests that
+  `drizzle.__drizzle_migrations` exists.
+- [ ] **Deletes are hard deletes.** Soft delete needs a partial unique index first
+  (`pages.slug` UNIQUE).
+- [ ] **No Drizzle `relations()`** — all joins are hand-written.
 
 ---
 

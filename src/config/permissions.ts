@@ -58,10 +58,18 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
   editor: [
     PERMISSIONS.dashboard,
     PERMISSIONS.dashboardOverview,
+    PERMISSIONS.dashboardPages,
+    PERMISSIONS.dashboardBlocks,
     PERMISSIONS.login,
     PERMISSIONS.signIn,
     PERMISSIONS.signOut,
     PERMISSIONS.openDashboard,
+    PERMISSIONS.pagesCreate,
+    PERMISSIONS.pagesEdit,
+    PERMISSIONS.pagesDelete,
+    PERMISSIONS.blocksCreate,
+    PERMISSIONS.blocksEdit,
+    PERMISSIONS.blocksDelete,
   ],
   viewer: [
     PERMISSIONS.dashboard,
