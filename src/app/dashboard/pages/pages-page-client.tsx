@@ -69,7 +69,7 @@ export function PagesPageClient() {
                 <TableRow key={page.id}>
                   <TableCell className="font-medium">{page.title}</TableCell>
                   <TableCell className="font-mono text-xs">
-                    /{page.slug}
+                    {page.slug ? `/${page.slug}` : "/ (home)"}
                   </TableCell>
                   <TableCell>{page.layoutName ?? "—"}</TableCell>
                   <TableCell>{formatDate(page.createdAt)}</TableCell>

@@ -79,7 +79,7 @@ export default function SetupGuidePage() {
             <Button render={<Link href="/setup" />}>
               Create admin account
             </Button>
-            <Button render={<Link href="/" />} variant="outline">
+            <Button render={<Link href="/home" />} variant="outline">
               Back to home
             </Button>
           </CardContent>

@@ -6,7 +6,7 @@ import type {
 export type PageSummary = {
   id: string;
   title: string;
-  slug: string;
+  slug: string | null;
   description: string;
   layoutId: string | null;
   layoutName: string | null;

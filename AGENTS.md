@@ -19,9 +19,9 @@ Bun · Next.js 16 App Router · React 19 (+ Compiler) · TS · Tailwind 4 · sha
 ## Layout
 
 ```
-src/app/(auth)/     # /setup /setup-guide /login
+src/app/(auth)/     # /home /setup /setup-guide /login
 src/app/dashboard/  # /dashboard → /dashboard/overview
-src/app/[slug]/     # public portfolio
+src/app/[slug]/     # public CMS page by slug
 src/app/error/      # /error/database
 src/components/ui/  # shadcn (Base UI). Button: custom `render` ⇒ nativeButton=false (defaulted in button.tsx)
 src/config/         # env, startup, permissions, storage-keys
@@ -55,7 +55,7 @@ Keep gate redirect targets in PUBLIC_ROUTES or loops occur.
 
 ## Routes (do not invent)
 
-`/` · `/setup` · `/setup-guide` · `/login` · `/dashboard/overview` · `/dashboard/pages` · `/dashboard/layouts` · `/dashboard/users` · `/dashboard/roles` · `/error/database` · `/[slug]`
+`/` · `/home` · `/setup` · `/setup-guide` · `/login` · `/dashboard/overview` · `/dashboard/pages` · `/dashboard/layouts` · `/dashboard/users` · `/dashboard/roles` · `/error/database` · `/[slug]`
 
 ## Env
 

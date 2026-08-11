@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, isNull } from "drizzle-orm";
 
 import { db } from "@/db/client";
 import { layoutsTable, pagesTable } from "@/db/schema";
@@ -8,7 +8,7 @@ import type { ListPagesResponse, PageSummary } from "@/responses/pages";
 function toPageSummary(row: {
   id: string;
   title: string;
-  slug: string;
+  slug: string | null;
   description: string;
   layoutId: string | null;
   layoutName: string | null;
@@ -56,4 +56,28 @@ export async function listPages(): Promise<ListPagesResponse> {
       "Something went wrong while loading pages.",
     );
   }
+}
+
+/** Landing page when `slug` is null; otherwise match by slug. */
+export async function getPublicPage(
+  slug: string | null,
+): Promise<PageSummary | null> {
+  const rows = await db
+    .select({
+      id: pagesTable.id,
+      title: pagesTable.title,
+      slug: pagesTable.slug,
+      description: pagesTable.description,
+      layoutId: pagesTable.layoutId,
+      layoutName: layoutsTable.name,
+      createdAt: pagesTable.createdAt,
+      publishedAt: pagesTable.publishedAt,
+    })
+    .from(pagesTable)
+    .leftJoin(layoutsTable, eq(pagesTable.layoutId, layoutsTable.id))
+    .where(slug === null ? isNull(pagesTable.slug) : eq(pagesTable.slug, slug))
+    .limit(1);
+
+  const row = rows[0];
+  return row ? toPageSummary(row) : null;
 }

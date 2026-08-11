@@ -57,7 +57,7 @@ export default async function DatabaseErrorPage({
           </div>
         </CardContent>
         <CardContent className="flex flex-col gap-3 sm:flex-row">
-          <Button render={<Link href="/" />}>Try again</Button>
+          <Button render={<Link href="/home" />}>Try again</Button>
           <Button
             render={<Link href="/setup-guide" />}
             variant="outline"

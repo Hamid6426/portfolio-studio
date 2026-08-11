@@ -150,7 +150,8 @@ export const layoutsTable = pgTable("layouts", {
 export const pagesTable = pgTable("pages", {
   ...baseColumns,
   title: varchar("title", { length: 255 }).notNull(),
-  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  /** `null` = site landing page served at `/`. */
+  slug: varchar("slug", { length: 255 }).unique(),
   description: text("description").notNull().default(""),
   layoutId: varchar("layout_id").references(() => layoutsTable.id),
 });
