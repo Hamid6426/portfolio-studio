@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import type { BlockType } from "@/components/page-editor/block-registry";
@@ -15,6 +15,17 @@ import {
 import type { BlockNode } from "@/db/schema";
 import { useUpdatePageMutation } from "@/queries/pages";
 import type { PageSummary } from "@/responses/pages";
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    target.isContentEditable
+  );
+}
 
 export function usePageEditor(page: PageSummary) {
   const [content, setContent] = useState<BlockNode[]>(page.content ?? []);
@@ -63,6 +74,21 @@ export function usePageEditor(page: PageSummary) {
     commit(removeNodeById(content, selectedId));
     setSelectedId(null);
   }
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Backspace" && event.key !== "Delete") return;
+      if (isTypingTarget(event.target)) return;
+      if (!selectedId) return;
+
+      event.preventDefault();
+      commit(removeNodeById(content, selectedId));
+      setSelectedId(null);
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selectedId, content]);
 
   function updateSelected(
     patch: Partial<Pick<BlockNode, "props" | "styles">>,

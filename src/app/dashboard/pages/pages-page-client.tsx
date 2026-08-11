@@ -44,6 +44,7 @@ import {
   useUpdatePageMutation,
 } from "@/queries/pages";
 import type { PageSummary } from "@/responses/pages";
+import { pageEditorPath } from "@/lib/pages/editor-path";
 
 type PagesPageClientProps = {
   permissions: Permission[] | string;
@@ -238,7 +239,7 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
                         {canEdit && (
                           <Button
                             render={
-                              <Link href={`/dashboard/pages/${page.id}/edit`} />
+                              <Link href={pageEditorPath(page.slug)} />
                             }
                             variant="ghost"
                             size="icon-sm"

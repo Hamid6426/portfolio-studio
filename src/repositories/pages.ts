@@ -217,6 +217,30 @@ export async function getPageById(id: string): Promise<PageResponse> {
   }
 }
 
+export async function getPageBySlug(slug: string | null): Promise<PageResponse> {
+  try {
+    const summary = await getPublicPage(slug);
+    if (!summary) {
+      return {
+        success: false,
+        statusCode: 404,
+        message: "Page not found.",
+      };
+    }
+    return {
+      success: true,
+      statusCode: 200,
+      data: summary,
+    };
+  } catch (error) {
+    console.error("getPageBySlug failed:", error);
+    return apiErrorFromPostgres(
+      error,
+      "Something went wrong while loading the page.",
+    );
+  }
+}
+
 export async function getPublicPage(
   slug: string | null,
 ): Promise<PageSummary | null> {
