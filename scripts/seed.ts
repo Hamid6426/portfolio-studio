@@ -33,6 +33,7 @@ import {
   type PublishedPageSnapshot,
 } from "@/db/schema";
 import { hashPassword } from "@/lib/password";
+import { toBlockDocument } from "@/lib/blocks/document";
 import { ensureDefaultRoles } from "@/repositories/roles";
 
 import type { PortfolioDataset, SeedPage } from "./datasets/types";
@@ -180,6 +181,8 @@ async function seedPage(
   const label = page.slug === null ? "/ (landing)" : `/${page.slug}`;
   const nodes = countNodes(content);
 
+  const document = toBlockDocument(content);
+
   // The public site serves `published_snapshot` and requires `published_at`
   // to be non-null (`getPublishedPage`), so a seeded page is written the same
   // way `publishPage()` writes one: draft columns, frozen snapshot, timestamp.
@@ -187,7 +190,7 @@ async function seedPage(
     title: page.title,
     description: page.description,
     blockId: null,
-    content,
+    content: document,
   };
 
   const existing = await db.query.pagesTable.findFirst({
@@ -210,7 +213,7 @@ async function seedPage(
       .set({
         title: page.title,
         description: page.description,
-        content,
+        content: document,
         publishedSnapshot: snapshot,
         // Keep the original publish date if the page was already published.
         publishedAt: existing.publishedAt ?? new Date(),
@@ -230,7 +233,7 @@ async function seedPage(
     title: page.title,
     slug: page.slug,
     description: page.description,
-    content,
+    content: document,
     publishedSnapshot: snapshot,
     publishedAt: new Date(),
   });

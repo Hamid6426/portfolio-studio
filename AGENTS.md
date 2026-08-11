@@ -82,3 +82,4 @@ Datasets live in `scripts/datasets/` and are **pure content** — a `PortfolioDa
 - Schema changes → drizzle generate + migrate. Tables use `baseColumns`.
 - Spec/vision: `.docs/portfolio-studio.md` (read when building features).
 - Roadmap + gotchas: `.docs/roadmap.md` (read before starting anything beyond the page editor — it lists version-sensitive traps that are not obvious from the code).
+- Block trees are stored as versioned `BlockDocument` (`{ version, nodes }`) in `pages.content` / `blocks.children`. Migrate on read via `src/lib/blocks/document.ts`; never write bare arrays.

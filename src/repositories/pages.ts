@@ -5,9 +5,15 @@ import { db } from "@/db/client";
 import {
   blocksTable,
   pagesTable,
+  type BlockDocument,
   type BlockNode,
   type PublishedPageSnapshot,
 } from "@/db/schema";
+import {
+  migrateBlockDocument,
+  nodesFromStored,
+  toBlockDocument,
+} from "@/lib/blocks/document";
 import { apiErrorFromPostgres } from "@/lib/db/errors";
 import { PAGES_CACHE_TAG, pageCacheTag } from "@/lib/pages/cache-tags";
 import type {
@@ -39,7 +45,7 @@ function toPageSummary(row: {
   title: string;
   slug: string | null;
   description: string;
-  content: BlockNode[] | null;
+  content: BlockDocument | BlockNode[] | null;
   blockId: string | null;
   blockName: string | null;
   createdAt: Date | null;
@@ -50,7 +56,7 @@ function toPageSummary(row: {
     title: row.title,
     slug: row.slug,
     description: row.description,
-    content: row.content ?? [],
+    content: nodesFromStored(row.content),
     blockId: row.blockId,
     blockName: row.blockName,
     createdAt: row.createdAt,
@@ -276,7 +282,7 @@ function toPublishedSummary(row: {
   title: string;
   slug: string | null;
   description: string;
-  content: BlockNode[] | null;
+  content: BlockDocument | BlockNode[] | null;
   blockId: string | null;
   blockName: string | null;
   createdAt: Date | null;
@@ -291,7 +297,7 @@ function toPublishedSummary(row: {
     slug: row.slug,
     title: snapshot?.title ?? row.title,
     description: snapshot?.description ?? row.description,
-    content: snapshot?.content ?? row.content ?? [],
+    content: nodesFromStored(snapshot?.content ?? row.content),
     blockId: snapshot?.blockId ?? row.blockId,
     blockName: row.blockName,
     createdAt: row.createdAt,
@@ -405,7 +411,7 @@ export async function publishPage(id: string): Promise<PageResponse> {
       title: existing.title,
       description: existing.description,
       blockId: existing.blockId,
-      content: existing.content ?? [],
+      content: migrateBlockDocument(existing.content),
     };
 
     await db
@@ -536,7 +542,7 @@ export async function createPage(
         slug,
         description,
         blockId: normalizedBlockId,
-        content,
+        content: toBlockDocument(content),
       })
       .returning({ id: pagesTable.id });
 
@@ -612,7 +618,7 @@ export async function updatePage(
       slug?: string | null;
       description?: string;
       blockId?: string | null;
-      content?: BlockNode[];
+      content?: BlockDocument;
       updatedAt: Date;
     } = { updatedAt: new Date() };
 
@@ -642,7 +648,7 @@ export async function updatePage(
     }
 
     if (parsed.data.content !== undefined) {
-      updates.content = parsed.data.content;
+      updates.content = toBlockDocument(parsed.data.content);
     }
 
     await db.update(pagesTable).set(updates).where(eq(pagesTable.id, id));

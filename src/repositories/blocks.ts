@@ -1,7 +1,13 @@
 import { asc, eq } from "drizzle-orm";
 
 import { db } from "@/db/client";
-import { blocksTable, pagesTable, type BlockNode } from "@/db/schema";
+import {
+  blocksTable,
+  pagesTable,
+  type BlockDocument,
+  type BlockNode,
+} from "@/db/schema";
+import { nodesFromStored, toBlockDocument } from "@/lib/blocks/document";
 import { apiErrorFromPostgres } from "@/lib/db/errors";
 import type {
   CreateBlockPayload,
@@ -22,11 +28,11 @@ function toBlockSummary(block: {
   name: string;
   description: string;
   canBeLayout: boolean;
-  children: BlockNode[] | null;
+  children: BlockDocument | BlockNode[] | null;
   createdAt: Date | null;
   publishedAt: Date | null;
 }): BlockSummary {
-  const children = block.children ?? [];
+  const children = nodesFromStored(block.children);
   return {
     id: block.id,
     name: block.name,
@@ -166,7 +172,7 @@ export async function createBlock(
         name,
         description: description ?? "",
         canBeLayout: canBeLayout ?? false,
-        children: children ?? [],
+        children: toBlockDocument(children ?? []),
       })
       .returning();
 
@@ -251,7 +257,9 @@ export async function updateBlock(
         name,
         description: description ?? "",
         canBeLayout: canBeLayout ?? false,
-        ...(children === undefined ? {} : { children }),
+        ...(children === undefined
+          ? {}
+          : { children: toBlockDocument(children) }),
         updatedAt: new Date(),
       })
       .where(eq(blocksTable.id, id))

@@ -6,6 +6,7 @@ import {
   varchar,
   text,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { baseColumns } from "./base-columns";
 
 export const rolesTable = pgTable("roles", {
@@ -136,7 +137,7 @@ export const portfolioTable = pgTable("portfolios", {
     description: varchar("description").notNull(),
 });
 
-/** Nested HTML-like node stored in a block/page tree. */
+/** Nested HTML-like node stored inside a {@link BlockDocument}. */
 export type BlockNode = {
   id: string;
   type: string;
@@ -145,14 +146,29 @@ export type BlockNode = {
   children?: BlockNode[];
 };
 
+/**
+ * Versioned block tree. Stored in `pages.content`, `blocks.children`, and
+ * inside `published_snapshot.content`. Bare `BlockNode[]` is legacy (v0) and
+ * is upgraded on read via `migrateBlockDocument`.
+ */
+export type BlockDocument = {
+  version: number;
+  nodes: BlockNode[];
+};
+
+const emptyBlockDocumentSql = sql`'{"version":1,"nodes":[]}'::jsonb`;
+
 export const blocksTable = pgTable("blocks", {
   ...baseColumns,
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description").notNull().default(""),
   /** When true, this block can be attached to pages as a reusable layout. */
   canBeLayout: boolean("can_be_layout").notNull().default(false),
-  /** Nested child elements for this block. */
-  children: jsonb("children").$type<BlockNode[]>().notNull().default([]),
+  /** Versioned nested child elements for this block. */
+  children: jsonb("children")
+    .$type<BlockDocument>()
+    .notNull()
+    .default(emptyBlockDocumentSql),
 });
 
 /**
@@ -167,7 +183,7 @@ export type PublishedPageSnapshot = {
   title: string;
   description: string;
   blockId: string | null;
-  content: BlockNode[];
+  content: BlockDocument;
 };
 
 export const pagesTable = pgTable("pages", {
@@ -176,8 +192,11 @@ export const pagesTable = pgTable("pages", {
   /** `null` = site landing page served at `/`. */
   slug: varchar("slug", { length: 255 }).unique(),
   description: text("description").notNull().default(""),
-  /** Editable page body tree (the draft). */
-  content: jsonb("content").$type<BlockNode[]>().notNull().default([]),
+  /** Editable page body tree (the draft), versioned. */
+  content: jsonb("content")
+    .$type<BlockDocument>()
+    .notNull()
+    .default(emptyBlockDocumentSql),
   /** Optional layout block (`blocks.can_be_layout = true`). */
   blockId: varchar("block_id").references(() => blocksTable.id),
   /** What the public site serves. Written on publish, `null` until then. */

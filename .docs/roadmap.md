@@ -183,13 +183,13 @@ Found while building Phase 1, deliberately left. Each is small and independent.
 
 ## Recommended first task
 
-**Add a schema version to stored block trees**, before either phase.
+**Add a schema version to stored block trees** — done.
 
-`BlockNode` is a nested `{type, props, children}` tree resolved through a registry —
-the same shape Puck uses. Puck's 0.19 release changed its document model and forced
-migration of every user's already-persisted content. This repo now has ~700 seeded
-nodes plus published snapshots, and Phase 2 will likely add entity-backed block types,
-which is exactly the kind of change that breaks stored trees.
+Stored shape is now `{ version, nodes }` (`BlockDocument`) for `pages.content`,
+`blocks.children`, and `published_snapshot.content`. Legacy bare arrays are
+treated as version 0 and upgraded on every read via `migrateBlockDocument` in
+`src/lib/blocks/document.ts`. Bump `CURRENT_BLOCK_DOCUMENT_VERSION` and add a
+step there when Phase 2 changes the tree model.
 
-A `version` field on the stored document plus a `migrate()` step on read is cheap now
-and expensive later.
+~~A `version` field on the stored document plus a `migrate()` step on read is cheap now
+and expensive later.~~
