@@ -136,18 +136,18 @@ export const portfolioTable = pgTable("portfolios", {
     description: varchar("description").notNull(),
 });
 
-/** Nested HTML-like node stored in a block's children tree. */
+/** Nested HTML-like node stored in a block/page tree. */
 export type BlockNode = {
-  id?: string;
+  id: string;
   type: string;
-  props?: Record<string, unknown>;
+  props: Record<string, unknown>;
+  styles?: Record<string, string>;
   children?: BlockNode[];
 };
 
 export const blocksTable = pgTable("blocks", {
   ...baseColumns,
   name: varchar("name", { length: 255 }).notNull(),
-  slug: varchar("slug", { length: 255 }).notNull().unique(),
   description: text("description").notNull().default(""),
   /** When true, this block can be attached to pages as a reusable layout. */
   canBeLayout: boolean("can_be_layout").notNull().default(false),
@@ -161,6 +161,8 @@ export const pagesTable = pgTable("pages", {
   /** `null` = site landing page served at `/`. */
   slug: varchar("slug", { length: 255 }).unique(),
   description: text("description").notNull().default(""),
+  /** Editable page body tree. */
+  content: jsonb("content").$type<BlockNode[]>().notNull().default([]),
   /** Optional layout block (`blocks.can_be_layout = true`). */
   blockId: varchar("block_id").references(() => blocksTable.id),
 });
