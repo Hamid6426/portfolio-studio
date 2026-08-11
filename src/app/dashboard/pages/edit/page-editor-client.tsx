@@ -3,9 +3,18 @@
 import { Loader2Icon } from "lucide-react";
 
 import { PageEditorShell } from "@/components/page-editor/editor-shell";
+import type { Permission } from "@/config/permissions";
 import { usePageQuery } from "@/queries/pages";
 
-export function PageEditorClient({ pageId }: { pageId: string }) {
+type PageEditorClientProps = {
+  pageId: string;
+  permissions: Permission[] | string;
+};
+
+export function PageEditorClient({
+  pageId,
+  permissions,
+}: PageEditorClientProps) {
   const pageQuery = usePageQuery(pageId);
 
   if (pageQuery.isLoading) {
@@ -25,5 +34,7 @@ export function PageEditorClient({ pageId }: { pageId: string }) {
     );
   }
 
-  return <PageEditorShell page={pageQuery.data.data} />;
+  return (
+    <PageEditorShell page={pageQuery.data.data} permissions={permissions} />
+  );
 }

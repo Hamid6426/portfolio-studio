@@ -39,5 +39,7 @@ export default async function PageEditPage({
     notFound();
   }
 
-  return <PageEditorClient pageId={page.data.id} />;
+  return (
+    <PageEditorClient pageId={page.data.id} permissions={permissions} />
+  );
 }

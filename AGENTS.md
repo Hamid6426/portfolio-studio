@@ -57,7 +57,7 @@ Keep gate redirect targets in PUBLIC_ROUTES or loops occur.
 
 ## Routes (do not invent)
 
-`/` · `/home` · `/setup` · `/setup-guide` · `/login` · `/dashboard/overview` · `/dashboard/pages` · `/dashboard/pages/edit` · `/dashboard/blocks` · `/dashboard/users` · `/dashboard/roles` · `/error/database` · `/[slug]`
+`/` · `/home` · `/setup` · `/setup-guide` · `/login` · `/dashboard/overview` · `/dashboard/pages` · `/dashboard/pages/edit` · `/dashboard/blocks` · `/dashboard/blocks/edit` · `/dashboard/users` · `/dashboard/roles` · `/error/database` · `/[slug]`
 
 ## Env
 
@@ -65,7 +65,15 @@ Keep gate redirect targets in PUBLIC_ROUTES or loops occur.
 
 ## Commands
 
-`bun dev` · `bun run db:generate` · `bun run db:migrate` · `bun run db:studio`
+`bun dev` · `bun run db:generate` · `bun run db:migrate` · `bun run db:studio` · `bun run db:seed`
+
+`db:seed` creates the default roles, an admin user, and the dataset's portfolio pages (published). Idempotent; `--force` rewrites the seeded pages. Never deletes.
+
+Datasets live in `scripts/datasets/` and are **pure content** — a `PortfolioDataset` (`datasets/types.ts`): `admin`, `nav`, and `pages[].sections[]` of `SectionSpec` records (`hero`, `pageHeader`, `prose`, `statRow`, `itemList`, `cardGrid`, `linkRow`, `timeline`, `citationList`). `scripts/sections.ts` owns every layout/style decision and turns each spec into one `section` block via the builders in `scripts/seed-blocks.ts`.
+
+- `bun run db:seed` — default dataset `example` (fictional persona; also the docs for writing your own).
+- `bun run db:seed -- --dataset=me.private` — loads `scripts/datasets/me.private.ts`.
+- `scripts/datasets/*.private.ts` is gitignored: real personal content goes there, never in `example.ts`.
 
 ## Conventions
 
@@ -73,3 +81,4 @@ Keep gate redirect targets in PUBLIC_ROUTES or loops occur.
 - Alias `@/*` → `src/*`. Match existing UI patterns; don't swap Base UI for Radix.
 - Schema changes → drizzle generate + migrate. Tables use `baseColumns`.
 - Spec/vision: `.docs/portfolio-studio.md` (read when building features).
+- Roadmap + gotchas: `.docs/roadmap.md` (read before starting anything beyond the page editor — it lists version-sensitive traps that are not obvious from the code).

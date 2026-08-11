@@ -1,14 +1,82 @@
 "use client";
 
+import type { ReactNode } from "react";
+import { Trash2Icon } from "lucide-react";
+
+import { definitionFor } from "@/components/page-editor/block-registry";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import type { BlockNode } from "@/db/schema";
+import { cn } from "@/lib/utils";
 
 type SettingsPanelProps = {
   selected: BlockNode | null;
   onChange: (props: Record<string, unknown>) => void;
   onDelete: () => void;
 };
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="grid gap-2 border-b border-border px-3 py-3 last:border-b-0">
+      <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+        {title}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+function FieldRow({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="grid grid-cols-[52px_1fr] items-center gap-2">
+      <label
+        htmlFor={htmlFor}
+        className="truncate text-[11px] text-muted-foreground"
+      >
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function CompactInput({
+  id,
+  value,
+  onChange,
+  className,
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  className?: string;
+}) {
+  return (
+    <Input
+      id={id}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className={cn(
+        "h-7 rounded-md px-2 text-xs shadow-none md:text-xs",
+        className,
+      )}
+    />
+  );
+}
 
 export function SettingsPanel({
   selected,
@@ -24,96 +92,101 @@ export function SettingsPanel({
   }
 
   const props = selected.props;
+  const label = definitionFor(selected.type)?.label ?? selected.type;
 
   function setProp(key: string, value: unknown) {
     onChange({ ...props, [key]: value });
   }
 
+  const hasText =
+    selected.type === "heading" ||
+    selected.type === "text" ||
+    selected.type === "button";
+
   return (
-    <div className="grid gap-3 p-3">
-      <p className="text-xs text-muted-foreground">
-        Type: <span className="font-mono text-foreground">{selected.type}</span>
-      </p>
-
-      {(selected.type === "heading" ||
-        selected.type === "text" ||
-        selected.type === "button") && (
-        <div className="grid gap-1.5">
-          <Label htmlFor="prop-text" className="text-xs">
-            Text
-          </Label>
-          <Input
-            id="prop-text"
-            value={String(props.text ?? "")}
-            onChange={(event) => setProp("text", event.target.value)}
-          />
-        </div>
-      )}
-
-      {selected.type === "heading" && (
-        <div className="grid gap-1.5">
-          <Label htmlFor="prop-level" className="text-xs">
-            Level
-          </Label>
-          <select
-            id="prop-level"
-            className="flex h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm"
-            value={String(props.level ?? 2)}
-            onChange={(event) => setProp("level", Number(event.target.value))}
+    <div>
+      <Section title="Block">
+        <FieldRow label="Type" htmlFor="prop-type">
+          <span
+            id="prop-type"
+            className="truncate font-mono text-[11px] text-foreground"
           >
-            <option value={1}>H1</option>
-            <option value={2}>H2</option>
-            <option value={3}>H3</option>
-            <option value={4}>H4</option>
-          </select>
-        </div>
-      )}
+            {label}
+          </span>
+        </FieldRow>
+      </Section>
 
-      {selected.type === "button" && (
-        <div className="grid gap-1.5">
-          <Label htmlFor="prop-href" className="text-xs">
-            Link href
-          </Label>
-          <Input
-            id="prop-href"
-            value={String(props.href ?? "")}
-            onChange={(event) => setProp("href", event.target.value)}
-          />
-        </div>
-      )}
+      {hasText ? (
+        <Section title="Content">
+          <FieldRow label="Text" htmlFor="prop-text">
+            <CompactInput
+              id="prop-text"
+              value={String(props.text ?? "")}
+              onChange={(value) => setProp("text", value)}
+            />
+          </FieldRow>
 
-      {selected.type === "image" && (
-        <>
-          <div className="grid gap-1.5">
-            <Label htmlFor="prop-src" className="text-xs">
-              Image URL
-            </Label>
-            <Input
+          {selected.type === "heading" ? (
+            <FieldRow label="Level" htmlFor="prop-level">
+              <select
+                id="prop-level"
+                className="flex h-7 w-full rounded-md border border-input bg-transparent px-2 text-xs"
+                value={String(props.level ?? 2)}
+                onChange={(event) =>
+                  setProp("level", Number(event.target.value))
+                }
+              >
+                <option value={1}>H1</option>
+                <option value={2}>H2</option>
+                <option value={3}>H3</option>
+                <option value={4}>H4</option>
+              </select>
+            </FieldRow>
+          ) : null}
+
+          {selected.type === "button" ? (
+            <FieldRow label="Href" htmlFor="prop-href">
+              <CompactInput
+                id="prop-href"
+                value={String(props.href ?? "")}
+                onChange={(value) => setProp("href", value)}
+              />
+            </FieldRow>
+          ) : null}
+        </Section>
+      ) : null}
+
+      {selected.type === "image" ? (
+        <Section title="Image">
+          <FieldRow label="Source" htmlFor="prop-src">
+            <CompactInput
               id="prop-src"
               value={String(props.src ?? "")}
-              onChange={(event) => setProp("src", event.target.value)}
+              onChange={(value) => setProp("src", value)}
             />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="prop-alt" className="text-xs">
-              Alt text
-            </Label>
-            <Input
+          </FieldRow>
+          <FieldRow label="Alt" htmlFor="prop-alt">
+            <CompactInput
               id="prop-alt"
               value={String(props.alt ?? "")}
-              onChange={(event) => setProp("alt", event.target.value)}
+              onChange={(value) => setProp("alt", value)}
             />
-          </div>
-        </>
-      )}
+          </FieldRow>
+        </Section>
+      ) : null}
 
-      <button
-        type="button"
-        className="mt-2 rounded-md border border-destructive/40 px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
-        onClick={onDelete}
-      >
-        Delete block
-      </button>
+      <Section title="Danger zone">
+        <Button
+          type="button"
+          variant="destructive"
+          size="sm"
+          className="w-full"
+          onClick={onDelete}
+        >
+          <Trash2Icon data-icon="inline-start" />
+          Delete block
+        </Button>
+      </Section>
     </div>
   );
 }

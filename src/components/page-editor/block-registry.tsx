@@ -1,6 +1,11 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import type { BlockNode } from "@/db/schema";
+import {
+  isExternalUrl,
+  sanitizeStyles,
+  sanitizeUrl,
+} from "@/lib/block-sanitize";
 
 export type BlockType =
   | "section"
@@ -128,10 +133,6 @@ export function definitionFor(type: string): BlockDefinition | undefined {
   return BLOCK_DEFINITIONS.find((item) => item.type === type);
 }
 
-function styleObject(styles?: Record<string, string>): CSSProperties {
-  return (styles ?? {}) as CSSProperties;
-}
-
 type RenderOpts = {
   selectedId?: string | null;
   onSelect?: (id: string) => void;
@@ -171,7 +172,9 @@ function BlockRenderer({
       : "";
 
   const common = {
-    style: styleObject(node.styles),
+    // Block styles come from stored jsonb and are rendered to public visitors:
+    // keep only allowlisted properties with inert values.
+    style: sanitizeStyles(node.styles),
     className: ring,
     onClick: editable ? onClick : undefined,
     "data-block-id": node.id,
@@ -203,30 +206,44 @@ function BlockRenderer({
     }
     case "text":
       return <p {...common}>{String(node.props.text ?? "")}</p>;
-    case "image":
+    case "image": {
+      // Empty fallback: an unsafe or missing src omits the attribute entirely.
+      const src = sanitizeUrl(node.props.src, "");
       return (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           {...common}
-          src={String(node.props.src ?? "")}
+          src={src || undefined}
           alt={String(node.props.alt ?? "")}
         />
       );
-    case "button":
+    }
+    case "button": {
+      const href = sanitizeUrl(node.props.href, "#");
       return (
         <a
           {...common}
-          href={editable ? undefined : String(node.props.href ?? "#")}
-          onClick={(event) => {
-            if (editable) {
-              event.preventDefault();
-              onClick(event);
-            }
-          }}
+          href={editable ? undefined : href}
+          rel={
+            !editable && isExternalUrl(href) ? "noopener noreferrer" : undefined
+          }
+          // Must stay `undefined` outside the editor: this renderer also runs
+          // in the public Server Component tree, where passing any function
+          // prop throws "Event handlers cannot be passed to Client Component
+          // props" and 500s the whole page.
+          onClick={
+            editable
+              ? (event) => {
+                  event.preventDefault();
+                  onClick(event);
+                }
+              : undefined
+          }
         >
           {String(node.props.text ?? "Button")}
         </a>
       );
+    }
     case "divider":
       return <hr {...common} />;
     default:

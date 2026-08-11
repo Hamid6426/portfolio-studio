@@ -99,6 +99,7 @@ export async function listLayoutBlocks(): Promise<ListBlocksResponse> {
   }
 }
 
+/** Raw loader for server components rendering a page's layout block. */
 export async function getBlockById(id: string): Promise<BlockSummary | null> {
   const rows = await db
     .select(blockColumns)
@@ -107,6 +108,33 @@ export async function getBlockById(id: string): Promise<BlockSummary | null> {
     .limit(1);
   const row = rows[0];
   return row ? toBlockSummary(row) : null;
+}
+
+/** Same lookup as `getBlockById`, wrapped for API route handlers. */
+export async function getBlockResponseById(id: string): Promise<BlockResponse> {
+  try {
+    const summary = await getBlockById(id);
+
+    if (!summary) {
+      return {
+        success: false,
+        statusCode: 404,
+        message: "Block not found.",
+      };
+    }
+
+    return {
+      success: true,
+      statusCode: 200,
+      data: summary,
+    };
+  } catch (error) {
+    console.error("getBlockResponseById failed:", error);
+    return apiErrorFromPostgres(
+      error,
+      "Something went wrong while loading the block.",
+    );
+  }
 }
 
 export async function createBlock(
@@ -123,12 +151,13 @@ export async function createBlock(
         "name",
         "description",
         "canBeLayout",
+        "children",
       ] as const),
       message: issue?.message ?? "Please check your details and try again.",
     };
   }
 
-  const { name, description, canBeLayout } = parsed.data;
+  const { name, description, canBeLayout, children } = parsed.data;
 
   try {
     const [created] = await db
@@ -137,7 +166,7 @@ export async function createBlock(
         name,
         description: description ?? "",
         canBeLayout: canBeLayout ?? false,
-        children: [],
+        children: children ?? [],
       })
       .returning();
 
@@ -179,12 +208,13 @@ export async function updateBlock(
         "name",
         "description",
         "canBeLayout",
+        "children",
       ] as const),
       message: issue?.message ?? "Please check your details and try again.",
     };
   }
 
-  const { name, description, canBeLayout } = parsed.data;
+  const { name, description, canBeLayout, children } = parsed.data;
 
   try {
     const existing = await db.query.blocksTable.findFirst({
@@ -221,6 +251,7 @@ export async function updateBlock(
         name,
         description: description ?? "",
         canBeLayout: canBeLayout ?? false,
+        ...(children === undefined ? {} : { children }),
         updatedAt: new Date(),
       })
       .where(eq(blocksTable.id, id))

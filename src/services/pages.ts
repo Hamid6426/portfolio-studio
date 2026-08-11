@@ -52,6 +52,28 @@ export async function updatePageRequest(
   }
 }
 
+export async function publishPageRequest(id: string): Promise<PageResponse> {
+  try {
+    const { data } = await axiosInstance.post<PageResponse>(
+      `/api/pages/${id}/publish`,
+    );
+    return data;
+  } catch (error) {
+    return getApiErrorResponse(error);
+  }
+}
+
+export async function unpublishPageRequest(id: string): Promise<PageResponse> {
+  try {
+    const { data } = await axiosInstance.delete<PageResponse>(
+      `/api/pages/${id}/publish`,
+    );
+    return data;
+  } catch (error) {
+    return getApiErrorResponse(error);
+  }
+}
+
 export async function deletePageRequest(id: string): Promise<PageResponse> {
   try {
     const { data } = await axiosInstance.delete<PageResponse>(

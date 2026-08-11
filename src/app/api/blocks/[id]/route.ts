@@ -4,13 +4,27 @@ import { PERMISSIONS } from "@/config/permissions";
 import {
   isErrorResponse,
   requireButtonPermission,
+  requireRoutePermission,
 } from "@/lib/auth/permissions";
 import type { UpdateBlockPayload } from "@/payloads/blocks";
-import { deleteBlock, updateBlock } from "@/repositories/blocks";
+import {
+  deleteBlock,
+  getBlockResponseById,
+  updateBlock,
+} from "@/repositories/blocks";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
+
+export async function GET(_request: Request, context: RouteContext) {
+  const auth = await requireRoutePermission(PERMISSIONS.dashboardBlocks);
+  if (isErrorResponse(auth)) return auth;
+
+  const { id } = await context.params;
+  const response = await getBlockResponseById(id);
+  return NextResponse.json(response, { status: response.statusCode });
+}
 
 export async function PATCH(request: Request, context: RouteContext) {
   const auth = await requireButtonPermission(PERMISSIONS.blocksEdit);

@@ -12,6 +12,7 @@ import {
   BLOCKS_LAYOUT_QUERY_KEY,
   BLOCKS_QUERY_KEY,
   BLOCKS_UPDATE_MUTATION_KEY,
+  blockQueryKey,
 } from "@/config/storage-keys";
 import type {
   CreateBlockPayload,
@@ -21,6 +22,7 @@ import type { BlockResponse, ListBlocksResponse } from "@/responses/blocks";
 import {
   createBlockRequest,
   deleteBlockRequest,
+  getBlockRequest,
   listBlocksRequest,
   listLayoutBlocksRequest,
   updateBlockRequest,
@@ -30,6 +32,14 @@ export function useBlocksQuery() {
   return useQuery<ListBlocksResponse>({
     queryKey: BLOCKS_QUERY_KEY,
     queryFn: listBlocksRequest,
+  });
+}
+
+export function useBlockQuery(id: string) {
+  return useQuery<BlockResponse>({
+    queryKey: blockQueryKey(id),
+    queryFn: () => getBlockRequest(id),
+    enabled: Boolean(id),
   });
 }
 
@@ -69,8 +79,13 @@ export function useUpdateBlockMutation() {
   >({
     mutationKey: BLOCKS_UPDATE_MUTATION_KEY,
     mutationFn: ({ id, payload }) => updateBlockRequest(id, payload),
-    onSuccess: (result) => {
-      if (result.success) invalidateBlockQueries(queryClient);
+    onSuccess: (result, variables) => {
+      if (result.success) {
+        invalidateBlockQueries(queryClient);
+        void queryClient.invalidateQueries({
+          queryKey: blockQueryKey(variables.id),
+        });
+      }
     },
   });
 }

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { BlockNode } from "@/db/schema";
+import { blockNodeTreeSchema } from "@/payloads/block-node";
 
 const slugSchema = z
   .string()
@@ -11,21 +11,11 @@ const slugSchema = z
     "Use lowercase letters, numbers, and hyphens (e.g. about-me).",
   );
 
-const blockNodeSchema: z.ZodType<BlockNode> = z.lazy(() =>
-  z.object({
-    id: z.string().min(1),
-    type: z.string().min(1),
-    props: z.record(z.string(), z.unknown()),
-    styles: z.record(z.string(), z.string()).optional(),
-    children: z.array(blockNodeSchema).optional(),
-  }),
-);
-
 export const createPagePayloadSchema = z.object({
   title: z.string().trim().min(1, "Please enter a title."),
   slug: slugSchema,
   description: z.string().trim().default(""),
-  content: z.array(blockNodeSchema).default([]),
+  content: blockNodeTreeSchema.default([]),
   blockId: z.string().trim().nullable().optional(),
 });
 
@@ -36,7 +26,7 @@ export const updatePagePayloadSchema = z.object({
   title: z.string().trim().min(1, "Please enter a title.").optional(),
   slug: slugSchema.optional(),
   description: z.string().trim().optional(),
-  content: z.array(blockNodeSchema).optional(),
+  content: blockNodeTreeSchema.optional(),
   blockId: z.string().trim().nullable().optional(),
 });
 

@@ -1,8 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2Icon, PencilIcon, PlusIcon, TrashIcon } from "lucide-react";
+import {
+  LayoutTemplateIcon,
+  Loader2Icon,
+  PencilIcon,
+  PlusIcon,
+  TrashIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +41,7 @@ import {
   useDeleteBlockMutation,
   useUpdateBlockMutation,
 } from "@/queries/blocks";
+import { blockEditorPath } from "@/lib/blocks/editor-path";
 import type { BlockSummary } from "@/responses/blocks";
 
 type BlocksPageClientProps = {
@@ -206,6 +214,19 @@ export function BlocksPageClient({ permissions }: BlocksPageClientProps) {
                   {(canEdit || canDelete) && (
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        {canEdit && (
+                          <Button
+                            render={
+                              <Link href={blockEditorPath(block.id)} />
+                            }
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Edit ${block.name} content`}
+                            title="Edit content"
+                          >
+                            <LayoutTemplateIcon />
+                          </Button>
+                        )}
                         {canEdit && (
                           <Button
                             variant="ghost"

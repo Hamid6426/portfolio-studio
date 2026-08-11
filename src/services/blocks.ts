@@ -25,6 +25,17 @@ export async function listLayoutBlocksRequest(): Promise<ListBlocksResponse> {
   }
 }
 
+export async function getBlockRequest(id: string): Promise<BlockResponse> {
+  try {
+    const { data } = await axiosInstance.get<BlockResponse>(
+      `/api/blocks/${id}`,
+    );
+    return data;
+  } catch (error) {
+    return getApiErrorResponse(error);
+  }
+}
+
 export async function createBlockRequest(
   payload: CreateBlockPayload,
 ): Promise<BlockResponse> {

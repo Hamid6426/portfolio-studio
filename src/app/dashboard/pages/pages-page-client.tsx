@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
+  CloudOffIcon,
+  CloudUploadIcon,
   EyeIcon,
   Loader2Icon,
   PencilIcon,
@@ -12,6 +14,7 @@ import {
   TrashIcon,
 } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -41,10 +44,13 @@ import {
   useCreatePageMutation,
   useDeletePageMutation,
   usePagesQuery,
+  usePublishPageMutation,
+  useUnpublishPageMutation,
   useUpdatePageMutation,
 } from "@/queries/pages";
 import type { PageSummary } from "@/responses/pages";
 import { pageEditorPath } from "@/lib/pages/editor-path";
+import { pagePreviewPath, pagePublicPath } from "@/lib/pages/preview-path";
 
 type PagesPageClientProps = {
   permissions: Permission[] | string;
@@ -67,6 +73,8 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
   const createMutation = useCreatePageMutation();
   const updateMutation = useUpdatePageMutation();
   const deleteMutation = useDeletePageMutation();
+  const publishMutation = usePublishPageMutation();
+  const unpublishMutation = useUnpublishPageMutation();
 
   const canCreate = canShowButton(permissions, PERMISSIONS.pagesCreate);
   const canEdit = canShowButton(permissions, PERMISSIONS.pagesEdit);
@@ -75,6 +83,8 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<PageSummary | null>(null);
   const [deleting, setDeleting] = useState<PageSummary | null>(null);
+  const [publishing, setPublishing] = useState<PageSummary | null>(null);
+  const [unpublishing, setUnpublishing] = useState<PageSummary | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const pages = useMemo(
@@ -90,7 +100,9 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
   const pending =
     createMutation.isPending ||
     updateMutation.isPending ||
-    deleteMutation.isPending;
+    deleteMutation.isPending ||
+    publishMutation.isPending ||
+    unpublishMutation.isPending;
 
   function openCreate() {
     setEditing(null);
@@ -157,6 +169,32 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
     setFormOpen(false);
   }
 
+  async function handlePublish() {
+    if (!publishing) return;
+
+    const result = await publishMutation.mutateAsync(publishing.id);
+    if (!result.success) {
+      toast.error(result.message);
+      return;
+    }
+
+    toast.success(result.message ?? "Page published.");
+    setPublishing(null);
+  }
+
+  async function handleUnpublish() {
+    if (!unpublishing) return;
+
+    const result = await unpublishMutation.mutateAsync(unpublishing.id);
+    if (!result.success) {
+      toast.error(result.message);
+      return;
+    }
+
+    toast.success(result.message ?? "Page unpublished.");
+    setUnpublishing(null);
+  }
+
   async function handleDelete() {
     if (!deleting) return;
 
@@ -200,6 +238,7 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
             <TableRow>
               <TableHead>Title</TableHead>
               <TableHead>Slug</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Layout block</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="w-[1%] text-right">Actions</TableHead>
@@ -208,16 +247,24 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
           <TableBody>
             {pages.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-muted-foreground">
+                <TableCell colSpan={6} className="text-muted-foreground">
                   No pages yet.
                 </TableCell>
               </TableRow>
             ) : (
-              pages.map((page) => (
+              pages.map((page) => {
+                const isPublished = Boolean(page.publishedAt);
+
+                return (
                 <TableRow key={page.id}>
                   <TableCell className="font-medium">{page.title}</TableCell>
                   <TableCell className="font-mono text-xs">
                     {page.slug ? `/${page.slug}` : "/ (home)"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={isPublished ? "default" : "secondary"}>
+                      {isPublished ? "Published" : "Draft"}
+                    </Badge>
                   </TableCell>
                   <TableCell>{page.blockName ?? "—"}</TableCell>
                   <TableCell>{formatDate(page.createdAt)}</TableCell>
@@ -228,14 +275,39 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
                           size="icon-sm"
                           onClick={() =>
                             window.open(
-                              page.slug ? `/${page.slug}` : "/",
+                              isPublished
+                                ? pagePublicPath(page.slug)
+                                : pagePreviewPath(page.slug),
                               "_blank",
                             )
                           }
-                          aria-label={`Preview ${page.title}`}
+                          aria-label={
+                            isPublished
+                              ? `View ${page.title}`
+                              : `Preview draft of ${page.title}`
+                          }
                         >
                           <EyeIcon />
                         </Button>
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() =>
+                              isPublished
+                                ? setUnpublishing(page)
+                                : setPublishing(page)
+                            }
+                            disabled={pending}
+                            aria-label={
+                              isPublished
+                                ? `Unpublish ${page.title}`
+                                : `Publish ${page.title}`
+                            }
+                          >
+                            {isPublished ? <CloudOffIcon /> : <CloudUploadIcon />}
+                          </Button>
+                        )}
                         {canEdit && (
                           <Button
                             render={
@@ -273,7 +345,8 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
                       </div>
                     </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -376,6 +449,82 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(publishing)}
+        onOpenChange={(open) => !open && setPublishing(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Publish page</DialogTitle>
+            <DialogDescription>
+              Publish &ldquo;{publishing?.title}&rdquo; to{" "}
+              <span className="font-mono">
+                {publishing ? pagePublicPath(publishing.slug) : ""}
+              </span>
+              ? This makes the current draft the live version of the page.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPublishing(null)}
+              disabled={pending}
+            >
+              Cancel
+            </Button>
+            <Button type="button" onClick={handlePublish} disabled={pending}>
+              {publishMutation.isPending && (
+                <Loader2Icon
+                  data-icon="inline-start"
+                  className="animate-spin"
+                />
+              )}
+              Publish
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(unpublishing)}
+        onOpenChange={(open) => !open && setUnpublishing(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Unpublish page</DialogTitle>
+            <DialogDescription>
+              Unpublish &ldquo;{unpublishing?.title}&rdquo;? Visitors will get a
+              404. Your draft is kept and can be published again later.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setUnpublishing(null)}
+              disabled={pending}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleUnpublish}
+              disabled={pending}
+            >
+              {unpublishMutation.isPending && (
+                <Loader2Icon
+                  data-icon="inline-start"
+                  className="animate-spin"
+                />
+              )}
+              Unpublish
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

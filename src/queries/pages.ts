@@ -23,8 +23,15 @@ import {
   deletePageRequest,
   getPageRequest,
   listPagesRequest,
+  publishPageRequest,
+  unpublishPageRequest,
   updatePageRequest,
 } from "@/services/pages";
+
+// These belong beside the other keys in `@/config/storage-keys`, but that file
+// is outside this change's scope; move them there when convenient.
+const PAGES_PUBLISH_MUTATION_KEY = ["pages", "publish"] as const;
+const PAGES_UNPUBLISH_MUTATION_KEY = ["pages", "unpublish"] as const;
 
 export function usePagesQuery() {
   return useQuery<ListPagesResponse>({
@@ -71,6 +78,36 @@ export function useUpdatePageMutation() {
         void queryClient.invalidateQueries({
           queryKey: pageQueryKey(variables.id),
         });
+      }
+    },
+  });
+}
+
+export function usePublishPageMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<PageResponse, Error, string>({
+    mutationKey: PAGES_PUBLISH_MUTATION_KEY,
+    mutationFn: publishPageRequest,
+    onSuccess: (result, id) => {
+      if (result.success) {
+        void queryClient.invalidateQueries({ queryKey: PAGES_QUERY_KEY });
+        void queryClient.invalidateQueries({ queryKey: pageQueryKey(id) });
+      }
+    },
+  });
+}
+
+export function useUnpublishPageMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<PageResponse, Error, string>({
+    mutationKey: PAGES_UNPUBLISH_MUTATION_KEY,
+    mutationFn: unpublishPageRequest,
+    onSuccess: (result, id) => {
+      if (result.success) {
+        void queryClient.invalidateQueries({ queryKey: PAGES_QUERY_KEY });
+        void queryClient.invalidateQueries({ queryKey: pageQueryKey(id) });
       }
     },
   });

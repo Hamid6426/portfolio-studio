@@ -155,14 +155,31 @@ export const blocksTable = pgTable("blocks", {
   children: jsonb("children").$type<BlockNode[]>().notNull().default([]),
 });
 
+/**
+ * Frozen copy of everything the public renderer reads from a page, written
+ * when the page is published. Keeping it separate from the live columns is
+ * what makes the editor a true draft surface: saving edits touches only the
+ * live columns, so the public site keeps serving this snapshot until someone
+ * publishes again. `slug` is deliberately absent — it is the page's address,
+ * not its content, so renaming it moves the live page immediately.
+ */
+export type PublishedPageSnapshot = {
+  title: string;
+  description: string;
+  blockId: string | null;
+  content: BlockNode[];
+};
+
 export const pagesTable = pgTable("pages", {
   ...baseColumns,
   title: varchar("title", { length: 255 }).notNull(),
   /** `null` = site landing page served at `/`. */
   slug: varchar("slug", { length: 255 }).unique(),
   description: text("description").notNull().default(""),
-  /** Editable page body tree. */
+  /** Editable page body tree (the draft). */
   content: jsonb("content").$type<BlockNode[]>().notNull().default([]),
   /** Optional layout block (`blocks.can_be_layout = true`). */
   blockId: varchar("block_id").references(() => blocksTable.id),
+  /** What the public site serves. Written on publish, `null` until then. */
+  publishedSnapshot: jsonb("published_snapshot").$type<PublishedPageSnapshot>(),
 });

@@ -88,7 +88,28 @@ export function insertChild(
   });
 }
 
-/** Move node to a new parent (null = root) at index. */
+/** True when `candidateId` is `nodeId` itself or lives somewhere inside it. */
+export function containsNode(
+  nodes: BlockNode[],
+  nodeId: string,
+  candidateId: string,
+): boolean {
+  const node = findNode(nodes, nodeId);
+  if (!node) return false;
+  return findNode([node], candidateId) !== null;
+}
+
+/**
+ * Move a node under `newParentId` (null = root).
+ *
+ * `index` is the destination slot measured **after** the node has been removed
+ * from its current position — i.e. the slot the drop indicator points at.
+ * Callers must compute it against the destination sibling list with the moved
+ * node filtered out, otherwise downward moves land one slot short.
+ *
+ * Returns `nodes` unchanged for impossible or no-op moves so callers can skip
+ * pushing a history entry.
+ */
 export function moveNode(
   nodes: BlockNode[],
   nodeId: string,
@@ -105,8 +126,20 @@ export function moveNode(
   if (newParentId === nodeId) return nodes;
   if (newParentId && findNode([node], newParentId)) return nodes;
 
+  // The destination must exist and be able to hold children.
+  if (newParentId) {
+    const parent = findNode(nodes, newParentId);
+    if (!parent?.children) return nodes;
+  }
+
+  const currentParentId = located.parent?.id ?? null;
+  const at = Math.max(0, index);
+
+  // Dropping back into the slot it already occupies.
+  if (currentParentId === newParentId && at === located.index) return nodes;
+
   const without = removeNodeById(nodes, nodeId);
-  return insertChild(without, newParentId, node, index);
+  return insertChild(without, newParentId, node, at);
 }
 
 export function flattenTree(

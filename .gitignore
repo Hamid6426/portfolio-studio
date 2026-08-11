@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 
 
+# private seed datasets (real personal content — never commit)
+scripts/datasets/*.private.ts
+
 # vercel
 .vercel
 
