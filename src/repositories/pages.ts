@@ -1,7 +1,7 @@
 import { and, asc, eq, isNull, ne } from "drizzle-orm";
 
 import { db } from "@/db/client";
-import { layoutsTable, pagesTable } from "@/db/schema";
+import { blocksTable, pagesTable } from "@/db/schema";
 import { apiErrorFromPostgres } from "@/lib/db/errors";
 import type {
   CreatePagePayload,
@@ -33,8 +33,8 @@ function toPageSummary(row: {
   title: string;
   slug: string | null;
   description: string;
-  layoutId: string | null;
-  layoutName: string | null;
+  blockId: string | null;
+  blockName: string | null;
   createdAt: Date | null;
   publishedAt: Date | null;
 }): PageSummary {
@@ -43,8 +43,8 @@ function toPageSummary(row: {
     title: row.title,
     slug: row.slug,
     description: row.description,
-    layoutId: row.layoutId,
-    layoutName: row.layoutName,
+    blockId: row.blockId,
+    blockName: row.blockName,
     createdAt: row.createdAt,
     publishedAt: row.publishedAt,
   };
@@ -69,13 +69,13 @@ async function loadPageSummary(id: string): Promise<PageSummary | null> {
       title: pagesTable.title,
       slug: pagesTable.slug,
       description: pagesTable.description,
-      layoutId: pagesTable.layoutId,
-      layoutName: layoutsTable.name,
+      blockId: pagesTable.blockId,
+      blockName: blocksTable.name,
       createdAt: pagesTable.createdAt,
       publishedAt: pagesTable.publishedAt,
     })
     .from(pagesTable)
-    .leftJoin(layoutsTable, eq(pagesTable.layoutId, layoutsTable.id))
+    .leftJoin(blocksTable, eq(pagesTable.blockId, blocksTable.id))
     .where(eq(pagesTable.id, id))
     .limit(1);
 
@@ -136,22 +136,31 @@ async function assertSlugAvailable(
   return null;
 }
 
-async function assertLayoutExists(
-  layoutId: string | null,
+async function assertLayoutBlock(
+  blockId: string | null,
 ): Promise<PageResponse | null> {
-  if (!layoutId) return null;
+  if (!blockId) return null;
 
-  const layout = await db.query.layoutsTable.findFirst({
-    where: eq(layoutsTable.id, layoutId),
-    columns: { id: true },
+  const block = await db.query.blocksTable.findFirst({
+    where: eq(blocksTable.id, blockId),
+    columns: { id: true, canBeLayout: true },
   });
 
-  if (!layout) {
+  if (!block) {
     return {
       success: false,
       statusCode: 400,
-      field: "layoutId",
-      message: "Please choose a valid layout.",
+      field: "blockId",
+      message: "Please choose a valid layout block.",
+    };
+  }
+
+  if (!block.canBeLayout) {
+    return {
+      success: false,
+      statusCode: 400,
+      field: "blockId",
+      message: "That block is not marked as a layout block.",
     };
   }
 
@@ -166,13 +175,13 @@ export async function listPages(): Promise<ListPagesResponse> {
         title: pagesTable.title,
         slug: pagesTable.slug,
         description: pagesTable.description,
-        layoutId: pagesTable.layoutId,
-        layoutName: layoutsTable.name,
+        blockId: pagesTable.blockId,
+        blockName: blocksTable.name,
         createdAt: pagesTable.createdAt,
         publishedAt: pagesTable.publishedAt,
       })
       .from(pagesTable)
-      .leftJoin(layoutsTable, eq(pagesTable.layoutId, layoutsTable.id))
+      .leftJoin(blocksTable, eq(pagesTable.blockId, blocksTable.id))
       .orderBy(asc(pagesTable.title));
 
     return {
@@ -199,13 +208,13 @@ export async function getPublicPage(
       title: pagesTable.title,
       slug: pagesTable.slug,
       description: pagesTable.description,
-      layoutId: pagesTable.layoutId,
-      layoutName: layoutsTable.name,
+      blockId: pagesTable.blockId,
+      blockName: blocksTable.name,
       createdAt: pagesTable.createdAt,
       publishedAt: pagesTable.publishedAt,
     })
     .from(pagesTable)
-    .leftJoin(layoutsTable, eq(pagesTable.layoutId, layoutsTable.id))
+    .leftJoin(blocksTable, eq(pagesTable.blockId, blocksTable.id))
     .where(slug === null ? isNull(pagesTable.slug) : eq(pagesTable.slug, slug))
     .limit(1);
 
@@ -227,7 +236,7 @@ export async function createPage(
         "title",
         "slug",
         "description",
-        "layoutId",
+        "blockId",
       ] as const),
       message: issue?.message ?? "Please check your details and try again.",
     };
@@ -236,14 +245,14 @@ export async function createPage(
   const title = parsed.data.title;
   const slug = normalizeSlug(parsed.data.slug);
   const description = parsed.data.description ?? "";
-  const layoutId = parsed.data.layoutId ?? null;
+  const blockId = parsed.data.blockId ?? null;
 
   try {
     const slugError = await assertSlugAvailable(slug);
     if (slugError) return slugError;
 
-    const layoutError = await assertLayoutExists(layoutId);
-    if (layoutError) return layoutError;
+    const blockError = await assertLayoutBlock(blockId);
+    if (blockError) return blockError;
 
     const [created] = await db
       .insert(pagesTable)
@@ -251,7 +260,7 @@ export async function createPage(
         title,
         slug,
         description,
-        layoutId,
+        blockId,
       })
       .returning({ id: pagesTable.id });
 
@@ -302,7 +311,7 @@ export async function updatePage(
         "title",
         "slug",
         "description",
-        "layoutId",
+        "blockId",
       ] as const),
       message: issue?.message ?? "Please check your details and try again.",
     };
@@ -311,7 +320,7 @@ export async function updatePage(
   const title = parsed.data.title;
   const slug = normalizeSlug(parsed.data.slug);
   const description = parsed.data.description ?? "";
-  const layoutId = parsed.data.layoutId ?? null;
+  const blockId = parsed.data.blockId ?? null;
 
   try {
     const existing = await db.query.pagesTable.findFirst({
@@ -330,8 +339,8 @@ export async function updatePage(
     const slugError = await assertSlugAvailable(slug, id);
     if (slugError) return slugError;
 
-    const layoutError = await assertLayoutExists(layoutId);
-    if (layoutError) return layoutError;
+    const blockError = await assertLayoutBlock(blockId);
+    if (blockError) return blockError;
 
     await db
       .update(pagesTable)
@@ -339,7 +348,7 @@ export async function updatePage(
         title,
         slug,
         description,
-        layoutId,
+        blockId,
         updatedAt: new Date(),
       })
       .where(eq(pagesTable.id, id));

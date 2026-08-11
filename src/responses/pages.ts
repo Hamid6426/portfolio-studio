@@ -8,8 +8,8 @@ export type PageSummary = {
   title: string;
   slug: string | null;
   description: string;
-  layoutId: string | null;
-  layoutName: string | null;
+  blockId: string | null;
+  blockName: string | null;
   createdAt: Date | string | null;
   publishedAt: Date | string | null;
 };

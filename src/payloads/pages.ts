@@ -13,7 +13,7 @@ export const createPagePayloadSchema = z.object({
   title: z.string().trim().min(1, "Please enter a title."),
   slug: slugSchema,
   description: z.string().trim().default(""),
-  layoutId: z
+  blockId: z
     .string()
     .trim()
     .optional()

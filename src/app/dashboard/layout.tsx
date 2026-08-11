@@ -27,9 +27,9 @@ const navItems: DashboardNavItem[] = [
     icon: "pages",
   },
   {
-    href: "/dashboard/layouts",
-    label: "Layouts",
-    icon: "layouts",
+    href: "/dashboard/blocks",
+    label: "Blocks",
+    icon: "blocks",
   },
   {
     href: "/dashboard/users",

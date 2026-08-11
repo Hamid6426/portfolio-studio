@@ -28,16 +28,15 @@ import {
   PERMISSIONS,
   type Permission,
 } from "@/config/permissions";
-import { useLayoutBlocksQuery } from "@/queries/blocks";
 import {
-  useCreatePageMutation,
-  useDeletePageMutation,
-  usePagesQuery,
-  useUpdatePageMutation,
-} from "@/queries/pages";
-import type { PageSummary } from "@/responses/pages";
+  useBlocksQuery,
+  useCreateBlockMutation,
+  useDeleteBlockMutation,
+  useUpdateBlockMutation,
+} from "@/queries/blocks";
+import type { BlockSummary } from "@/responses/blocks";
 
-type PagesPageClientProps = {
+type BlocksPageClientProps = {
   permissions: Permission[] | string;
 };
 
@@ -52,30 +51,25 @@ function formatDate(value: Date | string | null): string {
   });
 }
 
-export function PagesPageClient({ permissions }: PagesPageClientProps) {
-  const pagesQuery = usePagesQuery();
-  const layoutBlocksQuery = useLayoutBlocksQuery();
-  const createMutation = useCreatePageMutation();
-  const updateMutation = useUpdatePageMutation();
-  const deleteMutation = useDeletePageMutation();
+export function BlocksPageClient({ permissions }: BlocksPageClientProps) {
+  const blocksQuery = useBlocksQuery();
+  const createMutation = useCreateBlockMutation();
+  const updateMutation = useUpdateBlockMutation();
+  const deleteMutation = useDeleteBlockMutation();
 
-  const canCreate = canShowButton(permissions, PERMISSIONS.pagesCreate);
-  const canEdit = canShowButton(permissions, PERMISSIONS.pagesEdit);
-  const canDelete = canShowButton(permissions, PERMISSIONS.pagesDelete);
+  const canCreate = canShowButton(permissions, PERMISSIONS.blocksCreate);
+  const canEdit = canShowButton(permissions, PERMISSIONS.blocksEdit);
+  const canDelete = canShowButton(permissions, PERMISSIONS.blocksDelete);
 
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<PageSummary | null>(null);
-  const [deleting, setDeleting] = useState<PageSummary | null>(null);
+  const [editing, setEditing] = useState<BlockSummary | null>(null);
+  const [deleting, setDeleting] = useState<BlockSummary | null>(null);
+  const [canBeLayout, setCanBeLayout] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const pages = useMemo(
-    () => (pagesQuery.data?.success ? pagesQuery.data.data : []),
-    [pagesQuery.data],
-  );
-  const layoutBlocks = useMemo(
-    () =>
-      layoutBlocksQuery.data?.success ? layoutBlocksQuery.data.data : [],
-    [layoutBlocksQuery.data],
+  const blocks = useMemo(
+    () => (blocksQuery.data?.success ? blocksQuery.data.data : []),
+    [blocksQuery.data],
   );
 
   const pending =
@@ -85,12 +79,14 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
 
   function openCreate() {
     setEditing(null);
+    setCanBeLayout(false);
     setFieldErrors({});
     setFormOpen(true);
   }
 
-  function openEdit(page: PageSummary) {
-    setEditing(page);
+  function openEdit(block: BlockSummary) {
+    setEditing(block);
+    setCanBeLayout(block.canBeLayout);
     setFieldErrors({});
     setFormOpen(true);
   }
@@ -100,12 +96,10 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
     setFieldErrors({});
 
     const formData = new FormData(event.currentTarget);
-    const title = String(formData.get("title") ?? "").trim();
+    const name = String(formData.get("name") ?? "").trim();
     const slug = String(formData.get("slug") ?? "").trim();
     const description = String(formData.get("description") ?? "").trim();
-    const blockId = String(formData.get("blockId") ?? "").trim();
-
-    const payload = { title, slug, description, blockId };
+    const payload = { name, slug, description, canBeLayout };
 
     if (editing) {
       const result = await updateMutation.mutateAsync({
@@ -122,7 +116,7 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
         return;
       }
 
-      toast.success(result.message ?? "Page updated.");
+      toast.success(result.message ?? "Block updated.");
       setFormOpen(false);
       return;
     }
@@ -138,7 +132,7 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
       return;
     }
 
-    toast.success(result.message ?? "Page created.");
+    toast.success(result.message ?? "Block created.");
     setFormOpen(false);
   }
 
@@ -151,7 +145,7 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
       return;
     }
 
-    toast.success(result.message ?? "Page deleted.");
+    toast.success(result.message ?? "Block deleted.");
     setDeleting(null);
   }
 
@@ -159,33 +153,35 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Pages</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Blocks</h1>
           <p className="text-sm text-muted-foreground">
-            Manage the pages that make up your public site.
+            Reusable building pieces. Mark a block as a layout to attach it to
+            pages.
           </p>
         </div>
         {canCreate && (
           <Button onClick={openCreate} disabled={pending}>
             <PlusIcon data-icon="inline-start" />
-            New page
+            New block
           </Button>
         )}
       </div>
 
-      {pagesQuery.isLoading ? (
+      {blocksQuery.isLoading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2Icon className="size-4 animate-spin" />
-          Loading pages…
+          Loading blocks…
         </div>
-      ) : pagesQuery.data && !pagesQuery.data.success ? (
-        <p className="text-sm text-destructive">{pagesQuery.data.message}</p>
+      ) : blocksQuery.data && !blocksQuery.data.success ? (
+        <p className="text-sm text-destructive">{blocksQuery.data.message}</p>
       ) : (
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Title</TableHead>
+              <TableHead>Name</TableHead>
               <TableHead>Slug</TableHead>
-              <TableHead>Layout block</TableHead>
+              <TableHead>Layout</TableHead>
+              <TableHead>Children</TableHead>
               <TableHead>Created</TableHead>
               {(canEdit || canDelete) && (
                 <TableHead className="w-[1%] text-right">Actions</TableHead>
@@ -193,24 +189,25 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {pages.length === 0 ? (
+            {blocks.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={canEdit || canDelete ? 5 : 4}
+                  colSpan={canEdit || canDelete ? 6 : 5}
                   className="text-muted-foreground"
                 >
-                  No pages yet.
+                  No blocks yet.
                 </TableCell>
               </TableRow>
             ) : (
-              pages.map((page) => (
-                <TableRow key={page.id}>
-                  <TableCell className="font-medium">{page.title}</TableCell>
+              blocks.map((block) => (
+                <TableRow key={block.id}>
+                  <TableCell className="font-medium">{block.name}</TableCell>
                   <TableCell className="font-mono text-xs">
-                    {page.slug ? `/${page.slug}` : "/ (home)"}
+                    {block.slug}
                   </TableCell>
-                  <TableCell>{page.blockName ?? "—"}</TableCell>
-                  <TableCell>{formatDate(page.createdAt)}</TableCell>
+                  <TableCell>{block.canBeLayout ? "Yes" : "No"}</TableCell>
+                  <TableCell>{block.childCount}</TableCell>
+                  <TableCell>{formatDate(block.createdAt)}</TableCell>
                   {(canEdit || canDelete) && (
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
@@ -218,9 +215,9 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            onClick={() => openEdit(page)}
+                            onClick={() => openEdit(block)}
                             disabled={pending}
-                            aria-label={`Edit ${page.title}`}
+                            aria-label={`Edit ${block.name}`}
                           >
                             <PencilIcon />
                           </Button>
@@ -229,9 +226,9 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            onClick={() => setDeleting(page)}
+                            onClick={() => setDeleting(block)}
                             disabled={pending}
-                            aria-label={`Delete ${page.title}`}
+                            aria-label={`Delete ${block.name}`}
                           >
                             <TrashIcon />
                           </Button>
@@ -249,35 +246,36 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{editing ? "Edit page" : "New page"}</DialogTitle>
+            <DialogTitle>{editing ? "Edit block" : "New block"}</DialogTitle>
             <DialogDescription>
-              Leave slug empty to use this page as the site home at{" "}
-              <span className="font-mono">/</span>.
+              Blocks are HTML-like elements with children. Enable layout use to
+              attach them to pages.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="grid gap-4" noValidate>
             <div className="grid gap-2">
-              <Label htmlFor="page-title">Title</Label>
+              <Label htmlFor="block-name">Name</Label>
               <Input
-                id="page-title"
-                name="title"
-                defaultValue={editing?.title ?? ""}
+                id="block-name"
+                name="name"
+                defaultValue={editing?.name ?? ""}
                 required
-                aria-invalid={Boolean(fieldErrors.title)}
+                aria-invalid={Boolean(fieldErrors.name)}
               />
-              {fieldErrors.title && (
-                <p className="text-sm text-destructive">{fieldErrors.title}</p>
+              {fieldErrors.name && (
+                <p className="text-sm text-destructive">{fieldErrors.name}</p>
               )}
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="page-slug">Slug</Label>
+              <Label htmlFor="block-slug">Slug</Label>
               <Input
-                id="page-slug"
+                id="block-slug"
                 name="slug"
-                placeholder="about (empty = home)"
+                placeholder="hero-section"
                 defaultValue={editing?.slug ?? ""}
+                required
                 aria-invalid={Boolean(fieldErrors.slug)}
               />
               {fieldErrors.slug && (
@@ -286,42 +284,49 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="page-description">Description</Label>
+              <Label htmlFor="block-description">Description</Label>
               <Input
-                id="page-description"
+                id="block-description"
                 name="description"
                 defaultValue={editing?.description ?? ""}
-                aria-invalid={Boolean(fieldErrors.description)}
               />
-              {fieldErrors.description && (
-                <p className="text-sm text-destructive">
-                  {fieldErrors.description}
-                </p>
-              )}
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="page-block">Layout block</Label>
-              <select
-                id="page-block"
-                name="blockId"
-                defaultValue={editing?.blockId ?? ""}
-                className="flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                aria-invalid={Boolean(fieldErrors.blockId)}
-              >
-                <option value="">No layout block</option>
-                {layoutBlocks.map((block) => (
-                  <option key={block.id} value={block.id}>
-                    {block.name}
-                  </option>
-                ))}
-              </select>
-              {fieldErrors.blockId && (
-                <p className="text-sm text-destructive">
-                  {fieldErrors.blockId}
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
+              <div className="flex flex-col gap-0.5">
+                <Label htmlFor="block-can-be-layout" className="cursor-pointer">
+                  Can Be Layout Block
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Allow attaching this block to pages as a layout.
                 </p>
-              )}
+              </div>
+              <button
+                id="block-can-be-layout"
+                type="button"
+                role="switch"
+                aria-checked={canBeLayout}
+                onClick={() => setCanBeLayout((value) => !value)}
+                className={
+                  canBeLayout
+                    ? "relative h-6 w-11 shrink-0 rounded-full bg-primary transition-colors"
+                    : "relative h-6 w-11 shrink-0 rounded-full bg-input transition-colors"
+                }
+              >
+                <span
+                  className={
+                    canBeLayout
+                      ? "absolute top-0.5 left-5 size-5 rounded-full bg-primary-foreground transition-all"
+                      : "absolute top-0.5 left-0.5 size-5 rounded-full bg-foreground/80 transition-all"
+                  }
+                />
+              </button>
             </div>
+            {fieldErrors.canBeLayout && (
+              <p className="text-sm text-destructive">
+                {fieldErrors.canBeLayout}
+              </p>
+            )}
 
             <DialogFooter>
               <Button
@@ -339,7 +344,7 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
                     className="animate-spin"
                   />
                 )}
-                {editing ? "Save changes" : "Create page"}
+                {editing ? "Save changes" : "Create block"}
               </Button>
             </DialogFooter>
           </form>
@@ -352,9 +357,9 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Delete page</DialogTitle>
+            <DialogTitle>Delete block</DialogTitle>
             <DialogDescription>
-              Delete &ldquo;{deleting?.title}&rdquo;? This cannot be undone.
+              Delete &ldquo;{deleting?.name}&rdquo;? This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

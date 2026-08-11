@@ -1,4 +1,11 @@
-import { jsonb, pgTable, timestamp, varchar, text } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  jsonb,
+  pgTable,
+  timestamp,
+  varchar,
+  text,
+} from "drizzle-orm/pg-core";
 import { baseColumns } from "./base-columns";
 
 export const rolesTable = pgTable("roles", {
@@ -129,22 +136,23 @@ export const portfolioTable = pgTable("portfolios", {
     description: varchar("description").notNull(),
 });
 
-/** Block entry stored in a layout's JSON structure. */
-export type LayoutBlock = {
+/** Nested HTML-like node stored in a block's children tree. */
+export type BlockNode = {
+  id?: string;
   type: string;
-  [key: string]: unknown;
+  props?: Record<string, unknown>;
+  children?: BlockNode[];
 };
 
-export const layoutsTable = pgTable("layouts", {
+export const blocksTable = pgTable("blocks", {
   ...baseColumns,
   name: varchar("name", { length: 255 }).notNull(),
   slug: varchar("slug", { length: 255 }).notNull().unique(),
   description: text("description").notNull().default(""),
-  /** Ordered block list rendered by the public site. */
-  structure: jsonb("structure")
-    .$type<LayoutBlock[]>()
-    .notNull()
-    .default([]),
+  /** When true, this block can be attached to pages as a reusable layout. */
+  canBeLayout: boolean("can_be_layout").notNull().default(false),
+  /** Nested child elements for this block. */
+  children: jsonb("children").$type<BlockNode[]>().notNull().default([]),
 });
 
 export const pagesTable = pgTable("pages", {
@@ -153,5 +161,6 @@ export const pagesTable = pgTable("pages", {
   /** `null` = site landing page served at `/`. */
   slug: varchar("slug", { length: 255 }).unique(),
   description: text("description").notNull().default(""),
-  layoutId: varchar("layout_id").references(() => layoutsTable.id),
+  /** Optional layout block (`blocks.can_be_layout = true`). */
+  blockId: varchar("block_id").references(() => blocksTable.id),
 });
