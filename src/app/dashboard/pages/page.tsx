@@ -24,5 +24,5 @@ export default async function PagesPage() {
     redirect("/dashboard/overview");
   }
 
-  return <PagesPageClient />;
+  return <PagesPageClient permissions={permissions} />;
 }

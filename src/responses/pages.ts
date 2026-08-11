@@ -17,3 +17,5 @@ export type PageSummary = {
 export type ListPagesResponse =
   | ApiSuccessResponse<PageSummary[]>
   | ApiErrorResponse;
+
+export type PageResponse = ApiSuccessResponse<PageSummary> | ApiErrorResponse;

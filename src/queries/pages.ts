@@ -1,14 +1,78 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
-import { PAGES_QUERY_KEY } from "@/config/storage-keys";
-import type { ListPagesResponse } from "@/responses/pages";
-import { listPagesRequest } from "@/services/pages";
+import {
+  PAGES_CREATE_MUTATION_KEY,
+  PAGES_DELETE_MUTATION_KEY,
+  PAGES_QUERY_KEY,
+  PAGES_UPDATE_MUTATION_KEY,
+} from "@/config/storage-keys";
+import type {
+  CreatePagePayload,
+  UpdatePagePayload,
+} from "@/payloads/pages";
+import type { ListPagesResponse, PageResponse } from "@/responses/pages";
+import {
+  createPageRequest,
+  deletePageRequest,
+  listPagesRequest,
+  updatePageRequest,
+} from "@/services/pages";
 
 export function usePagesQuery() {
   return useQuery<ListPagesResponse>({
     queryKey: PAGES_QUERY_KEY,
     queryFn: listPagesRequest,
+  });
+}
+
+export function useCreatePageMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<PageResponse, Error, CreatePagePayload>({
+    mutationKey: PAGES_CREATE_MUTATION_KEY,
+    mutationFn: createPageRequest,
+    onSuccess: (result) => {
+      if (result.success) {
+        void queryClient.invalidateQueries({ queryKey: PAGES_QUERY_KEY });
+      }
+    },
+  });
+}
+
+export function useUpdatePageMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    PageResponse,
+    Error,
+    { id: string; payload: UpdatePagePayload }
+  >({
+    mutationKey: PAGES_UPDATE_MUTATION_KEY,
+    mutationFn: ({ id, payload }) => updatePageRequest(id, payload),
+    onSuccess: (result) => {
+      if (result.success) {
+        void queryClient.invalidateQueries({ queryKey: PAGES_QUERY_KEY });
+      }
+    },
+  });
+}
+
+export function useDeletePageMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<PageResponse, Error, string>({
+    mutationKey: PAGES_DELETE_MUTATION_KEY,
+    mutationFn: deletePageRequest,
+    onSuccess: (result) => {
+      if (result.success) {
+        void queryClient.invalidateQueries({ queryKey: PAGES_QUERY_KEY });
+      }
+    },
   });
 }

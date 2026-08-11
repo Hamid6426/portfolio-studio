@@ -1,8 +1,20 @@
 "use client";
 
-import { useMemo } from "react";
-import { Loader2Icon } from "lucide-react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { Loader2Icon, PencilIcon, PlusIcon, TrashIcon } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -11,7 +23,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { usePagesQuery } from "@/queries/pages";
+import {
+  canShowButton,
+  PERMISSIONS,
+  type Permission,
+} from "@/config/permissions";
+import { useLayoutsQuery } from "@/queries/layouts";
+import {
+  useCreatePageMutation,
+  useDeletePageMutation,
+  usePagesQuery,
+  useUpdatePageMutation,
+} from "@/queries/pages";
+import type { PageSummary } from "@/responses/pages";
+
+type PagesPageClientProps = {
+  permissions: Permission[] | string;
+};
 
 function formatDate(value: Date | string | null): string {
   if (!value) return "—";
@@ -24,20 +52,123 @@ function formatDate(value: Date | string | null): string {
   });
 }
 
-export function PagesPageClient() {
+export function PagesPageClient({ permissions }: PagesPageClientProps) {
   const pagesQuery = usePagesQuery();
+  const layoutsQuery = useLayoutsQuery();
+  const createMutation = useCreatePageMutation();
+  const updateMutation = useUpdatePageMutation();
+  const deleteMutation = useDeletePageMutation();
+
+  const canCreate = canShowButton(permissions, PERMISSIONS.pagesCreate);
+  const canEdit = canShowButton(permissions, PERMISSIONS.pagesEdit);
+  const canDelete = canShowButton(permissions, PERMISSIONS.pagesDelete);
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<PageSummary | null>(null);
+  const [deleting, setDeleting] = useState<PageSummary | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
   const pages = useMemo(
     () => (pagesQuery.data?.success ? pagesQuery.data.data : []),
     [pagesQuery.data],
   );
+  const layouts = useMemo(
+    () => (layoutsQuery.data?.success ? layoutsQuery.data.data : []),
+    [layoutsQuery.data],
+  );
+
+  const pending =
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    deleteMutation.isPending;
+
+  function openCreate() {
+    setEditing(null);
+    setFieldErrors({});
+    setFormOpen(true);
+  }
+
+  function openEdit(page: PageSummary) {
+    setEditing(page);
+    setFieldErrors({});
+    setFormOpen(true);
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFieldErrors({});
+
+    const formData = new FormData(event.currentTarget);
+    const title = String(formData.get("title") ?? "").trim();
+    const slug = String(formData.get("slug") ?? "").trim();
+    const description = String(formData.get("description") ?? "").trim();
+    const layoutId = String(formData.get("layoutId") ?? "").trim();
+
+    const payload = { title, slug, description, layoutId };
+
+    if (editing) {
+      const result = await updateMutation.mutateAsync({
+        id: editing.id,
+        payload,
+      });
+
+      if (!result.success) {
+        if (result.field) {
+          setFieldErrors({ [result.field]: result.message });
+        } else {
+          toast.error(result.message);
+        }
+        return;
+      }
+
+      toast.success(result.message ?? "Page updated.");
+      setFormOpen(false);
+      return;
+    }
+
+    const result = await createMutation.mutateAsync(payload);
+
+    if (!result.success) {
+      if (result.field) {
+        setFieldErrors({ [result.field]: result.message });
+      } else {
+        toast.error(result.message);
+      }
+      return;
+    }
+
+    toast.success(result.message ?? "Page created.");
+    setFormOpen(false);
+  }
+
+  async function handleDelete() {
+    if (!deleting) return;
+
+    const result = await deleteMutation.mutateAsync(deleting.id);
+    if (!result.success) {
+      toast.error(result.message);
+      return;
+    }
+
+    toast.success(result.message ?? "Page deleted.");
+    setDeleting(null);
+  }
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Pages</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage the pages that make up your public site.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Pages</h1>
+          <p className="text-sm text-muted-foreground">
+            Manage the pages that make up your public site.
+          </p>
+        </div>
+        {canCreate && (
+          <Button onClick={openCreate} disabled={pending}>
+            <PlusIcon data-icon="inline-start" />
+            New page
+          </Button>
+        )}
       </div>
 
       {pagesQuery.isLoading ? (
@@ -55,12 +186,18 @@ export function PagesPageClient() {
               <TableHead>Slug</TableHead>
               <TableHead>Layout</TableHead>
               <TableHead>Created</TableHead>
+              {(canEdit || canDelete) && (
+                <TableHead className="w-[1%] text-right">Actions</TableHead>
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
             {pages.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-muted-foreground">
+                <TableCell
+                  colSpan={canEdit || canDelete ? 5 : 4}
+                  className="text-muted-foreground"
+                >
                   No pages yet.
                 </TableCell>
               </TableRow>
@@ -73,12 +210,178 @@ export function PagesPageClient() {
                   </TableCell>
                   <TableCell>{page.layoutName ?? "—"}</TableCell>
                   <TableCell>{formatDate(page.createdAt)}</TableCell>
+                  {(canEdit || canDelete) && (
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => openEdit(page)}
+                            disabled={pending}
+                            aria-label={`Edit ${page.title}`}
+                          >
+                            <PencilIcon />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => setDeleting(page)}
+                            disabled={pending}
+                            aria-label={`Delete ${page.title}`}
+                          >
+                            <TrashIcon />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       )}
+
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit page" : "New page"}</DialogTitle>
+            <DialogDescription>
+              Leave slug empty to use this page as the site home at{" "}
+              <span className="font-mono">/</span>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="grid gap-4" noValidate>
+            <div className="grid gap-2">
+              <Label htmlFor="page-title">Title</Label>
+              <Input
+                id="page-title"
+                name="title"
+                defaultValue={editing?.title ?? ""}
+                required
+                aria-invalid={Boolean(fieldErrors.title)}
+              />
+              {fieldErrors.title && (
+                <p className="text-sm text-destructive">{fieldErrors.title}</p>
+              )}
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="page-slug">Slug</Label>
+              <Input
+                id="page-slug"
+                name="slug"
+                placeholder="about (empty = home)"
+                defaultValue={editing?.slug ?? ""}
+                aria-invalid={Boolean(fieldErrors.slug)}
+              />
+              {fieldErrors.slug && (
+                <p className="text-sm text-destructive">{fieldErrors.slug}</p>
+              )}
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="page-description">Description</Label>
+              <Input
+                id="page-description"
+                name="description"
+                defaultValue={editing?.description ?? ""}
+                aria-invalid={Boolean(fieldErrors.description)}
+              />
+              {fieldErrors.description && (
+                <p className="text-sm text-destructive">
+                  {fieldErrors.description}
+                </p>
+              )}
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="page-layout">Layout</Label>
+              <select
+                id="page-layout"
+                name="layoutId"
+                defaultValue={editing?.layoutId ?? ""}
+                className="flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                aria-invalid={Boolean(fieldErrors.layoutId)}
+              >
+                <option value="">No layout</option>
+                {layouts.map((layout) => (
+                  <option key={layout.id} value={layout.id}>
+                    {layout.name}
+                  </option>
+                ))}
+              </select>
+              {fieldErrors.layoutId && (
+                <p className="text-sm text-destructive">
+                  {fieldErrors.layoutId}
+                </p>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setFormOpen(false)}
+                disabled={pending}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={pending}>
+                {pending && (
+                  <Loader2Icon
+                    data-icon="inline-start"
+                    className="animate-spin"
+                  />
+                )}
+                {editing ? "Save changes" : "Create page"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(deleting)}
+        onOpenChange={(open) => !open && setDeleting(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete page</DialogTitle>
+            <DialogDescription>
+              Delete &ldquo;{deleting?.title}&rdquo;? This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleting(null)}
+              disabled={pending}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={pending}
+            >
+              {deleteMutation.isPending && (
+                <Loader2Icon
+                  data-icon="inline-start"
+                  className="animate-spin"
+                />
+              )}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
