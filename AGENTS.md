@@ -24,7 +24,7 @@ src/app/dashboard/  # /dashboard → /dashboard/overview
 src/app/[slug]/     # public portfolio
 src/app/error/      # /error/database
 src/components/ui/  # shadcn (Base UI). Button: custom `render` ⇒ nativeButton=false (defaulted in button.tsx)
-src/config/         # env, startup gate, db/migration checks, storage-keys
+src/config/         # env, startup, permissions, storage-keys
 src/db/             # schema, client, enums
 src/payloads/       # Zod request payloads (e.g. auth)
 src/responses/      # ApiSuccess / ApiPaginatedSuccess / ApiError (+ domain unions)

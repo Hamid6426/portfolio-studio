@@ -1,13 +1,12 @@
 import { createHmac, createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
 import { env } from "@/config/env";
-import type { Role } from "@/db/enums";
 import { ACCESS_TOKEN_TTL_SEC } from "@/lib/auth/constants";
 
 export type AccessTokenPayload = {
   sub: string;
   email: string;
-  role: Role;
+  role: string;
   iat: number;
   exp: number;
 };
@@ -28,7 +27,7 @@ function parseBase64urlJson<T>(value: string): T | null {
 export function signAccessToken(input: {
   userId: string;
   email: string;
-  role: Role;
+  role: string;
 }): string {
   const header = base64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
   const now = Math.floor(Date.now() / 1000);

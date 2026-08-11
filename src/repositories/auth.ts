@@ -23,6 +23,7 @@ import type {
   RefreshResponse,
 } from "@/responses/auth";
 import { apiErrorFromPostgres } from "@/lib/db/errors";
+import { ensureDefaultRoles } from "@/repositories/roles";
 
 function firstIssueField<T extends string>(
   path: PropertyKey | undefined,
@@ -49,7 +50,7 @@ export type RefreshSessionResult = {
 async function issueTokenPair(user: {
   id: string;
   email: string;
-  role: "admin" | "editor" | "viewer";
+  role: string;
 }): Promise<AuthTokenPair> {
   const accessToken = signAccessToken({
     userId: user.id,
@@ -107,7 +108,11 @@ export async function loginUser(
       };
     }
 
-    const tokens = await issueTokenPair(user);
+    const tokens = await issueTokenPair({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
 
     return {
       response: {
@@ -191,7 +196,11 @@ export async function refreshSession(
       .delete(userRefreshTokenTable)
       .where(eq(userRefreshTokenTable.id, stored.id));
 
-    const tokens = await issueTokenPair(user);
+    const tokens = await issueTokenPair({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
 
     return {
       response: {
@@ -285,6 +294,8 @@ export async function createAdminUser(
   }
 
   try {
+    await ensureDefaultRoles();
+
     await db.insert(userTable).values({
       name,
       email,

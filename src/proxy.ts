@@ -32,13 +32,14 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard/overview", request.url));
   }
 
-  const response = NextResponse.next();
+  // Forward pathname on the *request* so Server Components can read it via
+  // `headers()` (response headers are not visible there).
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", pathname);
 
-  // Expose the current pathname to server components (e.g. the root layout's
-  // startup gate) so redirect targets can be excluded from the gate.
-  response.headers.set("x-pathname", pathname);
-
-  return response;
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 }
 
 export const config = {

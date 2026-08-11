@@ -1,17 +1,35 @@
 import Link from "next/link";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { LayoutDashboardIcon, type LucideIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { canAccessRoute } from "@/config/permissions";
 import { REFRESH_TOKEN_COOKIE } from "@/config/storage-keys";
 import { getAccessSession } from "@/lib/auth/session";
+import {
+  ensureDefaultRoles,
+  getRolePermissions,
+} from "@/repositories/roles";
 
-const navItems: { href: string; label: string; icon: LucideIcon }[] = [
+import {
+  DashboardNav,
+  type DashboardNavItem,
+} from "./dashboard-nav";
+
+const navItems: DashboardNavItem[] = [
   {
     href: "/dashboard/overview",
     label: "Overview",
-    icon: LayoutDashboardIcon,
+    icon: "overview",
+  },
+  {
+    href: "/dashboard/users",
+    label: "Users",
+    icon: "users",
+  },
+  {
+    href: "/dashboard/roles",
+    label: "Roles",
+    icon: "roles",
   },
 ];
 
@@ -20,11 +38,11 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const headerList = await headers();
+  const pathname = headerList.get("x-pathname") ?? "/dashboard/overview";
   const session = await getAccessSession();
 
   if (!session) {
-    const headerList = await headers();
-    const pathname = headerList.get("x-pathname") ?? "/dashboard/overview";
     const jar = await cookies();
     const hasRefresh = Boolean(jar.get(REFRESH_TOKEN_COOKIE)?.value);
 
@@ -36,6 +54,12 @@ export default async function DashboardLayout({
 
     redirect(`/login?next=${encodeURIComponent(pathname)}`);
   }
+
+  await ensureDefaultRoles();
+  const permissions = await getRolePermissions(session.role);
+  const visibleNav = navItems.filter((item) =>
+    canAccessRoute(permissions, item.href),
+  );
 
   return (
     <div className="grid min-h-screen flex-1 grid-cols-[14rem_1fr]">
@@ -49,23 +73,7 @@ export default async function DashboardLayout({
           </Link>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 p-3">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-
-            return (
-              <Button
-                key={item.href}
-                render={<Link href={item.href} />}
-                variant="ghost"
-                className="justify-start gap-2"
-              >
-                <Icon data-icon="inline-start" />
-                {item.label}
-              </Button>
-            );
-          })}
-        </nav>
+        <DashboardNav items={visibleNav} />
 
         <div className="border-t border-border px-5 py-4">
           <p className="truncate text-xs text-muted-foreground">

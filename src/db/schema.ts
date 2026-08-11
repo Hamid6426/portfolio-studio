@@ -1,13 +1,23 @@
-import { pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
-import { roleEnum } from "./enums";
+import { pgTable, timestamp, varchar, text } from "drizzle-orm/pg-core";
 import { baseColumns } from "./base-columns";
 
+export const rolesTable = pgTable("roles", {
+  ...baseColumns,
+  roleName: varchar("role_name", { length: 64 }).notNull().unique(),
+  /** Comma-separated permission keys from `config/permissions.ts`. */
+  permissions: text("permissions").notNull().default(""),
+});
+
 export const userTable = pgTable("users", {
-    ...baseColumns,
-    email: varchar("email", { length: 255 }).notNull().unique(),
-    password: varchar("password", { length: 255 }).notNull(),
-    name: varchar("name", { length: 255 }).notNull(),
-    role: roleEnum("role").default("viewer").notNull(),
+  ...baseColumns,
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  password: varchar("password", { length: 255 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  /** Matches `roles.role_name` (source of permissions). */
+  role: varchar("role", { length: 64 })
+    .notNull()
+    .default("viewer")
+    .references(() => rolesTable.roleName),
 });
 
 export const userRefreshTokenTable = pgTable("user_refresh_tokens", {
