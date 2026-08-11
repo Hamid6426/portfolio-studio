@@ -3,9 +3,7 @@ import { NextResponse } from "next/server";
 import {
   canAccessRoute,
   canShowButton,
-  hasPermission,
   type ButtonPermission,
-  type Permission,
   type RoutePermission,
 } from "@/config/permissions";
 import { getAccessSession } from "@/lib/auth/session";
@@ -43,19 +41,6 @@ export async function requireSession(): Promise<
 
   const permissions = await getRolePermissions(session.role);
   return { session, permissions };
-}
-
-export async function requirePermission(
-  permission: Permission,
-): Promise<AuthorizedSession | NextResponse<ApiErrorResponse>> {
-  const auth = await requireSession();
-  if (auth instanceof NextResponse) return auth;
-
-  if (!hasPermission(auth.permissions, permission)) {
-    return unauthorized(403, "You do not have permission to do that.");
-  }
-
-  return auth;
 }
 
 export async function requireRoutePermission(

@@ -366,13 +366,6 @@ export async function getDraftPage(
 }
 
 /**
- * @deprecated Ambiguous about draft vs published. Use
- * {@link getCachedPublishedPage} for the public site and {@link getDraftPage}
- * for permission-checked preview.
- */
-export const getPublicPage = getPublishedPage;
-
-/**
  * Drop cached public reads for the given slugs plus the collection tag.
  * Only safe to call from a Route Handler / Server Function request scope.
  */

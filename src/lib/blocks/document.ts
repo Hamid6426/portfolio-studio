@@ -7,7 +7,7 @@ import type { BlockDocument, BlockNode } from "@/db/schema";
  */
 export const CURRENT_BLOCK_DOCUMENT_VERSION = 1;
 
-export const EMPTY_BLOCK_DOCUMENT: BlockDocument = {
+const EMPTY_BLOCK_DOCUMENT: BlockDocument = {
   version: CURRENT_BLOCK_DOCUMENT_VERSION,
   nodes: [],
 };

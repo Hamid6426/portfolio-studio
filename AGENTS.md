@@ -16,7 +16,7 @@ One deployment serves one website. The dashboard (`/dashboard/*`) and the public
 
 ## Stack
 
-Bun · Next.js 16 App Router · React 19 (+ Compiler) · TS · Tailwind 4 · shadcn/Base UI · Drizzle · Postgres · Zod · next-auth · UploadThing
+Bun · Next.js 16 App Router · React 19 (+ Compiler) · TS · Tailwind 4 · shadcn/Base UI · Drizzle · Postgres · Zod · Axios · TanStack Query
 
 ## Layout
 
@@ -27,9 +27,9 @@ src/app/[slug]/     # public CMS page by slug
 src/app/error/      # /error/database
 src/components/ui/  # shadcn (Base UI). Button: custom `render` ⇒ nativeButton=false (defaulted in button.tsx)
 src/config/         # env, startup, permissions, storage-keys
-src/db/             # schema, client, enums
+src/db/             # schema, client
 src/payloads/       # Zod request payloads (e.g. auth)
-src/responses/      # ApiSuccess / ApiPaginatedSuccess / ApiError (+ domain unions)
+src/responses/      # ApiSuccess / ApiError (+ domain unions)
 src/lib/axiosInstance.ts  # Axios + 401 refresh interceptor (3 retries)
 src/lib/auth/             # cookies, tokens, session helpers
 src/services/       # Frontend services (Axios → /api)

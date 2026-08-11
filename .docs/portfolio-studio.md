@@ -41,19 +41,17 @@ Think of it as:
 # Tech Stack
 
 - Bun
-- Next.js (App Router)
-- React
+- Next.js 16 (App Router)
+- React 19
 - TypeScript
 - Axios
 - TanStack Query
-- Auth.js
-- Tailwind CSS
-- Radix Primitives
+- Cookie JWT auth (custom)
+- Tailwind CSS 4
+- shadcn / Base UI
 - PostgreSQL
 - Drizzle (ORM)
-- React Hook Form
 - Zod
-- UploadThing (FS)
 - Redis (Future)
 
 ---
