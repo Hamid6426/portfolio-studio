@@ -97,9 +97,8 @@ export function BlocksPageClient({ permissions }: BlocksPageClientProps) {
 
     const formData = new FormData(event.currentTarget);
     const name = String(formData.get("name") ?? "").trim();
-    const slug = String(formData.get("slug") ?? "").trim();
     const description = String(formData.get("description") ?? "").trim();
-    const payload = { name, slug, description, canBeLayout };
+    const payload = { name, description, canBeLayout };
 
     if (editing) {
       const result = await updateMutation.mutateAsync({
@@ -179,7 +178,6 @@ export function BlocksPageClient({ permissions }: BlocksPageClientProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Slug</TableHead>
               <TableHead>Layout</TableHead>
               <TableHead>Children</TableHead>
               <TableHead>Created</TableHead>
@@ -192,7 +190,7 @@ export function BlocksPageClient({ permissions }: BlocksPageClientProps) {
             {blocks.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={canEdit || canDelete ? 6 : 5}
+                  colSpan={canEdit || canDelete ? 5 : 4}
                   className="text-muted-foreground"
                 >
                   No blocks yet.
@@ -202,9 +200,6 @@ export function BlocksPageClient({ permissions }: BlocksPageClientProps) {
               blocks.map((block) => (
                 <TableRow key={block.id}>
                   <TableCell className="font-medium">{block.name}</TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {block.slug}
-                  </TableCell>
                   <TableCell>{block.canBeLayout ? "Yes" : "No"}</TableCell>
                   <TableCell>{block.childCount}</TableCell>
                   <TableCell>{formatDate(block.createdAt)}</TableCell>
@@ -265,21 +260,6 @@ export function BlocksPageClient({ permissions }: BlocksPageClientProps) {
               />
               {fieldErrors.name && (
                 <p className="text-sm text-destructive">{fieldErrors.name}</p>
-              )}
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="block-slug">Slug</Label>
-              <Input
-                id="block-slug"
-                name="slug"
-                placeholder="hero-section"
-                defaultValue={editing?.slug ?? ""}
-                required
-                aria-invalid={Boolean(fieldErrors.slug)}
-              />
-              {fieldErrors.slug && (
-                <p className="text-sm text-destructive">{fieldErrors.slug}</p>
               )}
             </div>
 

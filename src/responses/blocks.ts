@@ -7,7 +7,6 @@ import type { BlockNode } from "@/db/schema";
 export type BlockSummary = {
   id: string;
   name: string;
-  slug: string;
   description: string;
   canBeLayout: boolean;
   childCount: number;

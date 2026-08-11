@@ -1,8 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2Icon, PencilIcon, PlusIcon, TrashIcon } from "lucide-react";
+import {
+  EyeIcon,
+  Loader2Icon,
+  PencilIcon,
+  PlusIcon,
+  SquarePenIcon,
+  TrashIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -105,7 +113,13 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
     const description = String(formData.get("description") ?? "").trim();
     const blockId = String(formData.get("blockId") ?? "").trim();
 
-    const payload = { title, slug, description, blockId };
+    const payload = {
+      title,
+      slug,
+      description,
+      blockId: blockId || null,
+      content: [],
+    };
 
     if (editing) {
       const result = await updateMutation.mutateAsync({
@@ -187,18 +201,13 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
               <TableHead>Slug</TableHead>
               <TableHead>Layout block</TableHead>
               <TableHead>Created</TableHead>
-              {(canEdit || canDelete) && (
-                <TableHead className="w-[1%] text-right">Actions</TableHead>
-              )}
+              <TableHead className="w-[1%] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {pages.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={canEdit || canDelete ? 5 : 4}
-                  className="text-muted-foreground"
-                >
+                <TableCell colSpan={5} className="text-muted-foreground">
                   No pages yet.
                 </TableCell>
               </TableRow>
@@ -211,9 +220,33 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
                   </TableCell>
                   <TableCell>{page.blockName ?? "—"}</TableCell>
                   <TableCell>{formatDate(page.createdAt)}</TableCell>
-                  {(canEdit || canDelete) && (
-                    <TableCell className="text-right">
+                  <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() =>
+                            window.open(
+                              page.slug ? `/${page.slug}` : "/",
+                              "_blank",
+                            )
+                          }
+                          aria-label={`Preview ${page.title}`}
+                        >
+                          <EyeIcon />
+                        </Button>
+                        {canEdit && (
+                          <Button
+                            render={
+                              <Link href={`/dashboard/pages/${page.id}/edit`} />
+                            }
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Open editor for ${page.title}`}
+                          >
+                            <SquarePenIcon />
+                          </Button>
+                        )}
                         {canEdit && (
                           <Button
                             variant="ghost"
@@ -238,7 +271,6 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
                         )}
                       </div>
                     </TableCell>
-                  )}
                 </TableRow>
               ))
             )}

@@ -1,4 +1,4 @@
-import { and, asc, eq, ne } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 
 import { db } from "@/db/client";
 import { blocksTable, pagesTable, type BlockNode } from "@/db/schema";
@@ -20,7 +20,6 @@ import type {
 function toBlockSummary(block: {
   id: string;
   name: string;
-  slug: string;
   description: string;
   canBeLayout: boolean;
   children: BlockNode[] | null;
@@ -31,7 +30,6 @@ function toBlockSummary(block: {
   return {
     id: block.id,
     name: block.name,
-    slug: block.slug,
     description: block.description,
     canBeLayout: block.canBeLayout,
     childCount: children.length,
@@ -48,19 +46,20 @@ function firstIssueField<T extends string>(
   return allowed.find((value) => value === path);
 }
 
+const blockColumns = {
+  id: blocksTable.id,
+  name: blocksTable.name,
+  description: blocksTable.description,
+  canBeLayout: blocksTable.canBeLayout,
+  children: blocksTable.children,
+  createdAt: blocksTable.createdAt,
+  publishedAt: blocksTable.publishedAt,
+} as const;
+
 export async function listBlocks(): Promise<ListBlocksResponse> {
   try {
     const blocks = await db
-      .select({
-        id: blocksTable.id,
-        name: blocksTable.name,
-        slug: blocksTable.slug,
-        description: blocksTable.description,
-        canBeLayout: blocksTable.canBeLayout,
-        children: blocksTable.children,
-        createdAt: blocksTable.createdAt,
-        publishedAt: blocksTable.publishedAt,
-      })
+      .select(blockColumns)
       .from(blocksTable)
       .orderBy(asc(blocksTable.name));
 
@@ -78,20 +77,10 @@ export async function listBlocks(): Promise<ListBlocksResponse> {
   }
 }
 
-/** Blocks marked as reusable layouts (for page attach select). */
 export async function listLayoutBlocks(): Promise<ListBlocksResponse> {
   try {
     const blocks = await db
-      .select({
-        id: blocksTable.id,
-        name: blocksTable.name,
-        slug: blocksTable.slug,
-        description: blocksTable.description,
-        canBeLayout: blocksTable.canBeLayout,
-        children: blocksTable.children,
-        createdAt: blocksTable.createdAt,
-        publishedAt: blocksTable.publishedAt,
-      })
+      .select(blockColumns)
       .from(blocksTable)
       .where(eq(blocksTable.canBeLayout, true))
       .orderBy(asc(blocksTable.name));
@@ -110,6 +99,16 @@ export async function listLayoutBlocks(): Promise<ListBlocksResponse> {
   }
 }
 
+export async function getBlockById(id: string): Promise<BlockSummary | null> {
+  const rows = await db
+    .select(blockColumns)
+    .from(blocksTable)
+    .where(eq(blocksTable.id, id))
+    .limit(1);
+  const row = rows[0];
+  return row ? toBlockSummary(row) : null;
+}
+
 export async function createBlock(
   payload: CreateBlockPayload,
 ): Promise<BlockResponse> {
@@ -122,7 +121,6 @@ export async function createBlock(
       statusCode: 400,
       field: firstIssueField(issue?.path[0], [
         "name",
-        "slug",
         "description",
         "canBeLayout",
       ] as const),
@@ -130,28 +128,13 @@ export async function createBlock(
     };
   }
 
-  const { name, slug, description, canBeLayout } = parsed.data;
+  const { name, description, canBeLayout } = parsed.data;
 
   try {
-    const existing = await db.query.blocksTable.findFirst({
-      where: eq(blocksTable.slug, slug),
-      columns: { id: true },
-    });
-
-    if (existing) {
-      return {
-        success: false,
-        statusCode: 409,
-        field: "slug",
-        message: "A block with that slug already exists.",
-      };
-    }
-
     const [created] = await db
       .insert(blocksTable)
       .values({
         name,
-        slug,
         description: description ?? "",
         canBeLayout: canBeLayout ?? false,
         children: [],
@@ -194,7 +177,6 @@ export async function updateBlock(
       statusCode: 400,
       field: firstIssueField(issue?.path[0], [
         "name",
-        "slug",
         "description",
         "canBeLayout",
       ] as const),
@@ -202,7 +184,7 @@ export async function updateBlock(
     };
   }
 
-  const { name, slug, description, canBeLayout } = parsed.data;
+  const { name, description, canBeLayout } = parsed.data;
 
   try {
     const existing = await db.query.blocksTable.findFirst({
@@ -217,21 +199,6 @@ export async function updateBlock(
       };
     }
 
-    const slugTaken = await db.query.blocksTable.findFirst({
-      where: and(eq(blocksTable.slug, slug), ne(blocksTable.id, id)),
-      columns: { id: true },
-    });
-
-    if (slugTaken) {
-      return {
-        success: false,
-        statusCode: 409,
-        field: "slug",
-        message: "A block with that slug already exists.",
-      };
-    }
-
-    // Turning off layout flag while pages still reference this block.
     if (existing.canBeLayout && !canBeLayout) {
       const attached = await db.query.pagesTable.findFirst({
         where: eq(pagesTable.blockId, id),
@@ -252,7 +219,6 @@ export async function updateBlock(
       .update(blocksTable)
       .set({
         name,
-        slug,
         description: description ?? "",
         canBeLayout: canBeLayout ?? false,
         updatedAt: new Date(),

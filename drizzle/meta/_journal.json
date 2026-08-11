@@ -50,6 +50,13 @@
       "when": 1786451983084,
       "tag": "0006_blocks_replace_layouts",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786456227834,
+      "tag": "0007_page_editor_schema",
+      "breakpoints": true
     }
   ]
 }

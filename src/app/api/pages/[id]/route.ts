@@ -4,13 +4,23 @@ import { PERMISSIONS } from "@/config/permissions";
 import {
   isErrorResponse,
   requireButtonPermission,
+  requireRoutePermission,
 } from "@/lib/auth/permissions";
 import type { UpdatePagePayload } from "@/payloads/pages";
-import { deletePage, updatePage } from "@/repositories/pages";
+import { deletePage, getPageById, updatePage } from "@/repositories/pages";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
+
+export async function GET(_request: Request, context: RouteContext) {
+  const auth = await requireRoutePermission(PERMISSIONS.dashboardPages);
+  if (isErrorResponse(auth)) return auth;
+
+  const { id } = await context.params;
+  const response = await getPageById(id);
+  return NextResponse.json(response, { status: response.statusCode });
+}
 
 export async function PATCH(request: Request, context: RouteContext) {
   const auth = await requireButtonPermission(PERMISSIONS.pagesEdit);

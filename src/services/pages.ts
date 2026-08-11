@@ -14,6 +14,15 @@ export async function listPagesRequest(): Promise<ListPagesResponse> {
   }
 }
 
+export async function getPageRequest(id: string): Promise<PageResponse> {
+  try {
+    const { data } = await axiosInstance.get<PageResponse>(`/api/pages/${id}`);
+    return data;
+  } catch (error) {
+    return getApiErrorResponse(error);
+  }
+}
+
 export async function createPageRequest(
   payload: CreatePagePayload,
 ): Promise<PageResponse> {

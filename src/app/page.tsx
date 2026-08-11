@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { PublicPageView } from "@/components/public-page-view";
+import { getBlockById } from "@/repositories/blocks";
 import { getPublicPage } from "@/repositories/pages";
 
 export const dynamic = "force-dynamic";
@@ -22,5 +23,12 @@ export default async function RootPage() {
     notFound();
   }
 
-  return <PublicPageView page={page} />;
+  const layout = page.blockId ? await getBlockById(page.blockId) : null;
+
+  return (
+    <PublicPageView
+      page={page}
+      layoutChildren={layout?.children ?? []}
+    />
+  );
 }

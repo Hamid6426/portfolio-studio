@@ -19,6 +19,7 @@ export const ROLES_UPDATE_MUTATION_KEY = ["roles", "update"] as const;
 export const ROLES_DELETE_MUTATION_KEY = ["roles", "delete"] as const;
 
 export const PAGES_QUERY_KEY = ["pages"] as const;
+export const pageQueryKey = (id: string) => ["pages", id] as const;
 export const PAGES_CREATE_MUTATION_KEY = ["pages", "create"] as const;
 export const PAGES_UPDATE_MUTATION_KEY = ["pages", "update"] as const;
 export const PAGES_DELETE_MUTATION_KEY = ["pages", "delete"] as const;

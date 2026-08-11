@@ -11,6 +11,7 @@ import {
   PAGES_DELETE_MUTATION_KEY,
   PAGES_QUERY_KEY,
   PAGES_UPDATE_MUTATION_KEY,
+  pageQueryKey,
 } from "@/config/storage-keys";
 import type {
   CreatePagePayload,
@@ -20,6 +21,7 @@ import type { ListPagesResponse, PageResponse } from "@/responses/pages";
 import {
   createPageRequest,
   deletePageRequest,
+  getPageRequest,
   listPagesRequest,
   updatePageRequest,
 } from "@/services/pages";
@@ -28,6 +30,14 @@ export function usePagesQuery() {
   return useQuery<ListPagesResponse>({
     queryKey: PAGES_QUERY_KEY,
     queryFn: listPagesRequest,
+  });
+}
+
+export function usePageQuery(id: string) {
+  return useQuery<PageResponse>({
+    queryKey: pageQueryKey(id),
+    queryFn: () => getPageRequest(id),
+    enabled: Boolean(id),
   });
 }
 
@@ -55,9 +65,12 @@ export function useUpdatePageMutation() {
   >({
     mutationKey: PAGES_UPDATE_MUTATION_KEY,
     mutationFn: ({ id, payload }) => updatePageRequest(id, payload),
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       if (result.success) {
         void queryClient.invalidateQueries({ queryKey: PAGES_QUERY_KEY });
+        void queryClient.invalidateQueries({
+          queryKey: pageQueryKey(variables.id),
+        });
       }
     },
   });
