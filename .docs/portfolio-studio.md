@@ -34,7 +34,7 @@ Think of it as:
 > **Content model (resolved):** Portfolio content is **blocks only** — authored in
 > the visual page editor as versioned block trees (`pages.content` /
 > `blocks.children`). There are no separate Projects/Skills/Experience tables.
-> See `.docs/roadmap.md`.
+> See `.docs/whats-done.md` for the reasoning.
 
 ---
 

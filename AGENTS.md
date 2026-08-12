@@ -84,7 +84,8 @@ Datasets live in `scripts/datasets/` and are **pure content** — a `PortfolioDa
 - Prefer Server Components; client mutations via TanStack Query (`src/queries`) → frontend `src/services` → `src/app/api` → backend `src/repositories`.
 - Alias `@/*` → `src/*`. Match existing UI patterns; don't swap Base UI for Radix.
 - Schema changes → drizzle generate + migrate. Tables use `baseColumns`.
+- **Start here**: `.docs/current-situation.md` — what works, the known open issues, and a "Traps" section of version-sensitive gotchas that are not obvious from the code. Read the traps before writing anything.
+- What to build next, in order: `.docs/future-plans.md`.
+- Why the code looks the way it does (completed work and the reasoning behind it): `.docs/whats-done.md`.
 - Spec/vision: `.docs/portfolio-studio.md` (read when building features).
-- Roadmap + gotchas: `.docs/roadmap.md` (read before starting anything beyond the page editor — it lists version-sensitive traps that are not obvious from the code).
-- Post-Phase-1 remediation (authz, editor UX, SEO, block publish, ship-readiness): `.docs/remediation-plan.md`. Mostly implemented; still useful for trap notes and verification. Stage 1 (matcher + redirect + data migration + stop permission merge) was one deploy.
 - Block trees are stored as versioned `BlockDocument` (`{ version, nodes }`) in `pages.content`, `blocks.children`, and `blocks.published_children`. Migrate on read via `src/lib/blocks/document.ts`; never write bare arrays. Documents newer than `CURRENT_BLOCK_DOCUMENT_VERSION` are unreadable on this build — bump the version only with a migration step in `migrateBlockDocument`.

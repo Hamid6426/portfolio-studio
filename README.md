@@ -131,4 +131,4 @@ Keep dumps off the app host when possible. `db:seed` never deletes rows; it is n
 
 ## Development
 
-Read `.docs/roadmap.md` before building beyond the page editor — it lists version-sensitive traps (caching, password format, block-document versioning). Use `bun run test` (Vitest); prefer that over bare `bun test`.
+Read `.docs/current-situation.md` before building beyond the page editor — its "Traps" section lists version-sensitive gotchas (caching, password format, block-document versioning, the style allowlist). `.docs/future-plans.md` has what's next; `.docs/whats-done.md` explains why the code looks the way it does. Use `bun run test` (Vitest); prefer that over bare `bun test`.
