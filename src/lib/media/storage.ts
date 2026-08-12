@@ -144,3 +144,8 @@ export async function removeUploadFile(storedName: string): Promise<void> {
     if (code !== "ENOENT") throw error;
   }
 }
+
+/** True when the asset URL is remote (UploadThing CDN) rather than `/upload/…`. */
+export function isRemoteAssetUrl(url: string): boolean {
+  return /^https?:\/\//i.test(url.trim());
+}

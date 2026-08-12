@@ -63,7 +63,7 @@ Adding a dashboard route requires adding a matching `route:` permission in `src/
 
 ## Env
 
-`.env.local`: `DATABASE_URL` (Postgres), `AUTH_SECRET` (≥32, not the `.env.example` placeholder in production), `APP_URL` and `NEXT_PUBLIC_APP_URL` (canonical public URL), `NODE_ENV` (`development`|`production`|`test`). Parsed in `src/config/env.ts`. Drizzle loads `.env.local` via `drizzle.config.ts`.
+`.env.local`: `DATABASE_URL` (Postgres), `AUTH_SECRET` (≥32, not the `.env.example` placeholder in production), `APP_URL` and `NEXT_PUBLIC_APP_URL` (canonical public URL), optional `UPLOADTHING_TOKEN` (cloud media via UploadThing; omit for local `upload/`), `NODE_ENV` (`development`|`production`|`test`). Parsed in `src/config/env.ts`. Drizzle loads `.env.local` via `drizzle.config.ts`.
 
 ## Commands
 

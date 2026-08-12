@@ -25,6 +25,13 @@ const schema = z
      * on the server at boot.
      */
     NEXT_PUBLIC_APP_URL: z.string().url().optional(),
+    /**
+     * Optional UploadThing API token (dashboard → API Keys). When set, media
+     * uploads go to UploadThing instead of project-root `upload/`. Leave unset
+     * for local-disk storage.
+     * @see https://uploadthing.com/dashboard
+     */
+    UPLOADTHING_TOKEN: z.string().min(1).optional(),
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),

@@ -16,10 +16,10 @@ Stay inside the **self-hosted, single-site** CMS scope.
 - ~~Add `public/og.png`~~ — done; page metadata uses it for Open Graph / Twitter.
 - ~~Request-id middleware that threads into `logError`~~ — done (`x-request-id`
   from proxy + `bindRequestContext`).
+- ~~Optional object storage~~ — UploadThing via `UPLOADTHING_TOKEN` behind
+  `/api/assets` (local `upload/` remains the default when unset).
 - Tighten `script-src` with nonces once Next’s nonce story is verified end-to-end
   (public `style-src` already uses nonces; scripts still `'unsafe-inline'`).
-- Optional object storage adapter behind the same `assets` API if a deploy has
-  no persistent disk (not required for self-host).
 
 **Not product work:** custom domains / Redis. Operators who clone the repo attach
 their hostname in Vercel (or similar) and their DNS provider. Rate limits stay
@@ -39,8 +39,9 @@ in-process for a single-node self-host — no Redis dependency.
 ## Explicitly not doing
 
 - **Tenant isolation of any kind.**
-- **UploadThing / cloud-only media** — local `upload/` is the storage.
 - **Redis** — not in the stack; single-node in-memory rate limits are enough.
+- **Cloud-only media as the only option** — local `upload/` stays the default;
+  UploadThing is optional when `UPLOADTHING_TOKEN` is set.
 - **In-app custom domains** — operator configures DNS + Vercel (or other host).
 - **Replacing the hand-rolled JWT** — audited, header inside HMAC, `timingSafeEqual`,
   pinned by tests.

@@ -99,8 +99,8 @@ export function MediaLibraryDialog({
         <DialogHeader>
           <DialogTitle>Media library</DialogTitle>
           <DialogDescription>
-            Files are stored in the project <code>upload/</code> folder and
-            served at <code>/upload/…</code>. JPEG, PNG, GIF, WebP, AVIF up to{" "}
+            Local disk by default; set <code>UPLOADTHING_TOKEN</code> for
+            UploadThing. JPEG, PNG, GIF, WebP, AVIF up to{" "}
             {Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024))} MB.
           </DialogDescription>
         </DialogHeader>

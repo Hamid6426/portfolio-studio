@@ -29,6 +29,7 @@ Required variables in `.env.local`:
 | `AUTH_SECRET` | Session signing secret (≥32 chars; **never** use the placeholder in production) |
 | `APP_URL` | Canonical public URL for metadata and sitemap (server-only) |
 | `NEXT_PUBLIC_APP_URL` | Same URL for the browser client (axios base URL) |
+| `UPLOADTHING_TOKEN` | Optional. UploadThing API token — when set, media uses UploadThing instead of local `upload/` |
 
 Generate a secret:
 

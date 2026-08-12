@@ -111,9 +111,9 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
 9. **Portfolio themes ≠ dashboard chrome** — `:root` tokens stay for the CMS UI;
    public/editor canvas use `.ps-site` + `--ps-*`. Do not wire `next-themes` for
    site appearance.
-10. **Media lives on disk under `upload/`** — not in `public/`. Deploys need a
-    persistent volume (or accept empty media after redeploy). Do not commit
-    uploaded binaries.
+10. **Media defaults to disk under `upload/`** — not in `public/`. Deploys need a
+    persistent volume (or accept empty media after redeploy) unless
+    `UPLOADTHING_TOKEN` is set. Do not commit uploaded binaries.
 
 ---
 

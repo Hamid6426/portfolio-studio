@@ -89,9 +89,11 @@ export function MediaPageClient({ permissions }: MediaPageClientProps) {
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Media</h1>
           <p className="max-w-xl text-sm text-muted-foreground">
-            Local uploads in <code className="text-xs">upload/</code>, served at{" "}
-            <code className="text-xs">/upload/…</code>. JPEG, PNG, GIF, WebP,
-            AVIF · max {Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024))} MB.
+            Local uploads by default (<code className="text-xs">upload/</code>,
+            served at <code className="text-xs">/upload/…</code>). Set{" "}
+            <code className="text-xs">UPLOADTHING_TOKEN</code> to store files on
+            UploadThing instead. JPEG, PNG, GIF, WebP, AVIF · max{" "}
+            {Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024))} MB.
           </p>
         </div>
         {canUpload ? (

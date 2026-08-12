@@ -256,12 +256,14 @@ admin/editor roles. Migration `0017` adds `default_layout_block_id`.
 
 ## Local media uploads
 
-Self-hosted assets: bytes under project-root `upload/` (gitignored), catalogue in
-`assets`. Public URLs are `/upload/<uuid>.<ext>` via a Route Handler. Magic-byte
-sniffing; JPEG/PNG/GIF/WebP/AVIF only; 5 MiB cap; SVG rejected.
+Self-hosted assets: bytes under project-root `upload/` by default (gitignored),
+catalogue in `assets`. Public URLs are `/upload/<uuid>.<ext>` via a Route Handler.
+When `UPLOADTHING_TOKEN` is set, the same `/api/assets` flow stores bytes on
+UploadThing and saves the CDN URL in `assets.url`. Magic-byte sniffing;
+JPEG/PNG/GIF/WebP/AVIF only; 5 MiB cap; SVG rejected.
 
 Dashboard `/dashboard/media` plus a library/upload control on the image block
-settings panel. External URL field still works. No UploadThing / Blob dependency.
+settings panel. External URL field still works.
 
 Migration `0015` creates `assets` and grants media permissions to admin/editor.
 

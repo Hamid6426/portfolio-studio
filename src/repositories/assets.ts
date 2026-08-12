@@ -4,13 +4,19 @@ import { db } from "@/db/client";
 import { assetsTable } from "@/db/schema";
 import { apiErrorFromPostgres } from "@/lib/db/errors";
 import { logError } from "@/lib/logger";
+import { isUploadThingEnabled } from "@/lib/media/backend";
 import {
   isAllowedImageMime,
+  isRemoteAssetUrl,
   removeUploadFile,
   sniffImageMime,
   writeUploadFile,
   type AllowedImageMime,
 } from "@/lib/media/storage";
+import {
+  removeUploadThingFile,
+  writeUploadThingFile,
+} from "@/lib/media/uploadthing";
 import { MAX_UPLOAD_BYTES } from "@/lib/media/constants";
 import type {
   ApiErrorResponse,
@@ -106,7 +112,9 @@ export async function createAssetFromUpload(input: {
       mimeType = sniffed;
     }
 
-    const written = await writeUploadFile(input.bytes, mimeType);
+    const written = isUploadThingEnabled()
+      ? await writeUploadThingFile(input.bytes, mimeType)
+      : await writeUploadFile(input.bytes, mimeType);
     const originalName = input.originalName.trim().slice(0, 255) || written.storedName;
 
     try {
@@ -123,7 +131,7 @@ export async function createAssetFromUpload(input: {
         .returning();
 
       if (!row) {
-        await removeUploadFile(written.storedName);
+        await cleanupWrittenBytes(written.storedName, written.url);
         return {
           success: false,
           statusCode: 500,
@@ -138,7 +146,7 @@ export async function createAssetFromUpload(input: {
         message: "Uploaded.",
       };
     } catch (error) {
-      await removeUploadFile(written.storedName);
+      await cleanupWrittenBytes(written.storedName, written.url);
       throw error;
     }
   } catch (error) {
@@ -148,6 +156,17 @@ export async function createAssetFromUpload(input: {
       "Something went wrong while uploading.",
     );
   }
+}
+
+async function cleanupWrittenBytes(
+  storedName: string,
+  url: string,
+): Promise<void> {
+  if (isRemoteAssetUrl(url) && isUploadThingEnabled()) {
+    await removeUploadThingFile(storedName);
+    return;
+  }
+  await removeUploadFile(storedName);
 }
 
 export async function deleteAsset(
@@ -171,7 +190,7 @@ export async function deleteAsset(
       .set({ deletedAt: new Date(), updatedAt: new Date() })
       .where(eq(assetsTable.id, id));
 
-    await removeUploadFile(existing.storedName);
+    await cleanupWrittenBytes(existing.storedName, existing.url);
 
     return {
       success: true,
