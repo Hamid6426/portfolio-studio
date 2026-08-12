@@ -19,7 +19,7 @@ export default async function RolesPage() {
   const permissions = await getRolePermissions(session.role);
 
   if (!canAccessRoute(permissions, "/dashboard/roles")) {
-    redirect("/dashboard/overview");
+    redirect("/dashboard");
   }
 
   return <RolesPageClient permissions={permissions} />;

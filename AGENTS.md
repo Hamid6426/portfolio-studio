@@ -57,9 +57,9 @@ Keep gate redirect targets in PUBLIC_ROUTES or loops occur.
 
 ## Routes (do not invent)
 
-`/` · `/home` · `/setup` · `/setup-guide` · `/login` · `/dashboard/overview` · `/dashboard/pages` · `/dashboard/pages/edit` · `/dashboard/blocks` · `/dashboard/blocks/edit` · `/dashboard/users` · `/dashboard/roles` · `/error/database` · `/[slug]`
+`/` · `/home` · `/setup` · `/setup-guide` · `/login` · `/dashboard/overview` · `/dashboard/pages` · `/dashboard/pages/edit` · `/dashboard/blocks` · `/dashboard/blocks/edit` · `/dashboard/users` · `/dashboard/roles` · `/error/database` · `/[slug]` · `/sitemap.xml` · `/robots.txt`
 
-Adding a dashboard route requires adding a matching `route:` permission in `src/config/permissions.ts`. The matcher is **default deny** — undeclared paths are rejected.
+Adding a dashboard route requires adding a matching `route:` permission in `src/config/permissions.ts`. Matching is **longest declared route wins, default deny** — undeclared paths (including for admin) are rejected. Use `route:/path/*` for a subtree; bare `route:/dashboard` is exact-only and never escalates into children.
 
 ## Env
 
@@ -67,7 +67,9 @@ Adding a dashboard route requires adding a matching `route:` permission in `src/
 
 ## Commands
 
-`bun dev` · `bun run db:generate` · `bun run db:migrate` · `bun run db:studio` · `bun run db:seed`
+`bun dev` · `bun run lint` · `bun run typecheck` · `bun run test` · `bun run db:generate` · `bun run db:migrate` · `bun run db:studio` · `bun run db:seed`
+
+Prefer `bun run test` (Vitest). Bare `bun test` works only with the env preload in `bunfig.toml`.
 
 `db:seed` creates the default roles, an admin user, and the dataset's portfolio pages (published). Idempotent; `--force` rewrites the seeded pages. Never deletes.
 

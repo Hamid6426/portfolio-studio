@@ -47,6 +47,7 @@ export const userRefreshTokenTable = pgTable(
   (table) => [
     uniqueIndex("user_refresh_tokens_token_uidx").on(table.token),
     index("user_refresh_tokens_user_id_idx").on(table.userId),
+    index("user_refresh_tokens_expires_at_idx").on(table.expiresAt),
   ],
 );
 

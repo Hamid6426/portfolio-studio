@@ -27,10 +27,13 @@ export function proxy(request: NextRequest) {
   // access token with no refresh caused an infinite redirect loop; the login
   // page (and dashboard layout) verify the JWT instead.
 
-  // Forward pathname on the *request* so Server Components can read it via
-  // `headers()` (response headers are not visible there).
+  // Forward path (+ query) on the *request* so Server Components can read it
+  // via `headers()` (response headers are not visible there). Query must be
+  // preserved so a refresh bounce from /dashboard/pages/edit?slug=about
+  // returns with the slug intact.
   const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-pathname", pathname);
+  const pathWithSearch = `${pathname}${request.nextUrl.search}`;
+  requestHeaders.set("x-pathname", pathWithSearch);
 
   return NextResponse.next({
     request: { headers: requestHeaders },

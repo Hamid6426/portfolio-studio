@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db/client";
 import { userRefreshTokenTable, userTable } from "@/db/schema";
+import { firstIssueField } from "@/lib/api/first-issue-field";
 import { apiErrorFromPostgres } from "@/lib/db/errors";
 import { hashPassword } from "@/lib/password";
 import {
@@ -32,13 +33,6 @@ function toUserSummary(user: {
     role: user.role,
     createdAt: user.createdAt,
   };
-}
-
-function firstIssueField<T extends string>(
-  path: PropertyKey | undefined,
-  allowed: readonly T[],
-): T | undefined {
-  return allowed.find((value) => value === path);
 }
 
 export async function listUsers(): Promise<ListUsersResponse> {
@@ -252,21 +246,35 @@ export async function updateUser(
       updatedAt: new Date(),
     };
 
-    if (password && password.length > 0) {
-      updates.password = await hashPassword(password);
+    const passwordChanged = Boolean(password && password.length > 0);
+    if (passwordChanged) {
+      updates.password = await hashPassword(password!);
     }
 
-    const [updated] = await db
-      .update(userTable)
-      .set(updates)
-      .where(eq(userTable.id, id))
-      .returning({
-        id: userTable.id,
-        name: userTable.name,
-        email: userTable.email,
-        role: userTable.role,
-        createdAt: userTable.createdAt,
-      });
+    const updated = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(userTable)
+        .set(updates)
+        .where(eq(userTable.id, id))
+        .returning({
+          id: userTable.id,
+          name: userTable.name,
+          email: userTable.email,
+          role: userTable.role,
+          createdAt: userTable.createdAt,
+        });
+
+      if (!row) return null;
+
+      // Password change must revoke outstanding sessions in the same txn.
+      if (passwordChanged) {
+        await tx
+          .delete(userRefreshTokenTable)
+          .where(eq(userRefreshTokenTable.userId, id));
+      }
+
+      return row;
+    });
 
     if (!updated) {
       return {
@@ -274,13 +282,6 @@ export async function updateUser(
         statusCode: 500,
         message: "Something went wrong while updating the user.",
       };
-    }
-
-    // Password change must revoke outstanding sessions.
-    if (password && password.length > 0) {
-      await db
-        .delete(userRefreshTokenTable)
-        .where(eq(userRefreshTokenTable.userId, id));
     }
 
     return {

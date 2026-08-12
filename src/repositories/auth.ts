@@ -8,6 +8,7 @@ import {
 import { db } from "@/db/client";
 import { rolesTable, userRefreshTokenTable, userTable } from "@/db/schema";
 import { REFRESH_TOKEN_TTL_MS } from "@/lib/auth/constants";
+import { firstIssueField } from "@/lib/api/first-issue-field";
 import {
   createRefreshToken,
   hashRefreshToken,
@@ -30,13 +31,6 @@ import type {
   RefreshResponse,
 } from "@/responses/auth";
 import { apiErrorFromPostgres } from "@/lib/db/errors";
-
-function firstIssueField<T extends string>(
-  path: PropertyKey | undefined,
-  allowed: readonly T[],
-): T | undefined {
-  return allowed.find((value) => value === path);
-}
 
 export type AuthTokenPair = {
   accessToken: string;

@@ -1,10 +1,11 @@
 # Portfolio Studio — post-Phase-1 remediation plan
 
-> **In-repo copy** of the sequencing plan (also lived outside the repo at
-> `~/.claude/plans/next-check-if-there-witty-liskov.md`). Most stages are
-> implemented on the working tree; keep this file for trap notes, the Stage 1
-> single-deploy invariant, and the Verification checklist. Do not re-litigate
-> items marked “Already correct.”
+> **In-repo copy** of the sequencing plan. Treat this as historical handoff + trap
+> notes, not a live todo list. Follow-up verification and remaining fixes live in
+> `.docs/plan-3.md`. Prefer `bun run test` (Vitest); password storage is
+> `scrypt$N=…$salt$hash`; indexes + `published_children` both landed in migration
+> `0012` (not a separate `0013` for publish). Migration `0013` adds
+> `expires_at` index + custom-role permission rewrites.
 
 ## Context
 

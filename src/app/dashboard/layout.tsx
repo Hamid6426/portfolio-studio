@@ -48,7 +48,9 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const headerList = await headers();
-  const pathname = headerList.get("x-pathname") ?? "/dashboard/overview";
+  const pathWithSearch =
+    headerList.get("x-pathname") ?? "/dashboard/overview";
+  const pathname = pathWithSearch.split(/[?#]/, 1)[0] || pathWithSearch;
   const session = await getAccessSession();
 
   if (!session) {
@@ -57,14 +59,14 @@ export default async function DashboardLayout({
 
     if (hasRefresh) {
       redirect(
-        `/api/auth/session/refresh?next=${encodeURIComponent(pathname)}`,
+        `/api/auth/session/refresh?next=${encodeURIComponent(pathWithSearch)}`,
       );
     }
 
     // Clear sealed cookies via a Route Handler — `cookies().delete()` throws
     // in Server Components under Next.js 16.
     redirect(
-      `/api/auth/session/clear?next=${encodeURIComponent(pathname)}`,
+      `/api/auth/session/clear?next=${encodeURIComponent(pathWithSearch)}`,
     );
   }
 
@@ -75,25 +77,21 @@ export default async function DashboardLayout({
 
   if (visibleNav.length === 0) {
     return (
-      <div className="flex min-h-screen flex-1 flex-col items-center justify-center gap-3 px-6">
+      <div className="flex min-h-screen flex-1 flex-col items-center justify-center gap-4 px-6">
         <h1 className="text-lg font-semibold">No dashboard access</h1>
         <p className="max-w-md text-center text-sm text-muted-foreground">
           Your account ({session.email}) does not have permission to open any
           dashboard pages. Ask an admin to update your role.
         </p>
-        <Link href="/login" className="text-sm underline underline-offset-4">
-          Back to sign in
-        </Link>
+        <div className="w-full max-w-xs">
+          <DashboardSignOut permissions={permissions} />
+        </div>
       </div>
     );
   }
 
   if (!canAccessRoute(permissions, pathname)) {
-    const fallback = visibleNav[0]!.href;
-    if (pathname === fallback) {
-      redirect("/login");
-    }
-    redirect(fallback);
+    redirect(visibleNav[0]!.href);
   }
 
   return (

@@ -29,7 +29,7 @@ export default async function BlockEditPage({
   const permissions = await getRolePermissions(session.role);
 
   if (!canAccessRoute(permissions, "/dashboard/blocks")) {
-    redirect("/dashboard/overview");
+    redirect("/dashboard");
   }
 
   if (!id) {

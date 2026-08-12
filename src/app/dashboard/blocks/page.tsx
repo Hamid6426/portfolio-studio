@@ -19,7 +19,7 @@ export default async function BlocksPage() {
   const permissions = await getRolePermissions(session.role);
 
   if (!canAccessRoute(permissions, "/dashboard/blocks")) {
-    redirect("/dashboard/overview");
+    redirect("/dashboard");
   }
 
   return <BlocksPageClient permissions={permissions} />;

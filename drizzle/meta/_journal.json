@@ -92,6 +92,13 @@
       "when": 1786532009347,
       "tag": "0012_slim_onslaught",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1786533688944,
+      "tag": "0013_rare_wolf_cub",
+      "breakpoints": true
     }
   ]
 }

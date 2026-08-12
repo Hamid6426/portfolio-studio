@@ -29,7 +29,7 @@ export default async function PageEditPage({
   const permissions = await getRolePermissions(session.role);
 
   if (!canAccessRoute(permissions, "/dashboard/pages")) {
-    redirect("/dashboard/overview");
+    redirect("/dashboard");
   }
 
   const page = await getPageBySlug(slug);

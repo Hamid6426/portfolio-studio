@@ -1,0 +1,4 @@
+[test]
+# Prefer `bun run test` (Vitest). This preload lets bare `bun test` load env
+# without reading a developer's real DATABASE_URL from .env.local.
+preload = ["./scripts/bun-test-preload.ts"]

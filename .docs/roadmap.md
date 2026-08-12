@@ -32,8 +32,10 @@ Working and smoke-tested end to end:
 These cost real debugging time to discover. Do not rediscover them.
 
 1. **Passwords are scrypt, not bcrypt.** `src/lib/password.ts` stores
-   `scrypt:<salt>:<hash>` and `verifyPassword` rejects any other scheme. A bcrypt or
-   argon2 hash will be accepted at insert and then silently never log in.
+   `scrypt$N=16384,r=8,p=1$<salt>$<hash>` (async `scrypt`). The legacy
+   `scrypt:<salt>:<hash>` form is still verified and rehashed on login.
+   A bcrypt or argon2 hash will be accepted at insert and then silently never
+   log in.
 2. **`revalidateTag` takes two arguments in Next.js 16.** The one-arg form is
    deprecated. The `"max"` profile is *stale-while-revalidate* — using it for a
    user-triggered action makes the site lag one request behind. For immediate effect
@@ -51,10 +53,10 @@ These cost real debugging time to discover. Do not rediscover them.
    same renderer runs in the public Server Component tree; any handler throws and 500s
    the page. This already caused one production-shaped bug.
 6. **Only styles on the allowlist in `src/lib/block-sanitize.ts` survive rendering.**
-   Anything else is dropped silently. Notably absent: `flexWrap`, `whiteSpace`,
-   `position`, `boxShadow`, `border` shorthands beyond what is listed. Adding a control
-   to the style panel means adding its property to the allowlist too, or it will appear
-   to work in the editor and vanish on the public site.
+   Anything else is dropped silently. Adding a control to the style panel means adding
+   its property to the allowlist too, or it will appear to work in the editor and vanish
+   on the public site. Responsive stop-gap allowlist includes `flexWrap`, `minWidth`,
+   `flex`, `lineHeight`, `textDecoration`, `border`, `borderTop`, `backgroundColor`.
 7. **Cache keys must not contain an empty string.** `getCachedPublishedPage` uses
    `"__root__"` for the null slug because `""` mis-keys `unstable_cache` into a
    permanent miss. This produced a 404 on `/` that looked like a data problem.
@@ -123,12 +125,14 @@ decision.
 
 - [x] **No sign-out in the UI** — sidebar `DashboardSignOut` + `useLogoutMutation`.
 - [x] **`editor` == `viewer` permissions** — editor now gets pages/blocks routes and
-  CRUD buttons; `ensureDefaultRoles` merges the new defaults on next dashboard load.
+  CRUD buttons. `ensureDefaultRoles` is create-if-missing only (seed / setup); it does
+  **not** re-merge defaults on dashboard load.
 - [x] **Overview route permission** — dashboard layout rejects any pathname the role
   cannot access (including overview).
 - [x] **Redirect loop** on invalid access cookie — proxy no longer treats cookie
-  presence as signed-in; layout deletes a stale access cookie before sending to
-  `/login`; login page redirects only after a verified session.
+  presence as signed-in; layout redirects to `/api/auth/session/clear` (or refresh)
+  instead of calling `cookies().delete()` in a Server Component; login page redirects
+  only after a verified session.
 - [x] **Dead server actions** — removed `login/actions.ts` and `setup/actions.ts`.
 - [x] **Setup is not transactional** — `createAdminUser` uses
   `pg_advisory_xact_lock(hashtext('portfolio-studio:setup'))` so concurrent setup

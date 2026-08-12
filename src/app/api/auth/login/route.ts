@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 
 import { setAuthCookies } from "@/lib/auth/cookies";
 import { parseBody } from "@/lib/api/parse-body";
-import { checkLoginRateLimit } from "@/lib/auth/login-rate-limit";
+import {
+  checkLoginRateLimit,
+  clientIpFromRequest,
+} from "@/lib/auth/login-rate-limit";
 import { loginPayloadSchema } from "@/payloads/auth";
 import { loginUser } from "@/repositories/auth";
 
@@ -11,7 +14,7 @@ export async function POST(request: Request) {
   if (!parsed.ok) return parsed.response;
 
   const rate = checkLoginRateLimit(
-    request.headers.get("x-forwarded-for") ?? "local",
+    clientIpFromRequest(request),
     parsed.data.email,
   );
   if (!rate.ok) {

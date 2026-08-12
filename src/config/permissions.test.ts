@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_ROLE_PERMISSIONS,
+  ROUTE_PERMISSIONS,
   canAccessRoute,
   parsePermissions,
+  routePermissionPathname,
   serializePermissions,
   type Permission,
 } from "@/config/permissions";
@@ -19,6 +21,23 @@ describe("parsePermissions", () => {
     expect(
       parsePermissions("route:/dashboard/overview,button:sign-out,route:/evil"),
     ).toEqual(["route:/dashboard/overview", "button:sign-out"]);
+  });
+
+  it("drops the old catch-all dashboard tree token", () => {
+    expect(parsePermissions("route:/dashboard/*,route:/dashboard/overview")).toEqual(
+      ["route:/dashboard/overview"],
+    );
+  });
+});
+
+describe("routePermissionPathname", () => {
+  it("strips route: and trailing /* for API checks", () => {
+    expect(routePermissionPathname(ROUTE_PERMISSIONS.dashboardUsers)).toBe(
+      "/dashboard/users",
+    );
+    expect(routePermissionPathname(ROUTE_PERMISSIONS.dashboardOverview)).toBe(
+      "/dashboard/overview",
+    );
   });
 });
 
@@ -78,22 +97,16 @@ describe("canAccessRoute", () => {
       expected: false,
     },
     {
-      name: "dashboard tree grant covers nested routes",
-      permissions: ["route:/dashboard/*"],
-      pathname: "/dashboard/users",
-      expected: true,
-    },
-    {
-      name: "dashboard tree grant covers overview",
-      permissions: ["route:/dashboard/*"],
-      pathname: "/dashboard/overview",
-      expected: true,
-    },
-    {
-      name: "legacy bare /dashboard must not escalate (exact only)",
+      name: "legacy bare /dashboard must not escalate",
       permissions: ["route:/dashboard"],
       pathname: "/dashboard/users",
       expected: false,
+    },
+    {
+      name: "bare /dashboard allowed when any dashboard grant is held",
+      permissions: ["route:/dashboard/overview"],
+      pathname: "/dashboard",
+      expected: true,
     },
     {
       name: "editor defaults allow pages edit",
@@ -105,6 +118,48 @@ describe("canAccessRoute", () => {
       name: "editor defaults deny users",
       permissions: DEFAULT_ROLE_PERMISSIONS.editor,
       pathname: "/dashboard/users",
+      expected: false,
+    },
+    {
+      name: "admin defaults allow users",
+      permissions: DEFAULT_ROLE_PERMISSIONS.admin,
+      pathname: "/dashboard/users",
+      expected: true,
+    },
+    {
+      name: "admin defaults deny undeclared /dashboard/unknown",
+      permissions: DEFAULT_ROLE_PERMISSIONS.admin,
+      pathname: "/dashboard/unknown",
+      expected: false,
+    },
+    {
+      name: "admin defaults deny /dashboard/usersX lookalike",
+      permissions: DEFAULT_ROLE_PERMISSIONS.admin,
+      pathname: "/dashboard/usersX",
+      expected: false,
+    },
+    {
+      name: "admin defaults deny /dashboardX",
+      permissions: DEFAULT_ROLE_PERMISSIONS.admin,
+      pathname: "/dashboardX",
+      expected: false,
+    },
+    {
+      name: "path traversal lookalike is denied",
+      permissions: DEFAULT_ROLE_PERMISSIONS.admin,
+      pathname: "/dashboard/../users",
+      expected: false,
+    },
+    {
+      name: "API-style wildcard pathname from requireRoutePermission works",
+      permissions: DEFAULT_ROLE_PERMISSIONS.editor,
+      pathname: routePermissionPathname(ROUTE_PERMISSIONS.dashboardPages),
+      expected: true,
+    },
+    {
+      name: "API-style users pathname denied for editor",
+      permissions: DEFAULT_ROLE_PERMISSIONS.editor,
+      pathname: routePermissionPathname(ROUTE_PERMISSIONS.dashboardUsers),
       expected: false,
     },
   ];

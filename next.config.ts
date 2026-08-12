@@ -7,7 +7,9 @@ const securityHeaders = [
     key: "Permissions-Policy",
     value: "camera=(), microphone=(), geolocation=()",
   },
+  // CSP frame-ancestors is the modern control; X-Frame-Options covers older agents.
   { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+  { key: "X-Frame-Options", value: "DENY" },
 ];
 
 const nextConfig: NextConfig = {

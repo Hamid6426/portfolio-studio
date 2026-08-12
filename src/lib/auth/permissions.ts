@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   canAccessRoute,
   canShowButton,
+  routePermissionPathname,
   type ButtonPermission,
   type RoutePermission,
 } from "@/config/permissions";
@@ -49,7 +50,7 @@ export async function requireRoutePermission(
   const auth = await requireSession();
   if (auth instanceof NextResponse) return auth;
 
-  const pathname = route.slice("route:".length);
+  const pathname = routePermissionPathname(route);
   if (!canAccessRoute(auth.permissions, pathname)) {
     return unauthorized(403, "You do not have permission to view this.");
   }

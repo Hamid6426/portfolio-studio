@@ -1,6 +1,6 @@
 import { cache } from "react";
 
-import { canAccessRoute, ROUTE_PERMISSIONS } from "@/config/permissions";
+import { canAccessRoute, ROUTE_PERMISSIONS, routePermissionPathname } from "@/config/permissions";
 import { getAccessSession } from "@/lib/auth/session";
 import { getRolePermissions } from "@/repositories/roles";
 
@@ -20,6 +20,8 @@ export const canPreviewDrafts = cache(async (): Promise<boolean> => {
   if (!session) return false;
 
   const permissions = await getRolePermissions(session.role);
-  const pathname = ROUTE_PERMISSIONS.dashboardPages.slice("route:".length);
-  return canAccessRoute(permissions, pathname);
+  return canAccessRoute(
+    permissions,
+    routePermissionPathname(ROUTE_PERMISSIONS.dashboardPages),
+  );
 });

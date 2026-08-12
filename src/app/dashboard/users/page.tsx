@@ -19,7 +19,7 @@ export default async function UsersPage() {
   const permissions = await getRolePermissions(session.role);
 
   if (!canAccessRoute(permissions, "/dashboard/users")) {
-    redirect("/dashboard/overview");
+    redirect("/dashboard");
   }
 
   return (

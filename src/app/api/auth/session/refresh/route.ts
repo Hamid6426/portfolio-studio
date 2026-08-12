@@ -9,24 +9,17 @@ import {
 import { safeRedirectPath } from "@/lib/auth/safe-redirect";
 import { refreshSession } from "@/repositories/auth";
 
+/**
+ * Allow same-origin navigations and user-initiated top-level loads (`none`,
+ * e.g. typed URL / bookmark). Reject `cross-site` so a foreign site cannot
+ * rotate the refresh token via SameSite=Lax top-level GET.
+ *
+ * Do **not** reject on a cross-origin Referer — inbound links from email/Slack
+ * with an expired access cookie must still be able to refresh.
+ */
 function isAllowedRefreshNavigation(request: Request): boolean {
   const site = request.headers.get("sec-fetch-site");
-  // Cross-site top-level GETs would rotate refresh tokens (SameSite=Lax).
   if (site === "cross-site") return false;
-
-  const url = new URL(request.url);
-  const origin = request.headers.get("origin");
-  if (origin && origin !== url.origin) return false;
-
-  const referer = request.headers.get("referer");
-  if (referer) {
-    try {
-      if (new URL(referer).origin !== url.origin) return false;
-    } catch {
-      return false;
-    }
-  }
-
   return true;
 }
 
@@ -39,11 +32,11 @@ export async function GET(request: Request) {
   const safeNext = safeRedirectPath(requestUrl.searchParams.get("next"));
 
   if (!isAllowedRefreshNavigation(request)) {
+    // Keep cookies — this is often a real user following an external link.
+    // Clearing here forced a full logout (plan-3 regression).
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", safeNext);
-    const result = NextResponse.redirect(loginUrl);
-    clearAuthCookies(result);
-    return result;
+    return NextResponse.redirect(loginUrl);
   }
 
   const rawRefreshToken = readCookieValue(

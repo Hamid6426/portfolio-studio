@@ -4,8 +4,7 @@ if (!process.env.NODE_ENV) {
     writable: true,
   });
 }
-// Always pin test credentials so a developer's .env.local cannot point the
-// suite at a real database (safe today; required once integration tests land).
+// Always pin test credentials — never inherit a developer's real DATABASE_URL.
 process.env.DATABASE_URL =
   "postgres://localhost:5432/portfolio_studio_test";
 process.env.AUTH_SECRET =

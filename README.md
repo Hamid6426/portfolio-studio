@@ -110,12 +110,25 @@ The app refuses to boot in production when `AUTH_SECRET` equals the `.env.exampl
 
 ### Security posture
 
-- Route permissions use longest-match, default-deny (undeclared dashboard paths are rejected).
-- Login rate limiting (in-memory, per process).
-- Security headers via `next.config.ts`: `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `frame-ancestors 'none'`, HSTS in production.
+- Route permissions use **longest declared route wins, default-deny** (`canAccessRoute` in `src/config/permissions.ts`). Undeclared dashboard paths are rejected for every role, including admin. Subtree grants use `route:/path/*`; bare `route:/dashboard` is exact-only.
+- Passwords: async scrypt with cost params (`scrypt$N=…$salt$hash`); placeholder `AUTH_SECRET` refused in production.
+- Login and setup are rate-limited in-memory per process (IP + email). Terminate TLS at a proxy that overwrites `X-Forwarded-For` / `X-Real-IP`.
+- Security headers via `next.config.ts`: `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options: DENY`, CSP `frame-ancestors 'none'`, HSTS in production.
 - Block HTML/styles sanitized at render time (`src/lib/block-sanitize.ts`).
 - No full CSP yet — block styles are inline; a real policy needs `'unsafe-inline'` on `style-src-attr` until the responsive v2 model moves styling to classes.
 
+### Backup and restore
+
+All content lives in Postgres. Before upgrades:
+
+```bash
+pg_dump "$DATABASE_URL" -Fc -f portfolio-studio-$(date +%Y%m%d).dump
+# restore:
+# pg_restore -d "$DATABASE_URL" --clean --if-exists portfolio-studio-YYYYMMDD.dump
+```
+
+Keep dumps off the app host when possible. `db:seed` never deletes rows; it is not a backup tool.
+
 ## Development
 
-Read `.docs/roadmap.md` before building beyond the page editor — it lists version-sensitive traps (caching, password format, block-document versioning).
+Read `.docs/roadmap.md` before building beyond the page editor — it lists version-sensitive traps (caching, password format, block-document versioning). Use `bun run test` (Vitest); prefer that over bare `bun test`.

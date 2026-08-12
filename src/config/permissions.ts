@@ -6,13 +6,14 @@
  * - `route:<path>/*` — that path and all nested paths
  * - `button:<id>`    — show/hide a UI control
  *
- * Bare `route:/dashboard` must never be used as a subtree grant — it used to
- * escalate every role into /users, /roles, draft APIs, etc.
+ * Matching is **longest declared route wins, default deny**: undeclared
+ * dashboard paths (e.g. `/dashboard/unknown`) are rejected even for admin.
+ * Bare `route:/dashboard` is exact-only and never escalates into children.
  */
 
 export const ROUTE_PERMISSIONS = {
-  /** Whole dashboard tree (admin). */
-  dashboard: "route:/dashboard/*",
+  /** Dashboard shell / redirect target only — not a subtree grant. */
+  dashboard: "route:/dashboard",
   dashboardOverview: "route:/dashboard/overview",
   dashboardUsers: "route:/dashboard/users/*",
   dashboardRoles: "route:/dashboard/roles/*",
@@ -109,10 +110,21 @@ export function hasPermission(
 }
 
 /**
+ * Strip `route:` and a trailing `/*` so API helpers can feed a concrete
+ * pathname into {@link canAccessRoute}.
+ */
+export function routePermissionPathname(route: RoutePermission): string {
+  const path = route.slice("route:".length);
+  return path.endsWith("/*") ? path.slice(0, -2) : path;
+}
+
+/**
  * Does this role's route grants cover `pathname`?
  *
- * - `route:/dashboard/overview` → exact match only
- * - `route:/dashboard/pages/*` → `/dashboard/pages` and `/dashboard/pages/...`
+ * Longest declared route in {@link ROUTE_PERMISSIONS} wins; undeclared paths
+ * are denied. `route:/dashboard` alone never authorises a child path.
+ * Bare `/dashboard` is allowed when the role holds any declared
+ * `route:/dashboard…` grant (shell redirect).
  */
 export function canAccessRoute(
   permissions: Permission[] | string,
@@ -121,15 +133,45 @@ export function canAccessRoute(
   const list =
     typeof permissions === "string" ? parsePermissions(permissions) : permissions;
 
-  return list.some((permission) => {
-    if (!permission.startsWith("route:")) return false;
+  const path = pathname.split(/[?#]/, 1)[0] || pathname;
+
+  if (path === "/dashboard") {
+    return list.some(
+      (permission) =>
+        permission === PERMISSIONS.dashboard ||
+        (permission.startsWith("route:/dashboard/") &&
+          (Object.values(ROUTE_PERMISSIONS) as string[]).includes(permission)),
+    );
+  }
+
+  let best: {
+    permission: RoutePermission;
+    baseLength: number;
+    exact: boolean;
+  } | null = null;
+
+  for (const permission of Object.values(ROUTE_PERMISSIONS)) {
     const route = permission.slice("route:".length);
-    if (route.endsWith("/*")) {
-      const base = route.slice(0, -2);
-      return pathname === base || pathname.startsWith(`${base}/`);
+    const wildcard = route.endsWith("/*");
+    const base = wildcard ? route.slice(0, -2) : route;
+    const covers = wildcard
+      ? path === base || path.startsWith(`${base}/`)
+      : path === base;
+    if (!covers) continue;
+
+    const baseLength = base.length;
+    const exact = !wildcard;
+    if (
+      !best ||
+      baseLength > best.baseLength ||
+      (baseLength === best.baseLength && exact && !best.exact)
+    ) {
+      best = { permission, baseLength, exact };
     }
-    return pathname === route;
-  });
+  }
+
+  if (!best) return false;
+  return list.includes(best.permission);
 }
 
 export function canShowButton(
