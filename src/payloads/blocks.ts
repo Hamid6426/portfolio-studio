@@ -13,7 +13,9 @@ export const createBlockPayloadSchema = z.object({
 export type CreateBlockPayload = z.infer<typeof createBlockPayloadSchema>;
 
 export const updateBlockPayloadSchema = createBlockPayloadSchema.partial().extend({
-  expectedUpdatedAt: z.string().datetime().optional(),
+  expectedUpdatedAt: z.string().datetime({
+    message: "expectedUpdatedAt is required for concurrent edits.",
+  }),
 });
 
 export type UpdateBlockPayload = z.infer<typeof updateBlockPayloadSchema>;

@@ -1,5 +1,5 @@
-import { asc, eq, sql } from "drizzle-orm";
-import { revalidateTag } from "next/cache";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { revalidateTag, unstable_cache } from "next/cache";
 
 import { db } from "@/db/client";
 import {
@@ -15,7 +15,12 @@ import {
   toBlockDocument,
 } from "@/lib/blocks/document";
 import { apiErrorFromPostgres } from "@/lib/db/errors";
-import { PAGES_CACHE_TAG, pageCacheTag } from "@/lib/pages/cache-tags";
+import { logError } from "@/lib/logger";
+import {
+  PAGES_CACHE_TAG,
+  blockCacheTag,
+  pageCacheTag,
+} from "@/lib/pages/cache-tags";
 import type {
   CreateBlockPayload,
   UpdateBlockPayload,
@@ -90,11 +95,7 @@ function toBlockSummary(block: {
   };
 }
 
-function timestampsMatch(
-  expected: string | undefined,
-  actual: Date | null,
-): boolean {
-  if (expected === undefined) return true;
+function timestampsMatch(expected: string, actual: Date | null): boolean {
   if (!actual) return false;
   return actual.toISOString() === expected;
 }
@@ -135,7 +136,7 @@ export async function listBlocks(): Promise<ListBlocksResponse> {
       data: blocks.map(toBlockListItem),
     };
   } catch (error) {
-    console.error("listBlocks failed:", error);
+    logError("listBlocks failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while loading blocks.",
@@ -157,7 +158,7 @@ export async function listLayoutBlocks(): Promise<ListBlocksResponse> {
       data: blocks.map(toBlockListItem),
     };
   } catch (error) {
-    console.error("listLayoutBlocks failed:", error);
+    logError("listLayoutBlocks failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while loading layout blocks.",
@@ -184,8 +185,19 @@ export type LayoutBlockNodesResult =
 /**
  * Layout nodes for public rendering or draft preview.
  * Published reads use `published_children`; preview uses draft `children`.
+ * Soft-deleted blocks are treated as missing. Published reads are cached.
  */
 export async function getLayoutBlockNodes(
+  id: string,
+  source: "draft" | "published",
+): Promise<LayoutBlockNodesResult> {
+  if (source === "published") {
+    return getCachedPublishedLayoutNodes(id);
+  }
+  return loadLayoutBlockNodes(id, "draft");
+}
+
+async function loadLayoutBlockNodes(
   id: string,
   source: "draft" | "published",
 ): Promise<LayoutBlockNodesResult> {
@@ -195,7 +207,7 @@ export async function getLayoutBlockNodes(
       publishedChildren: blocksTable.publishedChildren,
     })
     .from(blocksTable)
-    .where(eq(blocksTable.id, id))
+    .where(and(eq(blocksTable.id, id), isNull(blocksTable.deletedAt)))
     .limit(1);
 
   const row = rows[0];
@@ -218,6 +230,19 @@ export async function getLayoutBlockNodes(
   return { ok: true, nodes: migrated.document.nodes };
 }
 
+function getCachedPublishedLayoutNodes(
+  id: string,
+): Promise<LayoutBlockNodesResult> {
+  return unstable_cache(
+    () => loadLayoutBlockNodes(id, "published"),
+    ["layout-block-published", id],
+    {
+      tags: [PAGES_CACHE_TAG, blockCacheTag(id)],
+      revalidate: false,
+    },
+  )();
+}
+
 /** Same lookup as `getBlockById`, wrapped for API route handlers. */
 export async function getBlockResponseById(id: string): Promise<BlockResponse> {
   try {
@@ -237,7 +262,7 @@ export async function getBlockResponseById(id: string): Promise<BlockResponse> {
       data: summary,
     };
   } catch (error) {
-    console.error("getBlockResponseById failed:", error);
+    logError("getBlockResponseById failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while loading the block.",
@@ -293,7 +318,7 @@ export async function createBlock(
       message: "Block created.",
     };
   } catch (error) {
-    console.error("createBlock failed:", error);
+    logError("createBlock failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while creating the block.",
@@ -417,7 +442,7 @@ export async function updateBlock(
       message: "Block updated.",
     };
   } catch (error) {
-    console.error("updateBlock failed:", error);
+    logError("updateBlock failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while updating the block.",
@@ -428,6 +453,7 @@ export async function updateBlock(
 function invalidatePagesUsingBlock(blockId: string, slugs: (string | null)[]) {
   const immediate = { expire: 0 };
   revalidateTag(PAGES_CACHE_TAG, immediate);
+  revalidateTag(blockCacheTag(blockId), immediate);
   for (const slug of new Set(slugs)) {
     revalidateTag(pageCacheTag(slug), immediate);
   }
@@ -504,7 +530,7 @@ export async function publishBlock(id: string): Promise<BlockResponse> {
       message: "Block published.",
     };
   } catch (error) {
-    console.error("publishBlock failed:", error);
+    logError("publishBlock failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while publishing the block.",
@@ -549,7 +575,7 @@ export async function deleteBlock(id: string): Promise<BlockResponse> {
       message: "Block deleted.",
     };
   } catch (error) {
-    console.error("deleteBlock failed:", error);
+    logError("deleteBlock failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while deleting the block.",

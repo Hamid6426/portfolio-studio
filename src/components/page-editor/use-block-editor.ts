@@ -16,16 +16,24 @@ function toExpectedUpdatedAt(
 }
 
 /** Binds the shared editor document to a reusable block's `children`. */
-export function useBlockEditor(block: BlockSummary) {
+export function useBlockEditor(
+  block: BlockSummary,
+  options: { canEdit?: boolean } = {},
+) {
   const serverContent = useMemo(() => block.children ?? [], [block.children]);
   const updateMutation = useUpdateBlockMutation();
 
   async function onSave(children: BlockNode[]) {
+    const expectedUpdatedAt = toExpectedUpdatedAt(block.updatedAt);
+    if (!expectedUpdatedAt) {
+      toast.error("Missing block version — reload and try again.");
+      return "error" as const;
+    }
     const result = await updateMutation.mutateAsync({
       id: block.id,
       payload: {
         children,
-        expectedUpdatedAt: toExpectedUpdatedAt(block.updatedAt),
+        expectedUpdatedAt,
       },
     });
     if (!result.success) {
@@ -41,5 +49,6 @@ export function useBlockEditor(block: BlockSummary) {
     serverContent,
     saving: updateMutation.isPending,
     onSave,
+    canEdit: options.canEdit ?? true,
   });
 }

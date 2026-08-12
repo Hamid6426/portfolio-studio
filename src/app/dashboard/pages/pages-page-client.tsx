@@ -126,18 +126,26 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
     const description = String(formData.get("description") ?? "").trim();
     const blockId = String(formData.get("blockId") ?? "").trim();
 
-    const payload = {
-      title,
-      slug,
-      description,
-      blockId: blockId || null,
-      content: [],
-    };
-
     if (editing) {
+      const expectedUpdatedAt =
+        typeof editing.updatedAt === "string"
+          ? editing.updatedAt
+          : editing.updatedAt
+            ? new Date(editing.updatedAt).toISOString()
+            : null;
+      if (!expectedUpdatedAt) {
+        toast.error("Missing page version — reload and try again.");
+        return;
+      }
       const result = await updateMutation.mutateAsync({
         id: editing.id,
-        payload,
+        payload: {
+          title,
+          slug,
+          description,
+          blockId: blockId || null,
+          expectedUpdatedAt,
+        },
       });
 
       if (!result.success) {
@@ -154,7 +162,13 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
       return;
     }
 
-    const result = await createMutation.mutateAsync(payload);
+    const result = await createMutation.mutateAsync({
+      title,
+      slug,
+      description,
+      blockId: blockId || null,
+      content: [],
+    });
 
     if (!result.success) {
       if (result.field) {

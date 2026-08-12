@@ -31,6 +31,7 @@ import type {
   RefreshResponse,
 } from "@/responses/auth";
 import { apiErrorFromPostgres } from "@/lib/db/errors";
+import { logError } from "@/lib/logger";
 
 export type AuthTokenPair = {
   accessToken: string;
@@ -75,7 +76,7 @@ async function sweepExpiredRefreshTokens(): Promise<void> {
       .delete(userRefreshTokenTable)
       .where(lt(userRefreshTokenTable.expiresAt, new Date()));
   } catch (error) {
-    console.error("Expired refresh-token sweep failed:", error);
+    logError("Expired refresh-token sweep failed:", error);
   }
 }
 
@@ -177,7 +178,7 @@ export async function loginUser(payload: unknown): Promise<LoginUserResult> {
       tokens,
     };
   } catch (error) {
-    console.error("Login failed:", error);
+    logError("Login failed:", error);
 
     return {
       response: apiErrorFromPostgres(
@@ -258,7 +259,7 @@ export async function refreshSession(
       tokens,
     };
   } catch (error) {
-    console.error("Refresh failed:", error);
+    logError("Refresh failed:", error);
 
     return {
       response: apiErrorFromPostgres(
@@ -280,7 +281,7 @@ export async function logoutSession(
           eq(userRefreshTokenTable.token, hashRefreshToken(rawRefreshToken)),
         );
     } catch (error) {
-      console.error("Logout cleanup failed:", error);
+      logError("Logout cleanup failed:", error);
     }
   }
 
@@ -366,7 +367,7 @@ export async function createAdminUser(
       };
     });
   } catch (error) {
-    console.error("Failed to create admin account:", error);
+    logError("Failed to create admin account:", error);
 
     return apiErrorFromPostgres(
       error,

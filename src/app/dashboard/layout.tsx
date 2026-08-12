@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { DirtyNavProvider } from "@/components/page-editor/dirty-nav-context";
+import { DirtyNavLink } from "@/components/page-editor/dirty-nav-link";
 import { canAccessRoute } from "@/config/permissions";
 import { REFRESH_TOKEN_COOKIE } from "@/config/storage-keys";
 import { getAccessSession } from "@/lib/auth/session";
@@ -99,12 +99,12 @@ export default async function DashboardLayout({
       <div className="grid min-h-screen flex-1 grid-cols-[14rem_1fr]">
         <aside className="flex flex-col border-r border-border bg-background">
           <div className="flex h-14 items-center border-b border-border px-5">
-            <Link
+            <DirtyNavLink
               href={visibleNav[0]!.href}
               className="text-sm font-semibold tracking-tight"
             >
               Portfolio Studio
-            </Link>
+            </DirtyNavLink>
           </div>
 
           <DashboardNav items={visibleNav} />

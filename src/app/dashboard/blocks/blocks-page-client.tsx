@@ -106,12 +106,26 @@ export function BlocksPageClient({ permissions }: BlocksPageClientProps) {
     const formData = new FormData(event.currentTarget);
     const name = String(formData.get("name") ?? "").trim();
     const description = String(formData.get("description") ?? "").trim();
-    const payload = { name, description, canBeLayout };
 
     if (editing) {
+      const expectedUpdatedAt =
+        typeof editing.updatedAt === "string"
+          ? editing.updatedAt
+          : editing.updatedAt
+            ? new Date(editing.updatedAt).toISOString()
+            : null;
+      if (!expectedUpdatedAt) {
+        toast.error("Missing block version — reload and try again.");
+        return;
+      }
       const result = await updateMutation.mutateAsync({
         id: editing.id,
-        payload,
+        payload: {
+          name,
+          description,
+          canBeLayout,
+          expectedUpdatedAt,
+        },
       });
 
       if (!result.success) {
@@ -128,7 +142,11 @@ export function BlocksPageClient({ permissions }: BlocksPageClientProps) {
       return;
     }
 
-    const result = await createMutation.mutateAsync(payload);
+    const result = await createMutation.mutateAsync({
+      name,
+      description,
+      canBeLayout,
+    });
 
     if (!result.success) {
       if (result.field) {

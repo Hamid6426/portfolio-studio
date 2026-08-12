@@ -11,6 +11,7 @@ import {
 import { db } from "@/db/client";
 import { rolesTable, userTable } from "@/db/schema";
 import { apiErrorFromPostgres } from "@/lib/db/errors";
+import { logError } from "@/lib/logger";
 import type {
   CreateRolePayload,
   UpdateRolePayload,
@@ -102,7 +103,7 @@ export async function listRoles(): Promise<ListRolesResponse> {
       ),
     };
   } catch (error) {
-    console.error("listRoles failed:", error);
+    logError("listRoles failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while loading roles.",
@@ -174,7 +175,7 @@ export async function createRole(
       message: "Role created.",
     };
   } catch (error) {
-    console.error("createRole failed:", error);
+    logError("createRole failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while creating the role.",
@@ -242,7 +243,7 @@ export async function updateRolePermissions(
       message: "Role updated.",
     };
   } catch (error) {
-    console.error("updateRolePermissions failed:", error);
+    logError("updateRolePermissions failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while updating the role.",
@@ -295,7 +296,7 @@ export async function deleteRole(id: string): Promise<RoleResponse> {
       message: "Role deleted.",
     };
   } catch (error) {
-    console.error("deleteRole failed:", error);
+    logError("deleteRole failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while deleting the role.",

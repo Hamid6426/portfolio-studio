@@ -28,7 +28,9 @@ export const updatePagePayloadSchema = z.object({
   description: z.string().trim().optional(),
   content: blockNodeTreeSchema.optional(),
   blockId: z.string().trim().nullable().optional(),
-  expectedUpdatedAt: z.string().datetime().optional(),
+  expectedUpdatedAt: z.string().datetime({
+    message: "expectedUpdatedAt is required for concurrent edits.",
+  }),
 });
 
 export type UpdatePagePayload = z.infer<typeof updatePagePayloadSchema>;

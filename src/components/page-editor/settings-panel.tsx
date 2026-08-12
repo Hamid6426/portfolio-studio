@@ -175,6 +175,18 @@ export function SettingsPanel({
         </Section>
       ) : null}
 
+      {selected.type === "section" ? (
+        <Section title="Accessibility">
+          <FieldRow label="Aria" htmlFor="prop-aria-label">
+            <CompactInput
+              id="prop-aria-label"
+              value={String(props.ariaLabel ?? "")}
+              onChange={(value) => setProp("ariaLabel", value)}
+            />
+          </FieldRow>
+        </Section>
+      ) : null}
+
       <Section title="Danger zone">
         <Button
           type="button"

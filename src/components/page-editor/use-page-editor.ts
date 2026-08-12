@@ -16,16 +16,24 @@ function toExpectedUpdatedAt(
 }
 
 /** Binds the shared editor document to a page's `content`. */
-export function usePageEditor(page: PageSummary) {
+export function usePageEditor(
+  page: PageSummary,
+  options: { canEdit?: boolean } = {},
+) {
   const serverContent = useMemo(() => page.content ?? [], [page.content]);
   const updateMutation = useUpdatePageMutation();
 
   async function onSave(content: BlockNode[]) {
+    const expectedUpdatedAt = toExpectedUpdatedAt(page.updatedAt);
+    if (!expectedUpdatedAt) {
+      toast.error("Missing page version — reload and try again.");
+      return "error" as const;
+    }
     const result = await updateMutation.mutateAsync({
       id: page.id,
       payload: {
         content,
-        expectedUpdatedAt: toExpectedUpdatedAt(page.updatedAt),
+        expectedUpdatedAt,
       },
     });
     if (!result.success) {
@@ -41,5 +49,6 @@ export function usePageEditor(page: PageSummary) {
     serverContent,
     saving: updateMutation.isPending,
     onSave,
+    canEdit: options.canEdit ?? true,
   });
 }

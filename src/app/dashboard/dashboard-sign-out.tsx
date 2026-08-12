@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { LogOutIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { useDirtyNav } from "@/components/page-editor/dirty-nav-context";
 import { Button } from "@/components/ui/button";
 import {
   BUTTON_PERMISSIONS,
@@ -18,6 +19,7 @@ export function DashboardSignOut({
   permissions: Permission[] | string;
 }) {
   const router = useRouter();
+  const { requestNavigation } = useDirtyNav();
   const logoutMutation = useLogoutMutation();
 
   if (!canShowButton(permissions, BUTTON_PERMISSIONS.signOut)) {
@@ -42,7 +44,16 @@ export function DashboardSignOut({
       size="sm"
       className="w-full justify-start gap-2"
       disabled={logoutMutation.isPending}
-      onClick={() => void handleSignOut()}
+      onClick={() =>
+        requestNavigation({
+          proceed: () => void handleSignOut(),
+          title: "Discard unsaved changes?",
+          description:
+            "You have unsaved changes. Sign out without saving?",
+          confirm: "Sign out without saving",
+          destructive: true,
+        })
+      }
     >
       <LogOutIcon data-icon="inline-start" />
       Sign out

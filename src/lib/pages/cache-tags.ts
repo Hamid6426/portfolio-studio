@@ -17,3 +17,8 @@ const HOME_SLUG_TAG = "__home__";
 export function pageCacheTag(slug: string | null): string {
   return `page:${slug ?? HOME_SLUG_TAG}`;
 }
+
+/** Per-layout-block tag for published `published_children` reads. */
+export function blockCacheTag(blockId: string): string {
+  return `block:${blockId}`;
+}

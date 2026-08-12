@@ -356,7 +356,7 @@ export function EditorCanvas({
       className="relative min-h-0 flex-1 overflow-y-auto bg-zinc-950 p-8"
       onClick={() => onSelect(null)}
     >
-      <div className="pointer-events-none absolute top-3 right-3 z-10 flex gap-1">
+      <div className="sticky top-3 z-10 -mt-3 mb-1 flex justify-end gap-1 pointer-events-none">
         <Button
           type="button"
           variant={viewport === 360 ? "secondary" : "ghost"}
@@ -418,6 +418,12 @@ export function EditorCanvas({
             collisionDetection={closestCenter}
             measuring={{
               droppable: { strategy: MeasuringStrategy.Always },
+            }}
+            accessibility={{
+              screenReaderInstructions: {
+                draggable:
+                  "Press and hold a block, then drag to reorder on the canvas. Use the Layers panel for structure changes.",
+              },
             }}
             onDragStart={handleDragStart}
             onDragMove={handleDragMove}

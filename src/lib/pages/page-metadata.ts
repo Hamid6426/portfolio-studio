@@ -34,6 +34,8 @@ export function buildPageMetadata(
       description,
       url,
       type: "website",
+      // Operators can drop a branded `public/og.png` — until then omit images
+      // so crawlers do not fetch a 404.
     },
     twitter: {
       card: "summary",

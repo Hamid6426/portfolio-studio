@@ -176,6 +176,40 @@ production, and a README that documents self-hosting.
 
 ---
 
+## Close-out of the open-issue backlog
+
+Taken from `future-plans.md` "Now" (formerly the 17 issues in `current-situation.md`).
+Reasoning for each:
+
+1. **Undo mergeKey corruption** — the coalesce branch cleared neither `future` nor the
+   merge clock on undo/redo, so undo → retype → redo could resurrect a divergent tree.
+   Reducer lives in `editor-document-state.ts` with a regression test.
+2. **Ctrl+S gating** — threaded `canEdit`, skip when not dirty, ignore `event.repeat`.
+3. **Layout block public reads** — soft-delete (`deletedAt`) filter + `unstable_cache`
+   tagged with `block:{id}`; publish invalidates that tag.
+4. **`expectedUpdatedAt` required** on page/block PATCH; list metadata forms send it and
+   no longer wipe `content: []` on page edit.
+5. **Sticky device-width toggle** — survives canvas scroll.
+6. **Flex item controls** — `flex`/`minWidth` when the *parent* is a flex container.
+7. **Fill vs BG** — single Fill control writes `background` and clears `backgroundColor`.
+8. **Colour swatch** — checkerboard unset state for rgba / short hex / named colours.
+9. **Dirty guard** — shared Dialog via `DirtyNavProvider.requestNavigation` for nav, logo,
+   sign-out, and conflict reload.
+10. **Section aria-label + missing-h1 warning** — settings control + non-blocking banner;
+    dnd-kit screen-reader copy no longer mentions space-bar.
+11. **`bun test` / docs** — `bunfig.toml` preload + prefer `bun run test` in docs.
+12. **`requireRoutePermission` tests** — mocked session/role matrix pins the enforcement
+    seam (including `/*` stripping).
+13–14. **Refresh query string + redirect loops** — already fixed in the remediation follow-up
+    (`x-pathname` includes search; `/dashboard` fallback; sign-out on no-access panel).
+15. **Structured logger** — `src/lib/logger.ts` emits JSON lines with a short `id`;
+    repositories call `logError`.
+16. **robots disallow** — `/api/`, `/dashboard/`, auth routes. OG image asset deferred
+    until `public/og.png` exists (no 404 image URL).
+17. **Re-seed** — operator step: `bun run db:seed -- --force` on existing DBs.
+
+---
+
 ## Migrations
 
 | | |

@@ -84,7 +84,11 @@ export function EditorSidebar({
             <SlidersHorizontalIcon className="size-3.5 shrink-0 opacity-70" />
             Style
           </div>
-          <StylePanel selected={selected} onChange={onStylesChange} />
+          <StylePanel
+            content={content}
+            selected={selected}
+            onChange={onStylesChange}
+          />
         </section>
 
         <section>

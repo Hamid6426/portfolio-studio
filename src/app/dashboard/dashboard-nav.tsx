@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import {
   BoxesIcon,
@@ -30,7 +30,8 @@ export type DashboardNavItem = {
 
 export function DashboardNav({ items }: { items: DashboardNavItem[] }) {
   const pathname = usePathname();
-  const { dirty } = useDirtyNav();
+  const router = useRouter();
+  const { requestNavigation } = useDirtyNav();
 
   return (
     <nav className="flex flex-1 flex-col gap-1 p-3">
@@ -48,11 +49,8 @@ export function DashboardNav({ items }: { items: DashboardNavItem[] }) {
                 // Browser back/forward is intentionally unguarded — onNavigate
                 // only runs for in-app Link clicks, not history traversal.
                 onNavigate={(event) => {
-                  if (!dirty) return;
-                  const leave = window.confirm(
-                    "You have unsaved changes. Leave without saving?",
-                  );
-                  if (!leave) event.preventDefault();
+                  event.preventDefault();
+                  requestNavigation(() => router.push(item.href));
                 }}
               />
             }

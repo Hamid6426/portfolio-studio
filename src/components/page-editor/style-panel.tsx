@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import {
   AlignCenterIcon,
   AlignHorizontalJustifyCenterIcon,
@@ -17,11 +17,13 @@ import {
   ArrowRightIcon,
 } from "lucide-react";
 
+import { findParent } from "@/components/page-editor/tree-ops";
 import { Input } from "@/components/ui/input";
 import type { BlockNode } from "@/db/schema";
 import { cn } from "@/lib/utils";
 
 type StylePanelProps = {
+  content: BlockNode[];
   selected: BlockNode | null;
   onChange: (styles: Record<string, string>) => void;
 };
@@ -58,9 +60,26 @@ function commitDimValue(value: string): string {
   return trimmed;
 }
 
-function swatchHex(value: string | undefined, fallback: string): string {
-  if (value?.startsWith("#") && value.length >= 4) return value.slice(0, 7);
-  return fallback;
+function isFlexContainerStyles(styles: Record<string, string> | undefined): boolean {
+  if (!styles) return false;
+  return (
+    styles.display === "flex" ||
+    Boolean(
+      styles.flexDirection ||
+        styles.flexWrap ||
+        styles.gap ||
+        styles.justifyContent ||
+        styles.alignItems,
+    )
+  );
+}
+
+/** Only a full 6-digit hex is safe to bind to `<input type="color">`. */
+function toSolidHex(value: string | undefined): string | null {
+  if (!value?.trim()) return null;
+  const trimmed = value.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) return trimmed.toLowerCase();
+  return null;
 }
 
 function Section({
@@ -240,23 +259,38 @@ function ColorField({
   inputLabel,
   value,
   placeholder,
-  fallbackHex,
   onChange,
 }: {
   swatchLabel: string;
   inputLabel: string;
   value: string;
   placeholder?: string;
-  fallbackHex: string;
   onChange: (value: string) => void;
 }) {
+  const pickerRef = useRef<HTMLInputElement>(null);
+  const solidHex = toSolidHex(value);
+
   return (
     <div className="flex items-center gap-1.5">
-      <input
-        type="color"
+      <button
+        type="button"
         aria-label={swatchLabel}
-        className="size-7 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
-        value={swatchHex(value, fallbackHex)}
+        title={solidHex ? solidHex : "Mixed or unset color"}
+        className={cn(
+          "relative size-7 shrink-0 overflow-hidden rounded-md border border-input",
+          !solidHex &&
+            "bg-[repeating-conic-gradient(#d4d4d8_0%_25%,transparent_0%_50%)] bg-size-[8px_8px] bg-center",
+        )}
+        style={solidHex ? { backgroundColor: solidHex } : undefined}
+        onClick={() => pickerRef.current?.click()}
+      />
+      <input
+        ref={pickerRef}
+        type="color"
+        tabIndex={-1}
+        aria-hidden
+        className="sr-only"
+        value={solidHex ?? "#808080"}
         onChange={(event) => onChange(event.target.value)}
       />
       <CompactInput
@@ -269,7 +303,7 @@ function ColorField({
   );
 }
 
-export function StylePanel({ selected, onChange }: StylePanelProps) {
+export function StylePanel({ content, selected, onChange }: StylePanelProps) {
   if (!selected) {
     return (
       <p className="p-3 text-sm text-muted-foreground">
@@ -279,22 +313,22 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
   }
 
   const styles = selected.styles ?? {};
-  const isFlex =
-    styles.display === "flex" ||
-    Boolean(
-      styles.flexDirection ||
-        styles.flexWrap ||
-        styles.flex ||
-        styles.minWidth ||
-        styles.gap ||
-        styles.justifyContent ||
-        styles.alignItems,
-    );
+  const isFlexContainer = isFlexContainerStyles(styles);
+  const parentLoc = findParent(content, selected.id);
+  const isFlexItem = isFlexContainerStyles(parentLoc?.parent?.styles);
 
   function setField(key: string, value: string) {
     const next = { ...styles };
     if (!value.trim()) delete next[key];
     else next[key] = value;
+    onChange(next);
+  }
+
+  function setBackground(value: string) {
+    const next = { ...styles };
+    if (!value.trim()) delete next.background;
+    else next.background = value;
+    delete next.backgroundColor;
     onChange(next);
   }
 
@@ -366,7 +400,7 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
             ]}
           />
         </FieldRow>
-        {isFlex && (
+        {isFlexContainer && (
           <>
             <FieldRow label="Dir">
               <Segmented
@@ -394,23 +428,6 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
                   { value: "nowrap", label: "No", title: "No wrap" },
                   { value: "wrap", label: "Yes", title: "Wrap" },
                 ]}
-              />
-            </FieldRow>
-            <FieldRow label="Flex">
-              <CompactInput
-                aria-label="Flex"
-                value={styles.flex ?? ""}
-                placeholder="1 1 auto"
-                onChange={(value) => setField("flex", value)}
-              />
-            </FieldRow>
-            <FieldRow label="Min W">
-              <CompactInput
-                aria-label="Min width"
-                value={styles.minWidth ?? ""}
-                placeholder="0"
-                onChange={(value) => setField("minWidth", value)}
-                onCommit={(value) => setDimField("minWidth", value)}
               />
             </FieldRow>
             <FieldRow label="Justify">
@@ -476,6 +493,27 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
                 placeholder="0"
                 onChange={(value) => setField("gap", value)}
                 onCommit={(value) => setDimField("gap", value)}
+              />
+            </FieldRow>
+          </>
+        )}
+        {(isFlexContainer || isFlexItem) && (
+          <>
+            <FieldRow label="Flex">
+              <CompactInput
+                aria-label="Flex"
+                value={styles.flex ?? ""}
+                placeholder="1 1 auto"
+                onChange={(value) => setField("flex", value)}
+              />
+            </FieldRow>
+            <FieldRow label="Min W">
+              <CompactInput
+                aria-label="Min width"
+                value={styles.minWidth ?? ""}
+                placeholder="0"
+                onChange={(value) => setField("minWidth", value)}
+                onCommit={(value) => setDimField("minWidth", value)}
               />
             </FieldRow>
           </>
@@ -583,7 +621,6 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
             inputLabel="Text color"
             value={styles.color ?? ""}
             placeholder="#fff or rgba(...)"
-            fallbackHex="#ffffff"
             onChange={(value) => setField("color", value)}
           />
         </FieldRow>
@@ -594,20 +631,9 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
           <ColorField
             swatchLabel="Background swatch"
             inputLabel="Background"
-            value={styles.background ?? ""}
+            value={styles.background ?? styles.backgroundColor ?? ""}
             placeholder="transparent or rgba(...)"
-            fallbackHex="#000000"
-            onChange={(value) => setField("background", value)}
-          />
-        </FieldRow>
-        <FieldRow label="BG">
-          <ColorField
-            swatchLabel="Background color swatch"
-            inputLabel="Background color"
-            value={styles.backgroundColor ?? ""}
-            placeholder="transparent or rgba(...)"
-            fallbackHex="#000000"
-            onChange={(value) => setField("backgroundColor", value)}
+            onChange={setBackground}
           />
         </FieldRow>
         <FieldRow label="Border">

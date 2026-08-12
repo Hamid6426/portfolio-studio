@@ -34,11 +34,11 @@ export function BlockEditorShell({
   block,
   permissions,
 }: BlockEditorShellProps) {
-  const editor = useBlockEditor(block);
+  const canEdit = canShowButton(permissions, PERMISSIONS.blocksEdit);
+  const editor = useBlockEditor(block, { canEdit });
   const publishMutation = usePublishBlockMutation();
   const [publishOpen, setPublishOpen] = useState(false);
 
-  const canEdit = canShowButton(permissions, PERMISSIONS.blocksEdit);
   const isPublished = Boolean(block.publishedAt);
 
   async function handlePublish() {

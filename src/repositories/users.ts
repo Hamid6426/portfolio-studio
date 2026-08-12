@@ -4,6 +4,7 @@ import { db } from "@/db/client";
 import { userRefreshTokenTable, userTable } from "@/db/schema";
 import { firstIssueField } from "@/lib/api/first-issue-field";
 import { apiErrorFromPostgres } from "@/lib/db/errors";
+import { logError } from "@/lib/logger";
 import { hashPassword } from "@/lib/password";
 import {
   createUserPayloadSchema,
@@ -54,7 +55,7 @@ export async function listUsers(): Promise<ListUsersResponse> {
       data: users.map(toUserSummary),
     };
   } catch (error) {
-    console.error("listUsers failed:", error);
+    logError("listUsers failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while loading users.",
@@ -139,7 +140,7 @@ export async function createUser(
       message: "User created.",
     };
   } catch (error) {
-    console.error("createUser failed:", error);
+    logError("createUser failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while creating the user.",
@@ -291,7 +292,7 @@ export async function updateUser(
       message: "User updated.",
     };
   } catch (error) {
-    console.error("updateUser failed:", error);
+    logError("updateUser failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while updating the user.",
@@ -355,7 +356,7 @@ export async function deleteUser(
       message: "User deleted.",
     };
   } catch (error) {
-    console.error("deleteUser failed:", error);
+    logError("deleteUser failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while deleting the user.",

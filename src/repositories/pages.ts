@@ -16,6 +16,7 @@ import {
   toBlockDocument,
 } from "@/lib/blocks/document";
 import { apiErrorFromPostgres } from "@/lib/db/errors";
+import { logError } from "@/lib/logger";
 import { PAGES_CACHE_TAG, pageCacheTag } from "@/lib/pages/cache-tags";
 import type {
   CreatePagePayload,
@@ -123,11 +124,7 @@ function toPageSummary(row: {
   };
 }
 
-function timestampsMatch(
-  expected: string | undefined,
-  actual: Date | null,
-): boolean {
-  if (expected === undefined) return true;
+function timestampsMatch(expected: string, actual: Date | null): boolean {
   if (!actual) return false;
   return actual.toISOString() === expected;
 }
@@ -283,7 +280,7 @@ export async function listPages(): Promise<ListPagesResponse> {
       data: pages.map(toPageListItem),
     };
   } catch (error) {
-    console.error("listPages failed:", error);
+    logError("listPages failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while loading pages.",
@@ -307,7 +304,7 @@ export async function getPageById(id: string): Promise<PageResponse> {
       data: summary,
     };
   } catch (error) {
-    console.error("getPageById failed:", error);
+    logError("getPageById failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while loading the page.",
@@ -332,7 +329,7 @@ export async function getPageBySlug(slug: string | null): Promise<PageResponse> 
       data: summary,
     };
   } catch (error) {
-    console.error("getPageBySlug failed:", error);
+    logError("getPageBySlug failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while loading the page.",
@@ -564,7 +561,7 @@ export async function publishPage(id: string): Promise<PageResponse> {
       message: "Page published.",
     };
   } catch (error) {
-    console.error("publishPage failed:", error);
+    logError("publishPage failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while publishing the page.",
@@ -614,7 +611,7 @@ export async function unpublishPage(id: string): Promise<PageResponse> {
       message: "Page unpublished.",
     };
   } catch (error) {
-    console.error("unpublishPage failed:", error);
+    logError("unpublishPage failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while unpublishing the page.",
@@ -693,7 +690,7 @@ export async function createPage(
       message: "Page created.",
     };
   } catch (error) {
-    console.error("createPage failed:", error);
+    logError("createPage failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while creating the page.",
@@ -825,7 +822,7 @@ export async function updatePage(
       message: "Page updated.",
     };
   } catch (error) {
-    console.error("updatePage failed:", error);
+    logError("updatePage failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while updating the page.",
@@ -856,7 +853,7 @@ export async function deletePage(id: string): Promise<PageResponse> {
       message: "Page deleted.",
     };
   } catch (error) {
-    console.error("deletePage failed:", error);
+    logError("deletePage failed:", error);
     return apiErrorFromPostgres(
       error,
       "Something went wrong while deleting the page.",

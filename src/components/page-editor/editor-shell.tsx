@@ -33,6 +33,7 @@ import {
   PERMISSIONS,
   type Permission,
 } from "@/config/permissions";
+import type { BlockNode } from "@/db/schema";
 import { pagePreviewPath, pagePublicPath } from "@/lib/pages/preview-path";
 import { getBlockRequest } from "@/services/blocks";
 import { useLayoutBlocksQuery } from "@/queries/blocks";
@@ -40,6 +41,18 @@ import type { BlockListItem } from "@/responses/blocks";
 import type { PageSummary } from "@/responses/pages";
 
 const PAGES_PATH = "/dashboard/pages";
+
+function hasLevel1Heading(nodes: BlockNode[]): boolean {
+  for (const node of nodes) {
+    if (node.type === "heading" && Number(node.props.level ?? 2) === 1) {
+      return true;
+    }
+    if (node.children?.length && hasLevel1Heading(node.children)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /** Which navigation the unsaved-changes dialog is guarding. */
 type LeaveIntent = "back" | "preview";
@@ -112,6 +125,10 @@ export function EditorShell({
     intent: "back",
   });
   const [saveConflictOpen, setSaveConflictOpen] = useState(false);
+  const [reloadConfirmOpen, setReloadConfirmOpen] = useState(false);
+
+  const missingH1 =
+    documentLabel === "page" && !hasLevel1Heading(editor.content);
 
   useEffect(() => {
     setDirty(editor.dirty);
@@ -196,6 +213,15 @@ export function EditorShell({
               {!canEdit ? " · Read-only" : ""}
             </p>
           </div>
+          {missingH1 ? (
+            <span
+              className="flex shrink-0 items-center gap-1 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-500"
+              title="Pages should include one level-1 heading for accessibility and SEO."
+            >
+              <TriangleAlertIcon className="size-3" />
+              No level-1 heading
+            </span>
+          ) : null}
           {editor.conflict ? (
             <span
               className="flex shrink-0 items-center gap-1 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-500"
@@ -328,7 +354,38 @@ export function EditorShell({
             >
               Keep editing
             </Button>
-            <Button type="button" onClick={() => window.location.reload()}>
+            <Button
+              type="button"
+              onClick={() => setReloadConfirmOpen(true)}
+            >
+              Reload
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={reloadConfirmOpen} onOpenChange={setReloadConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reload and discard local edits?</DialogTitle>
+            <DialogDescription>
+              Reloading picks up the latest version from the server. Any unsaved
+              edits to this {documentLabel} will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setReloadConfirmOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => window.location.reload()}
+            >
               Reload
             </Button>
           </DialogFooter>
@@ -344,7 +401,8 @@ type PageEditorShellProps = {
 };
 
 export function PageEditorShell({ page, permissions }: PageEditorShellProps) {
-  const editor = usePageEditor(page);
+  const canEdit = canShowButton(permissions, PERMISSIONS.pagesEdit);
+  const editor = usePageEditor(page, { canEdit });
 
   // Always preview the draft — published public URLs serve the snapshot, which
   // hides exactly the edits Preview is meant to check.
@@ -360,7 +418,7 @@ export function PageEditorShell({ page, permissions }: PageEditorShellProps) {
       backLabel="Back to pages"
       previewHref={previewHref}
       // The API enforces `pagesEdit`; without this the Save button just 403s.
-      canEdit={canShowButton(permissions, PERMISSIONS.pagesEdit)}
+      canEdit={canEdit}
     />
   );
 }
