@@ -86,6 +86,7 @@ Datasets live in `scripts/datasets/` and are **pure content** — a `PortfolioDa
 - Alias `@/*` → `src/*`. Match existing UI patterns; don't swap Base UI for Radix.
 - Schema changes → drizzle generate + migrate. Tables use `baseColumns`.
 - **Start here**: `.docs/current-situation.md` — what works, the known open issues, and a "Traps" section of version-sensitive gotchas that are not obvious from the code. Read the traps before writing anything.
+- Latest audit (2026-08-12, commit `079e718`): `.docs/audit.md` — open findings ranked by severity, plus what was verified correct.
 - What to build next, in order: `.docs/future-plans.md`.
 - Why the code looks the way it does (completed work and the reasoning behind it): `.docs/whats-done.md`.
 - Spec/vision: `.docs/portfolio-studio.md` (read when building features).
