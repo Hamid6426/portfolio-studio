@@ -120,11 +120,21 @@ export function SettingsPanel({
       {hasText ? (
         <Section title="Content">
           <FieldRow label="Text" htmlFor="prop-text">
-            <CompactInput
-              id="prop-text"
-              value={String(props.text ?? "")}
-              onChange={(value) => setProp("text", value)}
-            />
+            {selected.type === "text" ? (
+              <textarea
+                id="prop-text"
+                value={String(props.text ?? "")}
+                rows={4}
+                className="min-h-16 w-full rounded-md border border-input bg-transparent px-2 py-1.5 text-xs shadow-none"
+                onChange={(event) => setProp("text", event.target.value)}
+              />
+            ) : (
+              <CompactInput
+                id="prop-text"
+                value={String(props.text ?? "")}
+                onChange={(value) => setProp("text", value)}
+              />
+            )}
           </FieldRow>
 
           {selected.type === "heading" ? (

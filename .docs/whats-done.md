@@ -259,6 +259,16 @@ Migration `0015` creates `assets` and grants media permissions to admin/editor.
 
 ---
 
+## Inline canvas text editing
+
+Heading, text, and button labels edit on the canvas: double-click (or Enter/F2
+when selected) opens `contentEditable`; Escape cancels; blur commits. Typing
+uses the existing `mergeKey` undo coalescing. Text blocks keep `\n` via
+`whitespace-pre-wrap` (sidebar gets a textarea). Public renderer stays free of
+client-only imports — the canvas injects editing through `renderEditableText`.
+
+---
+
 ## Migrations
 
 | | |

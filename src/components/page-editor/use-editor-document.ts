@@ -259,6 +259,20 @@ export function useEditorDocument({
     );
   }
 
+  function updateNodeText(nodeId: string, text: string) {
+    apply(
+      (nodes) =>
+        updateNodeById(nodes, nodeId, (node) => ({
+          ...node,
+          props: { ...node.props, text },
+        })),
+      `${nodeId}:props`,
+    );
+    if (selectedId !== nodeId) {
+      setSelectedId(nodeId);
+    }
+  }
+
   function reorder(nodeId: string, parentId: string | null, index: number) {
     apply((nodes) => moveNode(nodes, nodeId, parentId, index));
   }
@@ -301,6 +315,7 @@ export function useEditorDocument({
     updateSelected,
     setSelectedStyles,
     setSelectedProps,
+    updateNodeText,
     reorder,
     moveSelectedUp,
     moveSelectedDown,

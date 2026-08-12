@@ -294,6 +294,7 @@ export function EditorShell({
           selectedId={editor.selectedId}
           onSelect={editor.setSelectedId}
           onReorder={editor.reorder}
+          onTextChange={editor.updateNodeText}
         />
         <EditorSidebar
           content={editor.content}

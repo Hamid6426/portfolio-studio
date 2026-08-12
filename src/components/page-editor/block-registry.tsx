@@ -143,6 +143,19 @@ type RenderOpts = {
   editable?: boolean;
   /** Editor canvas: render nested children (e.g. sortable wrappers). */
   renderChildren?: (children: BlockNode[], parent: BlockNode) => ReactNode;
+  /**
+   * Editor canvas: inline-editable text for heading / text / button.
+   * Kept as a render prop so this module stays free of `"use client"` imports
+   * (public pages still render as Server Components).
+   */
+  renderEditableText?: (args: {
+    node: BlockNode;
+    tag: "h1" | "h2" | "h3" | "h4" | "p" | "span";
+    text: string;
+    multiline: boolean;
+    className: string;
+    domProps: Record<string, unknown>;
+  }) => ReactNode;
   /** CSP nonce for the generated stylesheet (public pages). */
   styleNonce?: string;
 };
@@ -240,10 +253,42 @@ function BlockRenderer({
               ? "h4"
               : "h2"
       ) as "h1" | "h2" | "h3" | "h4";
+      if (editable && opts.renderEditableText) {
+        return opts.renderEditableText({
+          node,
+          tag: Tag,
+          text,
+          multiline: false,
+          className: common.className,
+          domProps: {
+            onClick: common.onClick,
+            "data-block-id": node.id,
+          },
+        });
+      }
       return <Tag {...common}>{text}</Tag>;
     }
-    case "text":
-      return <p {...common}>{String(node.props.text ?? "")}</p>;
+    case "text": {
+      const text = String(node.props.text ?? "");
+      if (editable && opts.renderEditableText) {
+        return opts.renderEditableText({
+          node,
+          tag: "p",
+          text,
+          multiline: true,
+          className: cn(common.className, "whitespace-pre-wrap"),
+          domProps: {
+            onClick: common.onClick,
+            "data-block-id": node.id,
+          },
+        });
+      }
+      return (
+        <p {...common} className={cn(common.className, "whitespace-pre-wrap")}>
+          {text}
+        </p>
+      );
+    }
     case "image": {
       const src = sanitizeUrl(node.props.src, "");
       return (
@@ -259,6 +304,24 @@ function BlockRenderer({
     }
     case "button": {
       const href = sanitizeUrl(node.props.href, "#");
+      const label = String(node.props.text ?? "Button");
+      if (editable && opts.renderEditableText) {
+        return opts.renderEditableText({
+          node,
+          tag: "span",
+          text: label,
+          multiline: false,
+          className: common.className,
+          domProps: {
+            role: "link",
+            "data-block-id": node.id,
+            onClick: (event: React.MouseEvent) => {
+              event.preventDefault();
+              onClick(event);
+            },
+          },
+        });
+      }
       return (
         <a
           {...common}
@@ -275,7 +338,7 @@ function BlockRenderer({
               : undefined
           }
         >
-          {String(node.props.text ?? "Button")}
+          {label}
         </a>
       );
     }

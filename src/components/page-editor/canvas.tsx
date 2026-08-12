@@ -33,6 +33,7 @@ import {
   definitionFor,
   renderBlockTree,
 } from "@/components/page-editor/block-registry";
+import { InlineEditableText } from "@/components/page-editor/inline-editable-text";
 import {
   containsNode,
   findNode,
@@ -57,6 +58,8 @@ type CanvasProps = {
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onReorder: (nodeId: string, parentId: string | null, index: number) => void;
+  /** Update a node's `props.text` (inline canvas editing). */
+  onTextChange: (nodeId: string, text: string) => void;
 };
 
 type SortableTreeProps = {
@@ -65,6 +68,7 @@ type SortableTreeProps = {
   parentId: string | null;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onTextChange: (nodeId: string, text: string) => void;
 };
 
 /** Where the dragged node will land, in `moveNode` coordinates. */
@@ -214,10 +218,12 @@ function SortableBlock({
   node,
   selectedId,
   onSelect,
+  onTextChange,
 }: {
   node: BlockNode;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onTextChange: (nodeId: string, text: string) => void;
 }) {
   const { listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: node.id });
@@ -249,12 +255,32 @@ function SortableBlock({
         editable: true,
         selectedId,
         onSelect,
+        renderEditableText: ({
+          node: textNode,
+          tag,
+          text,
+          multiline,
+          className,
+          domProps,
+        }) => (
+          <InlineEditableText
+            tag={tag}
+            text={text}
+            multiline={multiline}
+            selected={selectedId === textNode.id}
+            className={className}
+            domProps={domProps}
+            onSelect={() => onSelect(textNode.id)}
+            onChange={(next) => onTextChange(textNode.id, next)}
+          />
+        ),
         renderChildren: (children, parent) => (
           <SortableTree
             nodes={children}
             parentId={parent.id}
             selectedId={selectedId}
             onSelect={onSelect}
+            onTextChange={onTextChange}
           />
         ),
       })}
@@ -268,6 +294,7 @@ function SortableTree({
   parentId,
   selectedId,
   onSelect,
+  onTextChange,
 }: SortableTreeProps) {
   if (nodes.length === 0) {
     // A container with no children has no sortable items and would otherwise
@@ -287,6 +314,7 @@ function SortableTree({
             node={node}
             selectedId={selectedId}
             onSelect={onSelect}
+            onTextChange={onTextChange}
           />
         ))}
       </div>
@@ -310,6 +338,7 @@ export function EditorCanvas({
   selectedId,
   onSelect,
   onReorder,
+  onTextChange,
 }: CanvasProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -446,6 +475,7 @@ export function EditorCanvas({
                 parentId={null}
                 selectedId={selectedId}
                 onSelect={onSelect}
+                onTextChange={onTextChange}
               />
             </DropIndicatorContext.Provider>
             <DragOverlay dropAnimation={null}>

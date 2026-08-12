@@ -10,8 +10,14 @@ Read `AGENTS.md` first — it is the authority on stack, layering and routes.
 
 ## Now — product surface
 
-Local media (`upload/` + `assets` table + `/dashboard/media`) is done. No
-UploadThing / Vercel Blob — files stay on the self-hosted disk.
+Inline canvas text editing (heading / text / button) and multiline text blocks
+are done. Stay inside the self-hosted single-site CMS scope.
+
+### Editor capability (remaining)
+- Richer text (marks: bold/italic/links) — still plain strings in `props.text`.
+- Duplicate / copy-paste / multi-select.
+- More block types (list, grid, card, spacer, embed).
+- Autosave and version history.
 
 ### Theme follow-ups (optional)
 - Theme-driven layout block swap (registry suggests a layout; applying a theme
@@ -19,14 +25,6 @@ UploadThing / Vercel Blob — files stay on the self-hosted disk.
 - Per-theme dark/light pair toggled from settings (today each theme is one
   complete token set).
 - Nonce-hardened CSP for the theme `<style>` block once Next nonces are wired.
-
-### Editor capability
-- Inline text editing on canvas (today headings edit via sidebar).
-- Rich text with line breaks — seeded lists are one `text` node per bullet with a
-  `•` glyph because line breaks are impossible.
-- Duplicate / copy-paste / multi-select.
-- More block types (list, grid, card, spacer, embed).
-- Autosave and version history.
 
 ### Operator polish
 - Postgres integration suite with `signInAs(role)` (401/403/400 matrix).

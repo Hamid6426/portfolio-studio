@@ -1,6 +1,6 @@
 # Current situation
 
-**Last verified: 2026-08-12 (local media).** Treat this header as an
+**Last verified: 2026-08-12 (inline canvas text).** Treat this header as an
 expiry stamp — re-check against the tree before acting on anything critical.
 
 A snapshot of what actually works, what is known-broken, and the design decisions that
@@ -39,6 +39,8 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
   public pages and the editor canvas.
 - Local media at `/dashboard/media` and the image-block library picker — files in
   `upload/`, URLs at `/upload/…`.
+- Inline canvas editing for heading / text / button (double-click); text blocks
+  support line breaks.
 
 ### Publishing
 - `pages.content` draft vs `pages.published_snapshot` public payload.
