@@ -2,18 +2,23 @@ import type {
   ApiErrorResponse,
   ApiSuccessResponse,
 } from "@/responses/common";
-import type { ThemeSettings } from "@/lib/themes/types";
+import type { ThemeColorScheme, ThemeSettings } from "@/lib/themes/types";
 
 export type ThemeListItem = {
   id: string;
   name: string;
   description: string;
-  colorScheme: "light" | "dark";
+  defaultColorScheme: ThemeColorScheme;
+  suggestedLayoutName: string | null;
 };
 
 export type SiteThemeState = {
   themeId: string;
   themeSettings: ThemeSettings;
+  /** Resolved scheme (settings override or theme default). */
+  colorScheme: ThemeColorScheme;
+  defaultLayoutBlockId: string | null;
+  defaultLayoutBlockName: string | null;
   themes: ThemeListItem[];
   updatedAt: Date | string | null;
 };

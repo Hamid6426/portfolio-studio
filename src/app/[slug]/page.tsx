@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { PublicPageView } from "@/components/public-page-view";
+import { getRequestNonce } from "@/lib/csp/nonce";
 import { canPreviewDrafts } from "@/lib/pages/draft-preview";
 import { buildPageMetadata } from "@/lib/pages/page-metadata";
 import {
@@ -51,9 +52,10 @@ export async function generateMetadata(
 
 /** `/[slug]` — CMS page matched by `pages.slug`. */
 export default async function SlugPage(props: SlugPageProps) {
-  const [{ page, isPreview }, theme] = await Promise.all([
+  const [{ page, isPreview }, theme, styleNonce] = await Promise.all([
     resolveSlugPage(props),
     getCachedSiteTheme(),
+    getRequestNonce(),
   ]);
 
   if (!page) {
@@ -64,9 +66,11 @@ export default async function SlugPage(props: SlugPageProps) {
   let layoutUnreadable = false;
   let layoutUnsupportedVersion: number | undefined;
 
-  if (page.blockId) {
+  const layoutBlockId = page.blockId ?? theme.defaultLayoutBlockId;
+
+  if (layoutBlockId) {
     const layout = await getLayoutBlockNodes(
-      page.blockId,
+      layoutBlockId,
       isPreview ? "draft" : "published",
     );
     if (layout.ok) {
@@ -86,6 +90,7 @@ export default async function SlugPage(props: SlugPageProps) {
       layoutUnsupportedVersion={layoutUnsupportedVersion}
       themeId={theme.themeId}
       themeSettings={theme.themeSettings}
+      styleNonce={styleNonce}
     />
   );
 }

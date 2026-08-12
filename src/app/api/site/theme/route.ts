@@ -39,7 +39,7 @@ export async function PATCH(request: Request) {
   if (isErrorResponse(auth)) return auth;
 
   const parsed = await parseBody(request, updateSiteThemePayloadSchema, {
-    fields: ["themeId", "themeSettings"],
+    fields: ["themeId", "themeSettings", "defaultLayoutBlockId"],
   });
   if (!parsed.ok) return parsed.response;
 

@@ -202,10 +202,11 @@ Reasoning for each:
     seam (including `/*` stripping).
 13–14. **Refresh query string + redirect loops** — already fixed in the remediation follow-up
     (`x-pathname` includes search; `/dashboard` fallback; sign-out on no-access panel).
-15. **Structured logger** — `src/lib/logger.ts` emits JSON lines with a short `id`;
+15. **Structured logger** — `src/lib/logger.ts` emits JSON lines with a short `id`
+    and optional `requestId` (proxy `x-request-id` via `bindRequestContext`);
     repositories call `logError`.
-16. **robots disallow** — `/api/`, `/dashboard/`, auth routes. OG image asset deferred
-    until `public/og.png` exists (no 404 image URL).
+16. **robots disallow** — `/api/`, `/dashboard/`, auth routes. OG image lives at
+    `public/og.png` and is referenced from page metadata.
 17. **Re-seed** — operator step: `bun run db:seed -- --force` on existing DBs.
 
 ---
@@ -238,11 +239,18 @@ Hand-set `.ps-*` rules win when they use concrete colours; seeded content uses
 `var(--ps-…)` so switching themes restyles without rewriting trees.
 
 Dashboard at `/dashboard/themes` (admin + editor): pick Minimal / Modern /
-Creative / Professional / Developer, override primary / radius / section spacing /
-body font. Public pages and the editor canvas both apply the active theme.
+Creative / Professional / Developer, toggle light/dark for the active theme’s
+token pair, override primary / radius / section spacing / body font, and set a
+site-wide default layout (pages without `blockId`). Applying a theme sets that
+default when a layout block named **Site shell** exists. Public pages and the
+editor canvas both apply the active theme.
+
+Public CSP uses a per-request nonce for `style-src` (theme + block `<style>`
+tags); dashboard keeps `'unsafe-inline'` for editor chrome. Script nonces remain
+deferred.
 
 Migration `0014` creates `site_settings` and grants the themes route to existing
-admin/editor roles.
+admin/editor roles. Migration `0017` adds `default_layout_block_id`.
 
 ---
 
@@ -365,3 +373,4 @@ Move / indent / style / props stay single-selection only.
 | `0014` | `site_settings` themes |
 | `0015` | `assets` local media |
 | `0016` | `content_revisions` version history |
+| `0017` | `site_settings.default_layout_block_id` |

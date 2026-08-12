@@ -9,45 +9,30 @@ Stay inside the **self-hosted, single-site** CMS scope.
 
 ---
 
-## Now — editor capability (build order)
+## Now — operator polish
 
-1. ~~**Duplicate selected block**~~ — done (Layers / Settings / `Ctrl|Cmd+D`).
-2. ~~**Copy / cut / paste**~~ — done (in-tab + system JSON clipboard; Layers /
-   Settings / `Ctrl|Cmd+C|X|V`).
-3. ~~**More block types**~~ — list, grid, card, spacer, embed done.
-4. ~~**Autosave**~~ — 2s debounce while dirty; quiet (no success toast);
-   pauses on pending / external conflict; 409 opens the existing dialog.
-5. ~~**Version history**~~ — `content_revisions` table; History dialog restore;
-   autosave revisions throttled (5 min) / deduped; keep last 50.
-6. ~~**Richer text marks**~~ — `props.spans` (bold / italic / link); canvas
-   Ctrl/Cmd+B|I|K while editing; plain `text` still works.
-7. ~~**Multi-select**~~ — Shift range / Ctrl|Cmd toggle; bulk duplicate, copy,
-   cut, delete (selection roots).
----
-
-## Theme follow-ups (optional)
-
-- Theme-driven layout block swap (registry suggests a layout; applying a theme
-  can set a site-wide default layout for pages without `blockId`).
-- Per-theme dark/light pair toggled from settings (today each theme is one
-  complete token set).
-- Nonce-hardened CSP for the theme `<style>` block once Next nonces are wired.
-
----
-
-## Operator polish
-
-- Postgres integration suite with `signInAs(role)` (401/403/400 matrix).
-- Add `public/og.png` (or a generated OG route) for social cards.
-- Optional request-id middleware that threads into `logError`.
-- Tighten `script-src` with nonces once Next’s nonce story is wired end-to-end
-  (today scripts stay `'unsafe-inline'` so the app keeps booting).
+- ~~Postgres integration suite with `signInAs(role)` (401/403/400 matrix)~~ —
+  done (`src/test/integration/`; runs when `portfolio_studio_test` is up).
+- ~~Add `public/og.png`~~ — done; page metadata uses it for Open Graph / Twitter.
+- ~~Request-id middleware that threads into `logError`~~ — done (`x-request-id`
+  from proxy + `bindRequestContext`).
+- Tighten `script-src` with nonces once Next’s nonce story is verified end-to-end
+  (public `style-src` already uses nonces; scripts still `'unsafe-inline'`).
 - Optional object storage adapter behind the same `assets` API if a deploy has
   no persistent disk (not required for self-host).
 
 **Not product work:** custom domains / Redis. Operators who clone the repo attach
 their hostname in Vercel (or similar) and their DNS provider. Rate limits stay
 in-process for a single-node self-host — no Redis dependency.
+
+---
+
+## Recently completed
+
+- Editor capability backlog (duplicate, clipboard, block types, autosave,
+  history, rich text marks, multi-select).
+- Theme follow-ups: site default layout on apply, light/dark pairs, nonce
+  `style-src` for public theme/block `<style>` (migration `0017`).
 
 ---
 

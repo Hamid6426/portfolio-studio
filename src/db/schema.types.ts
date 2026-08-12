@@ -50,4 +50,6 @@ export type SiteThemeSettings = {
   radius?: string;
   sectionSpacing?: string;
   fontBody?: string;
+  /** Selects the theme's light or dark token pair. */
+  colorScheme?: "light" | "dark";
 };

@@ -25,6 +25,7 @@ import {
   useSiteThemeQuery,
   useUpdateSiteThemeMutation,
 } from "@/queries/themes";
+import { useLayoutBlocksQuery } from "@/queries/blocks";
 import { cn } from "@/lib/utils";
 
 type ThemesPageClientProps = {
@@ -33,6 +34,7 @@ type ThemesPageClientProps = {
 
 export function ThemesPageClient({ permissions }: ThemesPageClientProps) {
   const themeQuery = useSiteThemeQuery();
+  const layoutBlocksQuery = useLayoutBlocksQuery();
   const updateMutation = useUpdateSiteThemeMutation();
   const canEdit = canShowButton(permissions, PERMISSIONS.themesEdit);
 
@@ -42,6 +44,15 @@ export function ThemesPageClient({ permissions }: ThemesPageClientProps) {
   const [radius, setRadius] = useState<string | null>(null);
   const [sectionSpacing, setSectionSpacing] = useState<string | null>(null);
   const [fontBody, setFontBody] = useState<string | null>(null);
+  const [colorScheme, setColorScheme] = useState<"light" | "dark" | null>(
+    null,
+  );
+
+  const layoutBlocks = useMemo(
+    () =>
+      layoutBlocksQuery.data?.success ? layoutBlocksQuery.data.data : [],
+    [layoutBlocksQuery.data],
+  );
 
   const settings = useMemo(() => {
     const base = state?.themeSettings ?? {};
@@ -50,8 +61,9 @@ export function ThemesPageClient({ permissions }: ThemesPageClientProps) {
       radius: radius ?? base.radius ?? "",
       sectionSpacing: sectionSpacing ?? base.sectionSpacing ?? "",
       fontBody: fontBody ?? base.fontBody ?? "",
+      colorScheme: colorScheme ?? base.colorScheme ?? state?.colorScheme ?? "light",
     };
-  }, [state, primaryColor, radius, sectionSpacing, fontBody]);
+  }, [state, primaryColor, radius, sectionSpacing, fontBody, colorScheme]);
 
   const previewThemeId = state?.themeId ?? "developer";
 
@@ -62,7 +74,12 @@ export function ThemesPageClient({ permissions }: ThemesPageClientProps) {
       toast.error(response.message);
       return;
     }
-    toast.success(`Switched to ${response.data.themes.find((t) => t.id === themeId)?.name ?? themeId}`);
+    const name =
+      response.data.themes.find((t) => t.id === themeId)?.name ?? themeId;
+    const layoutNote = response.data.defaultLayoutBlockName
+      ? ` · default layout “${response.data.defaultLayoutBlockName}”`
+      : "";
+    toast.success(`Switched to ${name}${layoutNote}`);
   }
 
   async function saveSettings() {
@@ -73,6 +90,7 @@ export function ThemesPageClient({ permissions }: ThemesPageClientProps) {
         radius: settings.radius,
         sectionSpacing: settings.sectionSpacing,
         fontBody: settings.fontBody,
+        colorScheme: settings.colorScheme,
       },
     });
     if (!response.success) {
@@ -83,7 +101,24 @@ export function ThemesPageClient({ permissions }: ThemesPageClientProps) {
     setRadius(null);
     setSectionSpacing(null);
     setFontBody(null);
+    setColorScheme(null);
     toast.success("Theme settings saved");
+  }
+
+  async function saveDefaultLayout(blockId: string) {
+    if (!canEdit || updateMutation.isPending) return;
+    const response = await updateMutation.mutateAsync({
+      defaultLayoutBlockId: blockId === "" ? null : blockId,
+    });
+    if (!response.success) {
+      toast.error(response.message);
+      return;
+    }
+    toast.success(
+      response.data.defaultLayoutBlockName
+        ? `Site default layout: ${response.data.defaultLayoutBlockName}`
+        : "Site default layout cleared",
+    );
   }
 
   if (themeQuery.isLoading) {
@@ -113,7 +148,8 @@ export function ThemesPageClient({ permissions }: ThemesPageClientProps) {
           Choose a portfolio theme. Tokens restyle the public site and the editor
           canvas. Page block trees stay as authored — use{" "}
           <code className="text-xs">var(--ps-…)</code> in block styles to follow
-          the theme.
+          the theme. Applying a theme can set the site default layout when a
+          block named “Site shell” exists.
         </p>
       </div>
 
@@ -145,7 +181,7 @@ export function ThemesPageClient({ permissions }: ThemesPageClientProps) {
                   <PaletteIcon className="size-4 shrink-0 opacity-60" />
                 </div>
                 <p className="mt-3 text-[11px] uppercase tracking-wide text-muted-foreground">
-                  {theme.colorScheme}
+                  {theme.defaultColorScheme} default
                   {active ? " · active" : ""}
                 </p>
               </button>
@@ -166,6 +202,7 @@ export function ThemesPageClient({ permissions }: ThemesPageClientProps) {
                 radius: settings.radius || undefined,
                 sectionSpacing: settings.sectionSpacing || undefined,
                 fontBody: settings.fontBody || undefined,
+                colorScheme: settings.colorScheme,
               }}
             />
             <div className="ps-site m-4 rounded-lg border border-[color:var(--ps-border)] p-4">
@@ -202,6 +239,25 @@ export function ThemesPageClient({ permissions }: ThemesPageClientProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid max-w-xl gap-4">
+          <div className="grid gap-2">
+            <Label>Colour scheme</Label>
+            <div className="flex gap-2">
+              {(["light", "dark"] as const).map((scheme) => (
+                <Button
+                  key={scheme}
+                  type="button"
+                  variant={
+                    settings.colorScheme === scheme ? "default" : "outline"
+                  }
+                  size="sm"
+                  disabled={!canEdit}
+                  onClick={() => setColorScheme(scheme)}
+                >
+                  {scheme === "light" ? "Light" : "Dark"}
+                </Button>
+              ))}
+            </div>
+          </div>
           <div className="grid gap-2">
             <Label htmlFor="theme-primary">Primary colour</Label>
             <Input
@@ -261,6 +317,35 @@ export function ThemesPageClient({ permissions }: ThemesPageClientProps) {
               Save settings
             </Button>
           ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Site default layout</CardTitle>
+          <CardDescription>
+            Used on pages that have no layout of their own. Applying a theme
+            sets this when a layout block named “Site shell” exists.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="max-w-xl">
+          <div className="grid gap-2">
+            <Label htmlFor="site-default-layout">Layout block</Label>
+            <select
+              id="site-default-layout"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+              disabled={!canEdit || updateMutation.isPending}
+              value={state.defaultLayoutBlockId ?? ""}
+              onChange={(event) => void saveDefaultLayout(event.target.value)}
+            >
+              <option value="">None</option>
+              {layoutBlocks.map((block) => (
+                <option key={block.id} value={block.id}>
+                  {block.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </CardContent>
       </Card>
     </div>

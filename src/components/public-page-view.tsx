@@ -14,6 +14,8 @@ type PublicPageViewProps = {
   layoutUnsupportedVersion?: number;
   themeId: string;
   themeSettings?: ThemeSettings | null;
+  /** CSP nonce for theme + block `<style>` tags on public routes. */
+  styleNonce?: string;
 };
 
 /** Makes it obvious the visitor is not looking at the live page. */
@@ -61,6 +63,7 @@ export function PublicPageView({
   layoutUnsupportedVersion,
   themeId,
   themeSettings,
+  styleNonce,
 }: PublicPageViewProps) {
   const contentUnreadable = Boolean(page.contentUnreadable);
   const hasContent =
@@ -73,8 +76,14 @@ export function PublicPageView({
   ) : null;
 
   const theme = (
-    <SiteThemeStyle themeId={themeId} themeSettings={themeSettings} />
+    <SiteThemeStyle
+      themeId={themeId}
+      themeSettings={themeSettings}
+      nonce={styleNonce}
+    />
   );
+
+  const treeOpts = styleNonce ? { styleNonce } : undefined;
 
   if (contentUnreadable || layoutUnreadable) {
     return (
@@ -146,10 +155,10 @@ export function PublicPageView({
       </a>
       <main id="main-content" className="flex flex-1 flex-col">
         {layoutChildren.length > 0 && (
-          <div>{renderBlockTree(layoutChildren)}</div>
+          <div>{renderBlockTree(layoutChildren, treeOpts)}</div>
         )}
         {page.content.length > 0 && (
-          <div>{renderBlockTree(page.content)}</div>
+          <div>{renderBlockTree(page.content, treeOpts)}</div>
         )}
       </main>
     </div>

@@ -24,6 +24,8 @@ export function buildPageMetadata(
   const description = page.description.trim() || undefined;
   const url = pagePublicUrl(page.slug);
 
+  const ogImage = new URL("/og.png", `${getAppUrl()}/`).toString();
+
   return {
     title,
     description,
@@ -34,13 +36,13 @@ export function buildPageMetadata(
       description,
       url,
       type: "website",
-      // Operators can drop a branded `public/og.png` — until then omit images
-      // so crawlers do not fetch a 404.
+      images: [{ url: ogImage, width: 1536, height: 1024, alt: page.title }],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: page.title,
       description,
+      images: [ogImage],
     },
   };
 }

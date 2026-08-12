@@ -1,3 +1,5 @@
+import { getRequestId } from "@/lib/request-context";
+
 /**
  * Minimal structured logger for self-hosted installs.
  * Emits one JSON line per call so journald/docker logs stay greppable.
@@ -16,10 +18,13 @@ export function logError(
         ? error
         : "unknown error";
 
+  const requestId = getRequestId();
+
   console.error(
     JSON.stringify({
       level: "error",
       id,
+      ...(requestId ? { requestId } : {}),
       scope,
       message,
       ...meta,

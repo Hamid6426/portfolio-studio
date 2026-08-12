@@ -100,8 +100,8 @@ export const pagesTable = pgTable("pages", {
 
 /**
  * Singleton site configuration (one row, `key = 'default'`).
- * Theme definitions live in code; this table stores the active selection and
- * optional token overrides.
+ * Theme definitions live in code; this table stores the active selection,
+ * optional token overrides, and an optional site-wide default layout.
  */
 export const siteSettingsTable = pgTable("site_settings", {
   ...baseColumns,
@@ -113,6 +113,13 @@ export const siteSettingsTable = pgTable("site_settings", {
     .$type<SiteThemeSettings>()
     .notNull()
     .default(sql`'{}'::jsonb`),
+  /**
+   * Layout used by pages with no per-page `blockId`. Themes may set this on
+   * apply when their `suggestedLayoutName` matches a layout block.
+   */
+  defaultLayoutBlockId: varchar("default_layout_block_id").references(
+    () => blocksTable.id,
+  ),
 });
 
 /**

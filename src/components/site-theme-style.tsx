@@ -4,6 +4,8 @@ import type { ThemeSettings } from "@/lib/themes/types";
 type SiteThemeStyleProps = {
   themeId: string;
   themeSettings?: ThemeSettings | null;
+  /** CSP nonce for public pages (`style-src 'nonce-…'`). */
+  nonce?: string;
 };
 
 /**
@@ -13,7 +15,12 @@ type SiteThemeStyleProps = {
 export function SiteThemeStyle({
   themeId,
   themeSettings,
+  nonce,
 }: SiteThemeStyleProps) {
   const css = buildThemeStylesheet(themeId, themeSettings);
-  return <style data-ps-theme={themeId}>{css}</style>;
+  return (
+    <style data-ps-theme={themeId} nonce={nonce}>
+      {css}
+    </style>
+  );
 }

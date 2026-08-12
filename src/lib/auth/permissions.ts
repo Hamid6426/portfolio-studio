@@ -9,6 +9,7 @@ import {
 } from "@/config/permissions";
 import { getAccessSession } from "@/lib/auth/session";
 import type { AccessTokenPayload } from "@/lib/auth/tokens";
+import { bindRequestContext } from "@/lib/request-context";
 import { getRolePermissions } from "@/repositories/roles";
 import type { ApiErrorResponse } from "@/responses/common";
 
@@ -35,6 +36,7 @@ function unauthorized(
 export async function requireSession(): Promise<
   AuthorizedSession | NextResponse<ApiErrorResponse>
 > {
+  await bindRequestContext();
   const session = await getAccessSession();
   if (!session) {
     return unauthorized(401, "Please sign in to continue.");

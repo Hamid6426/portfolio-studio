@@ -1,6 +1,7 @@
 import { getTheme } from "@/lib/themes/registry";
 import {
   THEME_CSS_VARS,
+  type ThemeColorScheme,
   type ThemeSettings,
   type ThemeTokens,
 } from "@/lib/themes/types";
@@ -51,9 +52,7 @@ export function isSafeLengthValue(value: string): boolean {
   return /^[\d.]+\s*(px|rem|em|%)$/i.test(trimmed);
 }
 
-export function sanitizeThemeSettings(
-  input: unknown,
-): ThemeSettings {
+export function sanitizeThemeSettings(input: unknown): ThemeSettings {
   if (!input || typeof input !== "object" || Array.isArray(input)) return {};
   const raw = input as Record<string, unknown>;
   const out: ThemeSettings = {};
@@ -76,19 +75,33 @@ export function sanitizeThemeSettings(
       out.fontBody = value;
     }
   }
+  if (raw.colorScheme === "light" || raw.colorScheme === "dark") {
+    out.colorScheme = raw.colorScheme;
+  }
 
   return out;
 }
 
-/** Merge registry tokens with sanitised overrides. */
+/** Active light/dark pair for a theme + settings. */
+export function resolveThemeColorScheme(
+  themeId: string | null | undefined,
+  settings?: ThemeSettings | null,
+): ThemeColorScheme {
+  const theme = getTheme(themeId);
+  const safe = sanitizeThemeSettings(settings ?? {});
+  return safe.colorScheme ?? theme.defaultColorScheme;
+}
+
+/** Merge registry tokens (for the active scheme) with sanitised overrides. */
 export function resolveThemeTokens(
   themeId: string | null | undefined,
   settings?: ThemeSettings | null,
 ): ThemeTokens {
   const theme = getTheme(themeId);
+  const scheme = resolveThemeColorScheme(themeId, settings);
   const safe = sanitizeThemeSettings(settings ?? {});
   return {
-    ...theme.tokens,
+    ...theme.tokens[scheme],
     ...(safe.primaryColor ? { primary: safe.primaryColor } : {}),
     ...(safe.radius ? { radius: safe.radius } : {}),
     ...(safe.sectionSpacing ? { sectionGap: safe.sectionSpacing } : {}),
@@ -119,14 +132,14 @@ export function buildThemeStylesheet(
   themeId: string | null | undefined,
   settings?: ThemeSettings | null,
 ): string {
-  const theme = getTheme(themeId);
+  const scheme = resolveThemeColorScheme(themeId, settings);
   const vars = themeTokensToCssVars(resolveThemeTokens(themeId, settings));
   const declarations = Object.entries(vars)
     .map(([name, value]) => `${name}:${value}`)
     .join(";");
 
   return [
-    `.ps-site{color-scheme:${theme.colorScheme};${declarations};`,
+    `.ps-site{color-scheme:${scheme};${declarations};`,
     `background:var(--ps-background);`,
     `color:var(--ps-foreground);`,
     `font-family:var(--ps-font-body);`,

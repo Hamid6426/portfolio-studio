@@ -26,12 +26,24 @@ export type ThemeTokens = {
   sectionGap: string;
 };
 
+export type ThemeColorScheme = "light" | "dark";
+
 export type ThemeDefinition = {
   id: string;
   name: string;
   description: string;
-  colorScheme: "light" | "dark";
-  tokens: ThemeTokens;
+  /** Used when `themeSettings.colorScheme` is unset. */
+  defaultColorScheme: ThemeColorScheme;
+  /** Light and dark token pairs for the same theme identity. */
+  tokens: {
+    light: ThemeTokens;
+    dark: ThemeTokens;
+  };
+  /**
+   * When this theme is applied, if a layout block with this exact name exists,
+   * it becomes the site-wide default layout for pages without `blockId`.
+   */
+  suggestedLayoutName?: string;
 };
 
 /** Optional per-site overrides applied on top of the selected theme's tokens. */
@@ -40,6 +52,7 @@ export type ThemeSettings = {
   radius?: string;
   sectionSpacing?: string;
   fontBody?: string;
+  colorScheme?: ThemeColorScheme;
 };
 
 /** CSS custom property names emitted for `.ps-site`. */

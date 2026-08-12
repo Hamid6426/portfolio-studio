@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { Toaster } from "@/components/ui/sonner";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { getAppUrl } from "@/lib/app-url";
+import { bindRequestContext } from "@/lib/request-context";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const syne = Syne({ subsets: ["latin"], variable: "--font-display" });
@@ -29,6 +30,8 @@ export default async function RootLayout({
   // The pathname is injected by proxy.ts. These routes are the redirect
   // targets of the startup gate, so they must render even when setup is
   // incomplete — otherwise the gate redirects them to themselves in a loop.
+  // Bind request id early so repository logError lines can correlate.
+  await bindRequestContext();
   const headerList = await headers();
   const pathname = headerList.get("x-pathname") ?? "/";
 

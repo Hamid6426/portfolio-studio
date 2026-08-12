@@ -39,6 +39,7 @@ export const themeSettingsSchema = z
       isSafeThemeCssValue,
       "That font stack is not allowed.",
     ),
+    colorScheme: z.enum(["light", "dark"]).optional(),
   })
   .strict();
 
@@ -51,11 +52,17 @@ export const updateSiteThemePayloadSchema = z
       .refine((id) => isThemeId(id), { message: "Unknown theme." })
       .optional(),
     themeSettings: themeSettingsSchema.optional(),
+    defaultLayoutBlockId: z.string().trim().min(1).nullable().optional(),
   })
   .strict()
   .refine(
-    (value) => value.themeId !== undefined || value.themeSettings !== undefined,
-    { message: "Provide a themeId and/or themeSettings." },
+    (value) =>
+      value.themeId !== undefined ||
+      value.themeSettings !== undefined ||
+      value.defaultLayoutBlockId !== undefined,
+    {
+      message: "Provide a themeId, themeSettings, and/or defaultLayoutBlockId.",
+    },
   );
 
 export type UpdateSiteThemePayload = z.infer<

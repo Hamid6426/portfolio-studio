@@ -1,6 +1,6 @@
 # Current situation
 
-**Last verified: 2026-08-12 (multi-select).** Treat this header as an
+**Last verified: 2026-08-12 (operator polish).** Treat this header as an
 expiry stamp — re-check against the tree before acting on anything critical.
 
 A snapshot of what actually works, what is known-broken, and the design decisions that
@@ -37,8 +37,9 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
   unset/mixed state; section `aria-label`; missing-`<h1>` warning on pages.
 - Dirty-nav Dialog covers sidebar, logo, sign-out, and conflict reload.
 - Reusable layout blocks at `/dashboard/blocks/edit?id=` with their own publish step.
-- Site themes at `/dashboard/themes` — registry tokens on `.ps-site`, live on
-  public pages and the editor canvas.
+- Site themes at `/dashboard/themes` — registry tokens on `.ps-site` (light/dark
+  pairs), site default layout for pages without `blockId`, live on public pages
+  and the editor canvas.
 - Local media at `/dashboard/media` and the image-block library picker — files in
   `upload/`, URLs at `/upload/…`.
 - Inline canvas editing for heading / text / button / list item (double-click);
@@ -62,16 +63,20 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
 - `safeRedirectPath` (control chars, origin check, `/api/*` ban).
 - Async scrypt with cost params; atomic refresh rotation; transactional password-change
   revoke; login+setup rate limits; advisory-lock setup.
-- Security headers; public CSP includes `style-src-attr 'none'` (block trees use
-  generated classes). Dashboard omits that restriction for editor chrome.
+- Security headers; public CSP uses nonce `style-src` plus `style-src-attr 'none'`
+  (block trees and themes use generated `<style>` with the request nonce).
+  Dashboard keeps `'unsafe-inline'` styles for editor chrome.
 - Full script nonce CSP still deferred — see `future-plans.md`.
 
 ### Infrastructure
 - Vitest: permissions (incl. `requireRoutePermission`), tokens, password, sanitiser,
-  depth guard, redirects, document migration, editor reducer.
+  depth guard, redirects, document migration, editor reducer; Postgres API matrix
+  (`signInAs`) when `portfolio_studio_test` is up (otherwise skipped).
 - CI: lint, typecheck, test, build. Prefer `bun run test` over bare `bun test`.
-- Error boundaries re-throw `NEXT_*`. Structured `logError` JSON lines with correlation id.
+- Error boundaries re-throw `NEXT_*`. Structured `logError` JSON lines with
+  correlation `id` and request-scoped `requestId` (`x-request-id` from proxy).
 - `sitemap.ts` / `robots.ts` (disallows `/api/`, `/dashboard/`, auth routes).
+- `public/og.png` for Open Graph / Twitter cards.
 
 ---
 
@@ -117,12 +122,12 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
 None from the previous 17-item backlog. Remaining work is planned product depth — see
 [`future-plans.md`](./future-plans.md). Operator follow-up on existing installs:
 
-- Run `bun run db:migrate` through **`0016`** if not already applied.
+- Run `bun run db:migrate` through **`0017`** if not already applied.
 - Re-seed with `bun run db:seed -- --force` if rows predate theme CSS variables
   in section seeds (or the flex-wrap seed fix).
 - Ensure the process can write to project-root `upload/` (created on first upload).
-- Optionally add `public/og.png` for social previews (metadata intentionally omits a
-  broken image URL until the file exists).
+- Optional: create `portfolio_studio_test` and migrate it to exercise the
+  `signInAs` API matrix (`src/test/integration/`).
 
 ---
 
