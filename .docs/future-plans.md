@@ -35,9 +35,9 @@ are done. Stay inside the self-hosted single-site CMS scope.
 - Optional object storage adapter behind the same `assets` API if a deploy has
   no persistent disk (not required for self-host).
 
-### Custom domains
-Deployment configuration for a single-site self-host. **Do not build
-tenant-to-domain mapping.**
+**Not product work:** custom domains / Redis. Operators who clone the repo attach
+their hostname in Vercel (or similar) and their DNS provider. Rate limits stay
+in-process for a single-node self-host — no Redis dependency.
 
 ---
 
@@ -45,6 +45,8 @@ tenant-to-domain mapping.**
 
 - **Tenant isolation of any kind.**
 - **UploadThing / cloud-only media** — local `upload/` is the storage.
+- **Redis** — not in the stack; single-node in-memory rate limits are enough.
+- **In-app custom domains** — operator configures DNS + Vercel (or other host).
 - **Replacing the hand-rolled JWT** — audited, header inside HMAC, `timingSafeEqual`,
   pinned by tests.
 - **Keyboard drag-and-drop** — Layers panel moves are the accessible path.

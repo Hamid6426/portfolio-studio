@@ -35,8 +35,7 @@ export function clientIpFromRequest(request: Request): string {
 
 /**
  * In-memory fixed-window limiter keyed by IP + email.
- * Suitable for a single-node self-host; replace with Redis if you scale out.
- * Per-process only — each replica has its own buckets.
+ * Suitable for a single-node self-host (per-process buckets only).
  */
 export function checkLoginRateLimit(
   ip: string,

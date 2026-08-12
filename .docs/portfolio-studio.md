@@ -24,12 +24,15 @@ Think of it as:
 # Objectives
 
 - Build a complete portfolio management system
-- Support multiple users
+- Support multiple collaborator accounts on one site
 - Allow theme switching (design tokens / layout blocks — content stays in the page editor)
 - Create reusable portfolio blocks
 - Build a drag-and-drop page builder
-- Support custom domains
-- Make the platform scalable from day one
+
+> **Hosting boundary:** This app is **self-hosted, single-site**. The operator who
+> clones the repo points their DNS / Vercel (or other host) hostname at the
+> deployment themselves. Portfolio Studio does **not** implement custom-domain
+> provisioning or tenant→domain mapping.
 
 > **Content model (resolved):** Portfolio content is **blocks only** — authored in
 > the visual page editor as versioned block trees (`pages.content` /
@@ -52,7 +55,6 @@ Think of it as:
 - PostgreSQL
 - Drizzle (ORM)
 - Zod
-- Redis (Future)
 
 ---
 
@@ -241,29 +243,24 @@ relational rows. Flexible page/block bodies use PostgreSQL JSONB
 
 ---
 
-# Multi-Tenant Architecture
+# Hosting model (single-site)
 
-A single Next.js application serves every portfolio.
+One deployment serves **one** portfolio website. The dashboard and the public
+site share the same origin. Extra `users` / `roles` are collaborators on that
+site, not separate tenants.
 
-Example URLs:
-
-```
-portfoliobuilder.com/john
-
-portfoliobuilder.com/alice
-
-portfoliobuilder.com/sarah
-```
-
-Future support:
+Example:
 
 ```
-john.dev
-
-alice.dev
+yoursite.example/          → landing page (null slug)
+yoursite.example/about     → page with slug `about`
+yoursite.example/dashboard → CMS
 ```
 
-using custom domains.
+**Custom hostnames** (apex domain, `www`, Vercel project domain, etc.) are
+configured by whoever clones and deploys the repo — in their DNS provider and
+host (e.g. Vercel). This codebase does not provision domains or map tenants to
+hostnames.
 
 ---
 
@@ -325,11 +322,11 @@ Visual editing experience inspired by modern website builders.
 
 ## Phase 7 — Deployment
 
-- Custom domains
-- SEO
-- Analytics
-- Image optimization
-- Performance improvements
+- Operator docs for self-host (Postgres, `upload/` volume, env)
+- SEO (sitemap / robots already present; OG asset optional)
+- Image optimization / performance as needed for the single site
+
+Custom domains stay with the operator’s DNS + host — not an in-app feature.
 
 ---
 
