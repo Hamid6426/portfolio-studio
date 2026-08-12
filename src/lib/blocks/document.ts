@@ -1,4 +1,4 @@
-import type { BlockDocument, BlockNode } from "@/db/schema";
+import type { BlockDocument, BlockNode } from "@/db/schema.types";
 import {
   normalizeResponsiveStyles,
   type ResponsiveStyles,

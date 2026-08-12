@@ -1,7 +1,7 @@
 import { renderBlockTree } from "@/components/page-editor/block-registry";
 import { SiteThemeStyle } from "@/components/site-theme-style";
 import type { PageSummary } from "@/responses/pages";
-import type { BlockNode } from "@/db/schema";
+import type { BlockNode } from "@/db/schema.types";
 import type { ThemeSettings } from "@/lib/themes/types";
 import { cn } from "@/lib/utils";
 

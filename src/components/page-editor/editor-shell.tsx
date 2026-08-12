@@ -33,7 +33,7 @@ import {
   PERMISSIONS,
   type Permission,
 } from "@/config/permissions";
-import type { BlockNode } from "@/db/schema";
+import type { BlockNode } from "@/db/schema.types";
 import { pagePreviewPath, pagePublicPath } from "@/lib/pages/preview-path";
 import { getBlockRequest } from "@/services/blocks";
 import { useLayoutBlocksQuery } from "@/queries/blocks";

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import type { BlockNode } from "@/db/schema";
+import type { BlockNode } from "@/db/schema.types";
 import {
   blockStyleClassName,
   buildTreeStylesheet,

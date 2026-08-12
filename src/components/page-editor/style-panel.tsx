@@ -19,7 +19,7 @@ import {
 
 import { findParent } from "@/components/page-editor/tree-ops";
 import { Input } from "@/components/ui/input";
-import type { BlockNode } from "@/db/schema";
+import type { BlockNode } from "@/db/schema.types";
 import {
   pruneResponsiveStyles,
   type ResponsiveStyles,

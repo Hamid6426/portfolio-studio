@@ -30,9 +30,8 @@ import {
   pagesTable,
   siteSettingsTable,
   userTable,
-  type BlockNode,
-  type PublishedPageSnapshot,
 } from "@/db/schema";
+import type { BlockNode, PublishedPageSnapshot } from "@/db/schema.types";
 import { hashPassword } from "@/lib/password";
 import { toBlockDocument } from "@/lib/blocks/document";
 import { DEFAULT_THEME_ID } from "@/lib/themes/registry";

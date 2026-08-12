@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { BlockNode } from "@/db/schema";
+import type { BlockNode } from "@/db/schema.types";
 import type { ResponsiveStyles } from "@/lib/blocks/styles";
 
 /**

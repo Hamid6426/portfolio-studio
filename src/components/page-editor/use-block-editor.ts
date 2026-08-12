@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { toast } from "sonner";
 
 import { useEditorDocument } from "@/components/page-editor/use-editor-document";
-import type { BlockNode } from "@/db/schema";
+import type { BlockNode } from "@/db/schema.types";
 import { useUpdateBlockMutation } from "@/queries/blocks";
 import type { BlockSummary } from "@/responses/blocks";
 

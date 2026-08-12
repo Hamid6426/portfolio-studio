@@ -7,7 +7,7 @@ import {
   treeKey,
   type EditorDoc,
 } from "@/components/page-editor/editor-document-state";
-import type { BlockNode } from "@/db/schema";
+import type { BlockNode } from "@/db/schema.types";
 
 function node(id: string, text: string): BlockNode {
   return { id, type: "text", props: { text } };

@@ -60,7 +60,7 @@ export default async function SlugPage(props: SlugPageProps) {
     notFound();
   }
 
-  let layoutChildren: import("@/db/schema").BlockNode[] = [];
+  let layoutChildren: import("@/db/schema.types").BlockNode[] = [];
   let layoutUnreadable = false;
   let layoutUnsupportedVersion: number | undefined;
 

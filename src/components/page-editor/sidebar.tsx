@@ -12,7 +12,7 @@ import { ElementsPalette } from "@/components/page-editor/elements-palette";
 import { LayersPanel } from "@/components/page-editor/layers-panel";
 import { SettingsPanel } from "@/components/page-editor/settings-panel";
 import { StylePanel } from "@/components/page-editor/style-panel";
-import type { BlockNode } from "@/db/schema";
+import type { BlockNode } from "@/db/schema.types";
 import type { ResponsiveStyles } from "@/lib/blocks/styles";
 import type { BlockListItem } from "@/responses/blocks";
 

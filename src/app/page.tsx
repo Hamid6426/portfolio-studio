@@ -58,7 +58,7 @@ export default async function RootPage({ searchParams }: RootPageProps) {
     notFound();
   }
 
-  let layoutChildren: import("@/db/schema").BlockNode[] = [];
+  let layoutChildren: import("@/db/schema.types").BlockNode[] = [];
   let layoutUnreadable = false;
   let layoutUnsupportedVersion: number | undefined;
 

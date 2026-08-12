@@ -17,11 +17,19 @@ function hasAuthCookies(request: NextRequest): boolean {
  * Block trees no longer use inline style *attributes* on public pages; they
  * emit a `<style>` element. Public routes set `style-src-attr 'none'`. The
  * dashboard keeps attribute styles for editor chrome (swatches, Base UI).
+ *
+ * React/Next need `'unsafe-eval'` in development for stack reconstruction;
+ * production omits it.
  */
 function contentSecurityPolicy(pathname: string): string {
+  const scriptSrc =
+    process.env.NODE_ENV === "development"
+      ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'"
+      : "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'";
+
   const directives = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
+    scriptSrc,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https: blob:",
     "font-src 'self' data:",

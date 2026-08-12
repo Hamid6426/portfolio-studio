@@ -2,7 +2,8 @@ import { eq } from "drizzle-orm";
 import { revalidateTag, unstable_cache } from "next/cache";
 
 import { db } from "@/db/client";
-import { siteSettingsTable, type SiteThemeSettings } from "@/db/schema";
+import { siteSettingsTable } from "@/db/schema";
+import type { SiteThemeSettings } from "@/db/schema.types";
 import { DEFAULT_THEME_ID, getTheme, isThemeId, listThemes } from "@/lib/themes/registry";
 import { sanitizeThemeSettings } from "@/lib/themes/resolve";
 import type { ThemeSettings } from "@/lib/themes/types";

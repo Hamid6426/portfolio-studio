@@ -1,4 +1,4 @@
-import type { BlockNode } from "@/db/schema";
+import type { BlockNode } from "@/db/schema.types";
 
 export const HISTORY_LIMIT = 100;
 export const MERGE_WINDOW_MS = 500;

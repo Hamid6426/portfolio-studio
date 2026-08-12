@@ -10,7 +10,7 @@ import {
 import { definitionFor } from "@/components/page-editor/block-registry";
 import { findParent, flattenTree } from "@/components/page-editor/tree-ops";
 import { Button } from "@/components/ui/button";
-import type { BlockNode } from "@/db/schema";
+import type { BlockNode } from "@/db/schema.types";
 import { cn } from "@/lib/utils";
 
 type LayersPanelProps = {

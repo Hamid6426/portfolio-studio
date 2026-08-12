@@ -16,7 +16,7 @@
  *   Child tiles/buttons carry a `minWidth` so wrapped rows stay readable on
  *   narrow viewports.
  */
-import type { BlockNode } from "@/db/schema";
+import type { BlockNode } from "@/db/schema.types";
 
 import type {
   Background,

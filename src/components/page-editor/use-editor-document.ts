@@ -20,7 +20,7 @@ import {
   removeNodeById,
   updateNodeById,
 } from "@/components/page-editor/tree-ops";
-import type { BlockNode } from "@/db/schema";
+import type { BlockNode } from "@/db/schema.types";
 import type { ResponsiveStyles } from "@/lib/blocks/styles";
 
 function isTypingTarget(target: EventTarget | null): boolean {

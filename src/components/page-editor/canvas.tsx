@@ -39,7 +39,7 @@ import {
   findParent,
 } from "@/components/page-editor/tree-ops";
 import { SiteThemeStyle } from "@/components/site-theme-style";
-import type { BlockNode } from "@/db/schema";
+import type { BlockNode } from "@/db/schema.types";
 import { useSiteThemeQuery } from "@/queries/themes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";

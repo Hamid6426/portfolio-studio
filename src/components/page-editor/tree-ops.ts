@@ -1,4 +1,4 @@
-import type { BlockNode } from "@/db/schema";
+import type { BlockNode } from "@/db/schema.types";
 
 export function findNode(
   nodes: BlockNode[],

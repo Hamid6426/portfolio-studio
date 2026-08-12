@@ -2,12 +2,8 @@ import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { revalidateTag, unstable_cache } from "next/cache";
 
 import { db } from "@/db/client";
-import {
-  blocksTable,
-  pagesTable,
-  type BlockDocument,
-  type BlockNode,
-} from "@/db/schema";
+import { blocksTable, pagesTable } from "@/db/schema";
+import type { BlockDocument, BlockNode } from "@/db/schema.types";
 import { firstIssueField } from "@/lib/api/first-issue-field";
 import {
   migrateBlockDocument,

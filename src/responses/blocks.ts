@@ -2,7 +2,7 @@ import type {
   ApiErrorResponse,
   ApiSuccessResponse,
 } from "@/responses/common";
-import type { BlockNode } from "@/db/schema";
+import type { BlockNode } from "@/db/schema.types";
 
 export type BlockListItem = {
   id: string;

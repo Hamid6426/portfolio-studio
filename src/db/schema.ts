@@ -10,7 +10,11 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { baseColumns } from "./base-columns";
-import type { ResponsiveStyles } from "@/lib/blocks/styles";
+import type {
+  BlockDocument,
+  PublishedPageSnapshot,
+  SiteThemeSettings,
+} from "./schema.types";
 
 export const rolesTable = pgTable("roles", {
   ...baseColumns,
@@ -52,30 +56,6 @@ export const userRefreshTokenTable = pgTable(
   ],
 );
 
-/** Nested HTML-like node stored inside a {@link BlockDocument}. */
-export type BlockNode = {
-  id: string;
-  type: string;
-  props: Record<string, unknown>;
-  /**
-   * Responsive / state style slices (`base`, `sm`, `md`, `lg`, `hover`).
-   * Flat `Record<string,string>` is legacy v1 and is wrapped into `{ base }`
-   * on read via `migrateBlockDocument`.
-   */
-  styles?: ResponsiveStyles;
-  children?: BlockNode[];
-};
-
-/**
- * Versioned block tree. Stored in `pages.content`, `blocks.children`, and
- * inside `published_snapshot.content`. Bare `BlockNode[]` is legacy (v0) and
- * is upgraded on read via `migrateBlockDocument`.
- */
-export type BlockDocument = {
-  version: number;
-  nodes: BlockNode[];
-};
-
 const emptyBlockDocumentSql = sql`'{"version":1,"nodes":[]}'::jsonb`;
 
 export const blocksTable = pgTable(
@@ -100,23 +80,6 @@ export const blocksTable = pgTable(
   (table) => [index("blocks_can_be_layout_idx").on(table.canBeLayout)],
 );
 
-/**
- * Frozen copy of everything the public renderer reads from a page, written
- * when the page is published. Keeping it separate from the live columns is
- * what makes the editor a true draft surface: saving edits touches only the
- * live columns, so the public site keeps serving this snapshot until someone
- * publishes again. `slug` is deliberately absent — it is the page's address,
- * not its content, so renaming it moves the live page immediately.
- */
-export type PublishedPageSnapshot = {
-  title: string;
-  description: string;
-  blockId: string | null;
-  content: BlockDocument;
-  /** Layout block tree frozen at publish time. */
-  layoutChildren?: BlockDocument;
-};
-
 export const pagesTable = pgTable("pages", {
   ...baseColumns,
   title: varchar("title", { length: 255 }).notNull(),
@@ -139,13 +102,6 @@ export const pagesTable = pgTable("pages", {
  * Theme definitions live in code; this table stores the active selection and
  * optional token overrides.
  */
-export type SiteThemeSettings = {
-  primaryColor?: string;
-  radius?: string;
-  sectionSpacing?: string;
-  fontBody?: string;
-};
-
 export const siteSettingsTable = pgTable("site_settings", {
   ...baseColumns,
   /** Always `"default"` for the single-site install. */

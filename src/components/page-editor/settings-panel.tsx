@@ -6,7 +6,7 @@ import { Trash2Icon } from "lucide-react";
 import { definitionFor } from "@/components/page-editor/block-registry";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { BlockNode } from "@/db/schema";
+import type { BlockNode } from "@/db/schema.types";
 import { cn } from "@/lib/utils";
 
 type SettingsPanelProps = {

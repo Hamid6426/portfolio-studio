@@ -18,7 +18,7 @@ import {
   BLOCK_DEFINITIONS,
   type BlockType,
 } from "@/components/page-editor/block-registry";
-import type { BlockNode } from "@/db/schema";
+import type { BlockNode } from "@/db/schema.types";
 import { isAllowedStyleProperty } from "@/lib/block-sanitize";
 
 type Styles = Record<string, string>;
