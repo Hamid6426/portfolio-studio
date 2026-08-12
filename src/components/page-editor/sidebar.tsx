@@ -115,6 +115,7 @@ export function EditorSidebar({
           <SettingsPanel
             selected={selected}
             onChange={onPropsChange}
+            onStylesChange={onStylesChange}
             onDelete={onDelete}
             onDuplicate={onDuplicate}
             onCopy={onCopy}

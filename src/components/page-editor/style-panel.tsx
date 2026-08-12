@@ -67,14 +67,15 @@ function commitDimValue(value: string): string {
 
 function isFlexContainerStyles(styles: Record<string, string> | undefined): boolean {
   if (!styles) return false;
+  if (styles.display === "grid") return false;
   return (
     styles.display === "flex" ||
     Boolean(
       styles.flexDirection ||
         styles.flexWrap ||
-        styles.gap ||
         styles.justifyContent ||
-        styles.alignItems,
+        styles.alignItems ||
+        (styles.gap && styles.display !== "block"),
     )
   );
 }
@@ -463,10 +464,21 @@ export function StylePanel({ content, selected, onChange }: StylePanelProps) {
             options={[
               { value: "block", label: "Block", title: "Block" },
               { value: "flex", label: "Flex", title: "Flex" },
+              { value: "grid", label: "Grid", title: "Grid" },
               { value: "none", label: "None", title: "None" },
             ]}
           />
         </FieldRow>
+        {styles.display === "grid" ? (
+          <FieldRow label="Cols">
+            <CompactInput
+              aria-label="Grid template columns"
+              value={styles.gridTemplateColumns ?? ""}
+              placeholder="repeat(2, minmax(0, 1fr))"
+              onChange={(value) => setField("gridTemplateColumns", value)}
+            />
+          </FieldRow>
+        ) : null}
         {isFlexContainer && (
           <>
             <FieldRow label="Dir">

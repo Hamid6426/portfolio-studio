@@ -42,6 +42,9 @@ import type { PageSummary } from "@/responses/pages";
 
 const PAGES_PATH = "/dashboard/pages";
 
+/** Idle debounce before a quiet autosave while the document is dirty. */
+const AUTOSAVE_DELAY_MS = 2000;
+
 function hasLevel1Heading(nodes: BlockNode[]): boolean {
   for (const node of nodes) {
     if (node.type === "heading" && Number(node.props.level ?? 2) === 1) {
@@ -135,6 +138,31 @@ export function EditorShell({
     return () => setDirty(false);
   }, [editor.dirty, setDirty]);
 
+  // Debounced autosave — quiet (no success toast). Pauses while a save is in
+  // flight, when the server moved on under us, or when the role is read-only.
+  useEffect(() => {
+    if (!canEdit || !editor.dirty || editor.pending || editor.conflict) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void editor.save({ quiet: true }).then((result) => {
+        if (result === "conflict") {
+          setSaveConflictOpen(true);
+        }
+      });
+    }, AUTOSAVE_DELAY_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    canEdit,
+    editor.conflict,
+    editor.content,
+    editor.dirty,
+    editor.pending,
+    editor.save,
+  ]);
+
   function openPreview() {
     if (!previewHref) return;
     window.open(previewHref, "_blank");
@@ -209,7 +237,11 @@ export function EditorShell({
             <p className="truncate text-sm font-medium">{title}</p>
             <p className="truncate text-xs text-muted-foreground">
               {subtitle}
-              {editor.dirty ? " · Unsaved changes" : ""}
+              {editor.pending
+                ? " · Saving…"
+                : editor.dirty
+                  ? " · Unsaved changes"
+                  : ""}
               {!canEdit ? " · Read-only" : ""}
             </p>
           </div>

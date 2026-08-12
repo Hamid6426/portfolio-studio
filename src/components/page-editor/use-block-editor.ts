@@ -23,7 +23,10 @@ export function useBlockEditor(
   const serverContent = useMemo(() => block.children ?? [], [block.children]);
   const updateMutation = useUpdateBlockMutation();
 
-  async function onSave(children: BlockNode[]) {
+  async function onSave(
+    children: BlockNode[],
+    saveOptions?: { quiet?: boolean },
+  ) {
     const expectedUpdatedAt = toExpectedUpdatedAt(block.updatedAt);
     if (!expectedUpdatedAt) {
       toast.error("Missing block version — reload and try again.");
@@ -41,7 +44,9 @@ export function useBlockEditor(
       toast.error(result.message);
       return "error" as const;
     }
-    toast.success("Block saved.");
+    if (!saveOptions?.quiet) {
+      toast.success("Block saved.");
+    }
     return "ok" as const;
   }
 

@@ -38,11 +38,11 @@
  * how each one looks, so you never write blocks or CSS here; if you want a
  * different look, change `sections.ts` once and every page follows.
  *
- * The page editor has section, container, heading, text, list, listItem,
- * image, button, and divider. Only the CSS properties allowlisted in
- * `src/lib/block-sanitize.ts` survive rendering — which is why the section list
- * is short and deliberate rather than open-ended. Rows (`columns`, `perRow`)
- * do not wrap, so keep them to three or four short items.
+ * The page editor has section, container, grid, card, heading, text, list,
+ * listItem, image, embed, button, divider, and spacer. Only the CSS properties
+ * allowlisted in `src/lib/block-sanitize.ts` survive rendering — which is why
+ * the section list is short and deliberate rather than open-ended. Rows
+ * (`columns`, `perRow`) do not wrap, so keep them to three or four short items.
  *
  * Everything the seed writes is ordinary page content: open
  * `/dashboard/pages` afterwards and edit any of it by hand.

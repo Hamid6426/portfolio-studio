@@ -1,6 +1,6 @@
 # Current situation
 
-**Last verified: 2026-08-12 (list blocks).** Treat this header as an
+**Last verified: 2026-08-12 (autosave + layout blocks).** Treat this header as an
 expiry stamp — re-check against the tree before acting on anything critical.
 
 A snapshot of what actually works, what is known-broken, and the design decisions that
@@ -23,8 +23,9 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
 ## What works
 
 ### Editing
-- Visual page editor at `/dashboard/pages/edit?slug=` — 9 block types (incl.
-  list / listItem), nested
+- Visual page editor at `/dashboard/pages/edit?slug=` — 13 block types (section,
+  container, grid, card, heading, text, list, listItem, image, embed, button,
+  divider, spacer), nested
   drag-and-drop **with reparenting**, drop indicator, `DragOverlay`.
 - Scroll-corrected drop math (`active.rect.current.translated` + live `over.rect`) with
   `MeasuringStrategy.Always`.
@@ -44,6 +45,7 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
   support line breaks.
 - Duplicate selected block (Layers, Settings, `Ctrl/Cmd+D`) with remapped ids.
 - Copy / cut / paste blocks (shared in-tab clipboard + best-effort system JSON).
+- Debounced autosave (2s, quiet) while dirty; manual Save still toasts.
 
 ### Publishing
 - `pages.content` draft vs `pages.published_snapshot` public payload.

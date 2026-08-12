@@ -47,6 +47,11 @@ function isDialogTarget(target: EventTarget | null): boolean {
   return target instanceof Element && Boolean(target.closest('[role="dialog"]'));
 }
 
+export type EditorSaveOptions = {
+  /** Skip success toasts (used by debounced autosave). */
+  quiet?: boolean;
+};
+
 export type EditorDocumentSource = {
   /** The tree as the server currently holds it (a page's content, a block's children). */
   serverContent: BlockNode[];
@@ -58,7 +63,10 @@ export type EditorDocumentSource = {
    * Persist a snapshot of the tree. Return `ok` on success; `conflict` when the
    * server rejected an optimistic-concurrency check; `error` for other failures.
    */
-  onSave: (content: BlockNode[]) => Promise<"ok" | "conflict" | "error">;
+  onSave: (
+    content: BlockNode[],
+    options?: EditorSaveOptions,
+  ) => Promise<"ok" | "conflict" | "error">;
 };
 
 /**
@@ -223,15 +231,20 @@ export function useEditorDocument({
     if (cloned[0]) setSelectedId(cloned[0].id);
   }, [apply, canEdit, selectedId]);
 
-  const save = useCallback(async (): Promise<"ok" | "conflict" | "error"> => {
-    // Snapshot now so edits made while the request is in flight stay dirty.
-    const snapshot = content;
-    const result = await onSave(snapshot);
-    if (result === "ok") {
-      dispatch({ type: "saved", content: snapshot });
-    }
-    return result;
-  }, [content, onSave]);
+  const save = useCallback(
+    async (
+      options?: EditorSaveOptions,
+    ): Promise<"ok" | "conflict" | "error"> => {
+      // Snapshot now so edits made while the request is in flight stay dirty.
+      const snapshot = content;
+      const result = await onSave(snapshot, options);
+      if (result === "ok") {
+        dispatch({ type: "saved", content: snapshot });
+      }
+      return result;
+    },
+    [content, onSave],
+  );
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {

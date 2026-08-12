@@ -34,6 +34,8 @@ function contentSecurityPolicy(pathname: string): string {
     "img-src 'self' data: https: blob:",
     "font-src 'self' data:",
     "connect-src 'self'",
+    // Embed blocks (YouTube, etc.) — https iframes only; see sanitizeEmbedUrl.
+    "frame-src 'self' https:",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

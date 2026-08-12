@@ -28,6 +28,8 @@ const ALLOWED_STYLE_PROPERTIES = [
   "justifyContent",
   "alignItems",
   "gap",
+  "gridTemplateColumns",
+  "aspectRatio",
   // Spacing (StylePanel > Spacing)
   "padding",
   "margin",
@@ -169,4 +171,16 @@ export function sanitizeUrl(value: unknown, fallback = "#"): string {
 /** True for absolute `http(s)` URLs, which should carry `rel="noopener noreferrer"`. */
 export function isExternalUrl(url: string): boolean {
   return /^https?:/i.test(url.trim());
+}
+
+/**
+ * iframe `src` for embed blocks — https only (no mailto/tel/hash/root-relative).
+ * Empty / unsafe values yield `""` so the renderer can omit the iframe.
+ */
+export function sanitizeEmbedUrl(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const allowed = sanitizeUrl(trimmed, "");
+  return /^https:\/\//i.test(allowed) ? allowed : "";
 }

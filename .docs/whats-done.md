@@ -297,6 +297,29 @@ prefixed text nodes.
 
 ---
 
+## Grid, card, spacer, embed
+
+- **grid** — CSS grid container; Settings/Style set `gridTemplateColumns`
+  (`repeat(N, minmax(0, 1fr))`). Seeds use it for multi-column `cardGrid`.
+- **card** — pre-styled flex column with theme border/background; seeds prefer
+  it over ad-hoc bordered containers.
+- **spacer** — empty vertical gap (`height` in styles).
+- **embed** — https iframe (`sanitizeEmbedUrl`); placeholder in the editor;
+  live iframe on the public site. CSP adds `frame-src 'self' https:`.
+
+Allowlist gained `gridTemplateColumns` and `aspectRatio`.
+
+---
+
+## Autosave
+
+While the editor is dirty and editable, a **2s debounce** triggers a quiet save
+(`save({ quiet: true })` — no success toast). Autosave pauses when a request is
+already in flight or when `conflict` is set (another tab/server version). A 409
+opens the same conflict dialog as manual Save. Manual Save still toasts.
+
+---
+
 ## Migrations
 
 | | |

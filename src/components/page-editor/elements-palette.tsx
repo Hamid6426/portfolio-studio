@@ -3,6 +3,8 @@
 import type { LucideIcon } from "lucide-react";
 import {
   BoxIcon,
+  Code2Icon,
+  Grid2x2Icon,
   HeadingIcon,
   ImageIcon,
   LayoutTemplateIcon,
@@ -10,6 +12,8 @@ import {
   ListTodoIcon,
   MinusIcon,
   RectangleHorizontalIcon,
+  SquareIcon,
+  SpaceIcon,
   TypeIcon,
 } from "lucide-react";
 
@@ -29,13 +33,17 @@ import type { BlockListItem } from "@/responses/blocks";
 const ELEMENT_ICONS: Record<BlockType, LucideIcon> = {
   section: LayoutTemplateIcon,
   container: BoxIcon,
+  grid: Grid2x2Icon,
+  card: SquareIcon,
   heading: HeadingIcon,
   text: TypeIcon,
   list: ListIcon,
   listItem: ListTodoIcon,
   image: ImageIcon,
+  embed: Code2Icon,
   button: RectangleHorizontalIcon,
   divider: MinusIcon,
+  spacer: SpaceIcon,
 };
 
 type ElementsPaletteProps = {

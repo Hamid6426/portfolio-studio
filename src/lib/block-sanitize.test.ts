@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { sanitizeStyles, sanitizeUrl } from "@/lib/block-sanitize";
+import {
+  sanitizeEmbedUrl,
+  sanitizeStyles,
+  sanitizeUrl,
+} from "@/lib/block-sanitize";
 
 describe("sanitizeUrl", () => {
   it("allows http(s), mailto, tel, root-relative, and hash", () => {
@@ -22,6 +26,17 @@ describe("sanitizeUrl", () => {
   it("strips control characters used to hide schemes", () => {
     expect(sanitizeUrl("java\tscript:alert(1)")).toBe("#");
     expect(sanitizeUrl("java\nscript:alert(1)")).toBe("#");
+  });
+});
+
+describe("sanitizeEmbedUrl", () => {
+  it("allows https only", () => {
+    expect(sanitizeEmbedUrl("https://www.youtube.com/embed/x")).toBe(
+      "https://www.youtube.com/embed/x",
+    );
+    expect(sanitizeEmbedUrl("http://example.com")).toBe("");
+    expect(sanitizeEmbedUrl("/local")).toBe("");
+    expect(sanitizeEmbedUrl("javascript:alert(1)")).toBe("");
   });
 });
 

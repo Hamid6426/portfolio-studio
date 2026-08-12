@@ -14,11 +14,16 @@ import { definitionFor } from "@/components/page-editor/block-registry";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { BlockNode } from "@/db/schema.types";
+import {
+  normalizeResponsiveStyles,
+  type ResponsiveStyles,
+} from "@/lib/blocks/styles";
 import { cn } from "@/lib/utils";
 
 type SettingsPanelProps = {
   selected: BlockNode | null;
   onChange: (props: Record<string, unknown>) => void;
+  onStylesChange: (styles: ResponsiveStyles) => void;
   onDelete: () => void;
   onDuplicate: () => void;
   onCopy: () => void;
@@ -26,6 +31,13 @@ type SettingsPanelProps = {
   onPaste: () => void;
   canPaste: boolean;
 };
+
+function gridColumnsFromStyles(styles: ResponsiveStyles | undefined): number {
+  const raw = styles?.base?.gridTemplateColumns ?? "";
+  const match = /repeat\(\s*(\d+)/i.exec(raw);
+  const n = match ? Number(match[1]) : 2;
+  return n >= 1 && n <= 4 ? n : 2;
+}
 
 function Section({
   title,
@@ -93,6 +105,7 @@ function CompactInput({
 export function SettingsPanel({
   selected,
   onChange,
+  onStylesChange,
   onDelete,
   onDuplicate,
   onCopy,
@@ -122,10 +135,18 @@ export function SettingsPanel({
   }
 
   const props = selected.props;
+  const styles = normalizeResponsiveStyles(selected.styles);
   const label = definitionFor(selected.type)?.label ?? selected.type;
 
   function setProp(key: string, value: unknown) {
     onChange({ ...props, [key]: value });
+  }
+
+  function patchBaseStyle(patch: Record<string, string>) {
+    onStylesChange({
+      ...styles,
+      base: { ...styles.base, ...patch },
+    });
   }
 
   const hasText =
@@ -215,6 +236,42 @@ export function SettingsPanel({
         </Section>
       ) : null}
 
+      {selected.type === "grid" ? (
+        <Section title="Grid">
+          <FieldRow label="Cols" htmlFor="prop-columns">
+            <select
+              id="prop-columns"
+              className="flex h-7 w-full rounded-md border border-input bg-transparent px-2 text-xs"
+              value={String(gridColumnsFromStyles(styles))}
+              onChange={(event) => {
+                const columns = Number(event.target.value);
+                patchBaseStyle({
+                  display: "grid",
+                  gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                });
+              }}
+            >
+              <option value={1}>1</option>
+              <option value={2}>2</option>
+              <option value={3}>3</option>
+              <option value={4}>4</option>
+            </select>
+          </FieldRow>
+        </Section>
+      ) : null}
+
+      {selected.type === "spacer" ? (
+        <Section title="Spacer">
+          <FieldRow label="Height" htmlFor="prop-height">
+            <CompactInput
+              id="prop-height"
+              value={String(styles.base?.height ?? "")}
+              onChange={(value) => patchBaseStyle({ height: value })}
+            />
+          </FieldRow>
+        </Section>
+      ) : null}
+
       {selected.type === "image" ? (
         <Section title="Image">
           <MediaPickerButton
@@ -251,6 +308,28 @@ export function SettingsPanel({
               onChange={(value) => setProp("alt", value)}
             />
           </FieldRow>
+        </Section>
+      ) : null}
+
+      {selected.type === "embed" ? (
+        <Section title="Embed">
+          <FieldRow label="URL" htmlFor="prop-embed-src">
+            <CompactInput
+              id="prop-embed-src"
+              value={String(props.src ?? "")}
+              onChange={(value) => setProp("src", value)}
+            />
+          </FieldRow>
+          <FieldRow label="Title" htmlFor="prop-embed-title">
+            <CompactInput
+              id="prop-embed-title"
+              value={String(props.title ?? "")}
+              onChange={(value) => setProp("title", value)}
+            />
+          </FieldRow>
+          <p className="text-[10px] text-muted-foreground">
+            https iframe URL only (YouTube embed, etc.).
+          </p>
         </Section>
       ) : null}
 

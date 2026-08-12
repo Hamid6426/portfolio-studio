@@ -7,12 +7,12 @@
  * colours reference those variables so switching themes restyles content without
  * rewriting the block tree.
  *
- * Composition notes — the editor has list / listItem blocks for bullets;
- * tables and true card primitives are still composed from containers:
- * - "cards" are `container`s with a border/background;
- * - "rows" are `container`s with `flexDirection: row` and `flexWrap: wrap`.
- *   Child tiles/buttons carry a `minWidth` so wrapped rows stay readable on
- *   narrow viewports.
+ * Composition notes — list / listItem, grid, and card are first-class blocks.
+ * Remaining composition:
+ * - "rows" of mixed tiles still use flex containers when wrapping behaviour
+ *   matters more than equal columns; equal columns use `grid`.
+ *   Child tiles/buttons carry a `minWidth` so wrapped flex rows stay readable
+ *   on narrow viewports.
  */
 import type { BlockNode } from "@/db/schema.types";
 
@@ -38,8 +38,10 @@ import type {
 } from "./datasets/types";
 import {
   button,
+  card,
   container,
   divider,
+  grid,
   heading,
   list,
   listItem,
@@ -53,7 +55,6 @@ import {
 const MUTED = "var(--ps-muted)";
 const SUBTLE = "var(--ps-subtle)";
 const HAIRLINE = "1px solid var(--ps-border)";
-const CARD_BG = "var(--ps-card)";
 
 const SECTION: Record<string, string> = {
   padding: "var(--ps-section-gap) 24px",
@@ -104,17 +105,6 @@ const META: Record<string, string> = {
  * `maxWidth: 100%` overrides the container default (720px) so nested
  * containers fill their parent instead of being re-centred inside it.
  */
-const CARD: Record<string, string> = {
-  gap: "6px",
-  padding: "18px 20px",
-  background: CARD_BG,
-  border: HAIRLINE,
-  borderRadius: "var(--ps-radius)",
-  width: "100%",
-  maxWidth: "100%",
-  flex: "1 1 240px",
-  minWidth: "200px",
-};
 const FLUSH_ROW: Record<string, string> = {
   gap: "2px",
   padding: "12px 0",
@@ -219,7 +209,7 @@ function navRow(nav: NavLink[], currentHref: string): BlockNode {
 }
 
 function statCard(stat: Stat): BlockNode {
-  return container(
+  return card(
     [
       heading(stat.value, 3, {
         fontSize: "28px",
@@ -229,7 +219,6 @@ function statCard(stat: Stat): BlockNode {
       text(stat.label, { ...META, textAlign: "center" }),
     ],
     {
-      ...CARD,
       gap: "4px",
       padding: "18px 12px",
       alignItems: "center",
@@ -271,7 +260,11 @@ function cardNode(
     children.push(buttonRow(item.links, { ...BUTTON_ROW, margin: "6px 0 0" }));
   }
 
-  return container(children, variant === "flush" ? FLUSH_ROW : CARD);
+  if (variant === "flush") {
+    return container(children, FLUSH_ROW);
+  }
+
+  return card(children, { gap: "6px" });
 }
 
 function citationEntry(citation: Citation, index: number): BlockNode {
@@ -423,8 +416,7 @@ function itemListSection(spec: ItemListSection): BlockNode {
   for (const group of spec.groups) {
     if (group.heading) {
       children.push(
-        container([heading(group.heading, 3, H3), bullets(group.items)], {
-          ...CARD,
+        card([heading(group.heading, 3, H3), bullets(group.items)], {
           gap: "8px",
         }),
       );
@@ -448,9 +440,9 @@ function cardGridSection(spec: CardGridSection): BlockNode {
   const cards = spec.items.map((item) => cardNode(item, variant, titleLevel));
 
   if (columns > 1) {
-    for (let i = 0; i < cards.length; i += columns) {
-      children.push(container(cards.slice(i, i + columns), ROW));
-    }
+    children.push(
+      grid(cards, { maxWidth: "920px", gap: "16px", width: "100%" }, columns),
+    );
   } else {
     children.push(...cards);
   }

@@ -23,7 +23,10 @@ export function usePageEditor(
   const serverContent = useMemo(() => page.content ?? [], [page.content]);
   const updateMutation = useUpdatePageMutation();
 
-  async function onSave(content: BlockNode[]) {
+  async function onSave(
+    content: BlockNode[],
+    saveOptions?: { quiet?: boolean },
+  ) {
     const expectedUpdatedAt = toExpectedUpdatedAt(page.updatedAt);
     if (!expectedUpdatedAt) {
       toast.error("Missing page version — reload and try again.");
@@ -41,7 +44,9 @@ export function usePageEditor(
       toast.error(result.message);
       return "error" as const;
     }
-    toast.success("Page saved.");
+    if (!saveOptions?.quiet) {
+      toast.success("Page saved.");
+    }
     return "ok" as const;
   }
 

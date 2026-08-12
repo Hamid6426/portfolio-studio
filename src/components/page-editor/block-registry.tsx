@@ -8,19 +8,23 @@ import {
   type ResponsiveStyles,
   type StylePropertyMap,
 } from "@/lib/blocks/styles";
-import { isExternalUrl, sanitizeUrl } from "@/lib/block-sanitize";
+import { isExternalUrl, sanitizeEmbedUrl, sanitizeUrl } from "@/lib/block-sanitize";
 import { cn } from "@/lib/utils";
 
 export type BlockType =
   | "section"
   | "container"
+  | "grid"
+  | "card"
   | "heading"
   | "text"
   | "list"
   | "listItem"
   | "image"
+  | "embed"
   | "button"
-  | "divider";
+  | "divider"
+  | "spacer";
 
 export type BlockDefinition = {
   type: BlockType;
@@ -53,6 +57,37 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
       maxWidth: "720px",
       margin: "0 auto",
       width: "100%",
+    },
+  },
+  {
+    type: "grid",
+    label: "Grid",
+    canHaveChildren: true,
+    defaultProps: {},
+    defaultStyles: {
+      display: "grid",
+      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+      gap: "16px",
+      width: "100%",
+      maxWidth: "920px",
+      margin: "0 auto",
+    },
+  },
+  {
+    type: "card",
+    label: "Card",
+    canHaveChildren: true,
+    defaultProps: {},
+    defaultStyles: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "8px",
+      padding: "18px 20px",
+      background: "var(--ps-card)",
+      border: "1px solid var(--ps-border)",
+      borderRadius: "var(--ps-radius)",
+      width: "100%",
+      maxWidth: "100%",
     },
   },
   {
@@ -115,6 +150,24 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     },
   },
   {
+    type: "embed",
+    label: "Embed",
+    canHaveChildren: false,
+    defaultProps: {
+      src: "",
+      title: "Embedded content",
+    },
+    defaultStyles: {
+      width: "100%",
+      maxWidth: "100%",
+      aspectRatio: "16 / 9",
+      border: "none",
+      borderRadius: "var(--ps-radius)",
+      display: "block",
+      background: "var(--ps-surface-alt)",
+    },
+  },
+  {
     type: "button",
     label: "Button",
     canHaveChildren: false,
@@ -139,6 +192,18 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
       borderTop: "1px solid rgba(255,255,255,0.15)",
       margin: "24px 0",
       width: "100%",
+    },
+  },
+  {
+    type: "spacer",
+    label: "Spacer",
+    canHaveChildren: false,
+    defaultProps: {},
+    defaultStyles: {
+      height: "48px",
+      width: "100%",
+      margin: "0",
+      padding: "0",
     },
   },
 ];
@@ -272,6 +337,8 @@ function BlockRenderer({
       );
     }
     case "container":
+    case "grid":
+    case "card":
       return <div {...common}>{children}</div>;
     case "heading": {
       const level = Number(node.props.level ?? 2);
@@ -360,6 +427,40 @@ function BlockRenderer({
         />
       );
     }
+    case "embed": {
+      const src = sanitizeEmbedUrl(node.props.src);
+      const title = String(node.props.title ?? "Embedded content");
+      if (editable || !src) {
+        return (
+          <div
+            {...common}
+            role="img"
+            aria-label={
+              src
+                ? `Embed preview (${title})`
+                : "Embed — add an https URL"
+            }
+          >
+            <span className="ps-muted flex h-full min-h-40 items-center justify-center px-4 text-center text-sm">
+              {src
+                ? `Embed: ${title}`
+                : "Add an https embed URL in Settings"}
+            </span>
+          </div>
+        );
+      }
+      return (
+        <iframe
+          {...common}
+          src={src}
+          title={title}
+          loading="lazy"
+          referrerPolicy="strict-origin-when-cross-origin"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
+      );
+    }
     case "button": {
       const href = sanitizeUrl(node.props.href, "#");
       const label = String(node.props.text ?? "Button");
@@ -402,6 +503,18 @@ function BlockRenderer({
     }
     case "divider":
       return <hr {...common} />;
+    case "spacer":
+      return (
+        <div
+          {...common}
+          aria-hidden
+          // Keep a hit target visible while editing.
+          className={cn(
+            common.className,
+            editable && "min-h-4 outline-dashed outline-1 outline-border/60",
+          )}
+        />
+      );
     default:
       if (!editable) return null;
       return (

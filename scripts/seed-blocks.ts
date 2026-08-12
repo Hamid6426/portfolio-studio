@@ -65,6 +65,26 @@ export function container(
   return make("container", {}, styles, children);
 }
 
+export function grid(
+  children: BlockNode[],
+  styles: Styles = {},
+  columns = 2,
+): BlockNode {
+  return make(
+    "grid",
+    {},
+    {
+      gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+      ...styles,
+    },
+    children,
+  );
+}
+
+export function card(children: BlockNode[], styles: Styles = {}): BlockNode {
+  return make("card", {}, styles, children);
+}
+
 export function heading(
   text: string,
   level: 1 | 2 | 3 | 4 = 2,
@@ -101,8 +121,11 @@ export function divider(styles: Styles = {}): BlockNode {
   return make("divider", {}, styles);
 }
 
+export function spacer(height = "48px", styles: Styles = {}): BlockNode {
+  return make("spacer", {}, { height, ...styles });
+}
+
 /*
- * No `image` builder: add images from the dashboard media library
- * (`/dashboard/media` or the image block picker) so `src` points at a real
- * `/upload/…` URL rather than a dead remote placeholder.
+ * No `image` / `embed` builders: add media from the dashboard library and paste
+ * https embed URLs in Settings so `src` points at real destinations.
  */
