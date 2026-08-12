@@ -12,15 +12,15 @@ Stay inside the **self-hosted, single-site** CMS scope.
 ## Now — editor capability (build order)
 
 1. ~~**Duplicate selected block**~~ — done (Layers / Settings / `Ctrl|Cmd+D`).
-2. **Copy-paste / multi-select** — clipboard of nodes; multi-select is optional
-   until paste feels solid.
+2. ~~**Copy / cut / paste**~~ — done (in-tab + system JSON clipboard; Layers /
+   Settings / `Ctrl|Cmd+C|X|V`). **Multi-select** still open.
 3. **More block types** — list (replaces `•` text hacks), then grid, card,
    spacer, embed as needed.
 4. **Autosave** — debounced or interval save while dirty (policy TBD).
 5. **Version history** — after autosave; heavier than autosave alone.
 6. **Richer text marks** (bold / italic / links) — last among editor items;
    needs a real text model beyond plain `props.text` strings.
-
+7. **Multi-select** — shift/ctrl selection for bulk duplicate/copy/delete.
 ---
 
 ## Theme follow-ups (optional)

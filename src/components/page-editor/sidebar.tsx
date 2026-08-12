@@ -28,6 +28,10 @@ type EditorSidebarProps = {
   onPropsChange: (props: Record<string, unknown>) => void;
   onDelete: () => void;
   onDuplicate: () => void;
+  onCopy: () => void;
+  onCut: () => void;
+  onPaste: () => void;
+  canPaste: boolean;
   onMoveUp: () => void;
   onMoveDown: () => void;
   onOutdent: () => void;
@@ -46,6 +50,10 @@ export function EditorSidebar({
   onPropsChange,
   onDelete,
   onDuplicate,
+  onCopy,
+  onCut,
+  onPaste,
+  canPaste,
   onMoveUp,
   onMoveDown,
   onOutdent,
@@ -74,12 +82,16 @@ export function EditorSidebar({
           <LayersPanel
             content={content}
             selectedId={selectedId}
+            canPaste={canPaste}
             onSelect={onSelect}
             onMoveUp={onMoveUp}
             onMoveDown={onMoveDown}
             onOutdent={onOutdent}
             onIndent={onIndent}
             onDuplicate={onDuplicate}
+            onCopy={onCopy}
+            onCut={onCut}
+            onPaste={onPaste}
           />
         </section>
 
@@ -105,6 +117,10 @@ export function EditorSidebar({
             onChange={onPropsChange}
             onDelete={onDelete}
             onDuplicate={onDuplicate}
+            onCopy={onCopy}
+            onCut={onCut}
+            onPaste={onPaste}
+            canPaste={canPaste}
           />
         </section>
       </div>

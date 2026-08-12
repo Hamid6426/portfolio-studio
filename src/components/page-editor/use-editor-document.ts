@@ -5,6 +5,13 @@ import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import type { BlockType } from "@/components/page-editor/block-registry";
 import { createBlockNode } from "@/components/page-editor/block-registry";
 import {
+  getEditorClipboard,
+  hasEditorClipboard,
+  readSystemClipboard,
+  setEditorClipboard,
+  writeSystemClipboard,
+} from "@/components/page-editor/editor-clipboard";
+import {
   editorReducer,
   initEditorDoc,
   treeKey,
@@ -73,6 +80,8 @@ export function useEditorDocument({
     initEditorDoc,
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  /** Bumps when the shared editor clipboard changes so Paste buttons re-enable. */
+  const [clipboardEpoch, setClipboardEpoch] = useState(0);
 
   const content = doc.present;
   const dirty = useMemo(
@@ -169,6 +178,51 @@ export function useEditorDocument({
     if (duplicatedId) setSelectedId(duplicatedId);
   }, [apply, selectedId]);
 
+  const copySelected = useCallback(() => {
+    if (!selectedId) return false;
+    const node = findNode(content, selectedId);
+    if (!node) return false;
+    setEditorClipboard([node]);
+    setClipboardEpoch((value) => value + 1);
+    void writeSystemClipboard([node]);
+    return true;
+  }, [content, selectedId]);
+
+  const cutSelected = useCallback(() => {
+    if (!selectedId || !canEdit) return;
+    if (!copySelected()) return;
+    deleteBlock(selectedId);
+  }, [canEdit, copySelected, deleteBlock, selectedId]);
+
+  const pasteClipboard = useCallback(async () => {
+    if (!canEdit) return;
+
+    let nodes = getEditorClipboard();
+    if (nodes.length === 0) {
+      const fromSystem = await readSystemClipboard();
+      if (fromSystem?.length) {
+        nodes = fromSystem;
+        setEditorClipboard(fromSystem);
+        setClipboardEpoch((value) => value + 1);
+      }
+    }
+    if (nodes.length === 0) return;
+
+    const cloned = nodes.map(cloneNodeWithNewIds);
+    apply((tree) => {
+      const located = selectedId ? findParent(tree, selectedId) : null;
+      const parentId = located?.parent?.id ?? null;
+      let index = located !== null ? located.index + 1 : tree.length;
+      let next = tree;
+      for (const node of cloned) {
+        next = insertChild(next, parentId, node, index);
+        index += 1;
+      }
+      return next;
+    });
+    if (cloned[0]) setSelectedId(cloned[0].id);
+  }, [apply, canEdit, selectedId]);
+
   const save = useCallback(async (): Promise<"ok" | "conflict" | "error"> => {
     // Snapshot now so edits made while the request is in flight stay dirty.
     const snapshot = content;
@@ -221,12 +275,42 @@ export function useEditorDocument({
       if (mod && key === "d" && selectedId && canEdit) {
         event.preventDefault();
         duplicateSelected();
+        return;
+      }
+
+      if (mod && key === "c" && selectedId) {
+        event.preventDefault();
+        copySelected();
+        return;
+      }
+
+      if (mod && key === "x" && selectedId && canEdit) {
+        event.preventDefault();
+        cutSelected();
+        return;
+      }
+
+      if (mod && key === "v" && canEdit) {
+        event.preventDefault();
+        void pasteClipboard();
       }
     }
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selectedId, deleteBlock, duplicateSelected, undo, redo, save, canEdit, dirty]);
+  }, [
+    selectedId,
+    deleteBlock,
+    duplicateSelected,
+    copySelected,
+    cutSelected,
+    pasteClipboard,
+    undo,
+    redo,
+    save,
+    canEdit,
+    dirty,
+  ]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -318,6 +402,7 @@ export function useEditorDocument({
   }
 
   const selected = selectedId ? findNode(content, selectedId) : null;
+  const canPaste = clipboardEpoch >= 0 && hasEditorClipboard();
 
   return {
     content,
@@ -327,12 +412,16 @@ export function useEditorDocument({
     conflict: doc.conflict,
     canUndo: doc.past.length > 0,
     canRedo: doc.future.length > 0,
+    canPaste,
     pending: saving,
     setSelectedId,
     addBlock,
     insertLibraryBlock,
     deleteSelected,
     duplicateSelected,
+    copySelected,
+    cutSelected,
+    pasteClipboard,
     updateSelected,
     setSelectedStyles,
     setSelectedProps,

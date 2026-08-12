@@ -308,6 +308,14 @@ export function EditorShell({
           onPropsChange={editor.setSelectedProps}
           onDelete={editor.deleteSelected}
           onDuplicate={editor.duplicateSelected}
+          onCopy={() => {
+            editor.copySelected();
+          }}
+          onCut={editor.cutSelected}
+          onPaste={() => {
+            void editor.pasteClipboard();
+          }}
+          canPaste={editor.canPaste}
           onMoveUp={editor.moveSelectedUp}
           onMoveDown={editor.moveSelectedDown}
           onOutdent={editor.outdentSelected}

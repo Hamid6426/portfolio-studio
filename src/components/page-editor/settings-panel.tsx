@@ -1,7 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { CopyIcon, Trash2Icon } from "lucide-react";
+import {
+  ClipboardCopyIcon,
+  ClipboardPasteIcon,
+  CopyIcon,
+  ScissorsIcon,
+  Trash2Icon,
+} from "lucide-react";
 
 import { MediaPickerButton } from "@/components/media/media-picker";
 import { definitionFor } from "@/components/page-editor/block-registry";
@@ -15,6 +21,10 @@ type SettingsPanelProps = {
   onChange: (props: Record<string, unknown>) => void;
   onDelete: () => void;
   onDuplicate: () => void;
+  onCopy: () => void;
+  onCut: () => void;
+  onPaste: () => void;
+  canPaste: boolean;
 };
 
 function Section({
@@ -85,12 +95,29 @@ export function SettingsPanel({
   onChange,
   onDelete,
   onDuplicate,
+  onCopy,
+  onCut,
+  onPaste,
+  canPaste,
 }: SettingsPanelProps) {
   if (!selected) {
     return (
-      <p className="p-3 text-sm text-muted-foreground">
-        Select a block to edit settings.
-      </p>
+      <div className="grid gap-2 p-3">
+        <p className="text-sm text-muted-foreground">
+          Select a block to edit settings.
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full"
+          disabled={!canPaste}
+          onClick={onPaste}
+        >
+          <ClipboardPasteIcon data-icon="inline-start" />
+          Paste
+        </Button>
+      </div>
     );
   }
 
@@ -230,6 +257,37 @@ export function SettingsPanel({
         >
           <CopyIcon data-icon="inline-start" />
           Duplicate
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={onCopy}
+        >
+          <ClipboardCopyIcon data-icon="inline-start" />
+          Copy
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={onCut}
+        >
+          <ScissorsIcon data-icon="inline-start" />
+          Cut
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full"
+          disabled={!canPaste}
+          onClick={onPaste}
+        >
+          <ClipboardPasteIcon data-icon="inline-start" />
+          Paste
         </Button>
         <Button
           type="button"

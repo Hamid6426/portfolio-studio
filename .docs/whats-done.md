@@ -278,6 +278,16 @@ helper.
 
 ---
 
+## Copy / cut / paste
+
+Editor clipboard holds `BlockNode[]` in memory (shared across page and block
+editors in the tab) and mirrors a versioned JSON payload to the system clipboard
+when permitted. Paste remaps ids and inserts after the selection (or at the root
+when nothing is selected). Shortcuts: `Ctrl/Cmd+C|X|V`. Multi-select is still
+future work.
+
+---
+
 ## Migrations
 
 | | |
