@@ -43,21 +43,12 @@ import {
 } from "@/queries/blocks";
 import { blockEditorPath } from "@/lib/blocks/editor-path";
 import type { BlockListItem } from "@/responses/blocks";
+import { formString } from "@/utils/form.utils";
+import { formatDate, toIsoString } from "@/utils/time.utils";
 
 type BlocksPageClientProps = {
   permissions: Permission[] | string;
 };
-
-function formatDate(value: Date | string | null): string {
-  if (!value) return "—";
-  const date = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 export function BlocksPageClient({ permissions }: BlocksPageClientProps) {
   const blocksQuery = useBlocksQuery();
@@ -104,16 +95,11 @@ export function BlocksPageClient({ permissions }: BlocksPageClientProps) {
     setFieldErrors({});
 
     const formData = new FormData(event.currentTarget);
-    const name = String(formData.get("name") ?? "").trim();
-    const description = String(formData.get("description") ?? "").trim();
+    const name = formString(formData, "name");
+    const description = formString(formData, "description");
 
     if (editing) {
-      const expectedUpdatedAt =
-        typeof editing.updatedAt === "string"
-          ? editing.updatedAt
-          : editing.updatedAt
-            ? new Date(editing.updatedAt).toISOString()
-            : null;
+      const expectedUpdatedAt = toIsoString(editing.updatedAt) ?? null;
       if (!expectedUpdatedAt) {
         toast.error("Missing block version — reload and try again.");
         return;

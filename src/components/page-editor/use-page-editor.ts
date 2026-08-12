@@ -7,13 +7,7 @@ import { useEditorDocument } from "@/components/page-editor/use-editor-document"
 import type { BlockNode } from "@/db/schema.types";
 import { useUpdatePageMutation } from "@/queries/pages";
 import type { PageSummary } from "@/responses/pages";
-
-function toExpectedUpdatedAt(
-  value: Date | string | null | undefined,
-): string | undefined {
-  if (!value) return undefined;
-  return typeof value === "string" ? value : value.toISOString();
-}
+import { toIsoString } from "@/utils/time.utils";
 
 /** Binds the shared editor document to a page's `content`. */
 export function usePageEditor(
@@ -27,7 +21,7 @@ export function usePageEditor(
     content: BlockNode[],
     saveOptions?: { quiet?: boolean },
   ) {
-    const expectedUpdatedAt = toExpectedUpdatedAt(page.updatedAt);
+    const expectedUpdatedAt = toIsoString(page.updatedAt);
     if (!expectedUpdatedAt) {
       toast.error("Missing page version — reload and try again.");
       return "error" as const;

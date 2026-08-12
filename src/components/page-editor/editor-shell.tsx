@@ -18,6 +18,7 @@ import { EditorCanvas } from "@/components/page-editor/canvas";
 import { useDirtyNav } from "@/components/page-editor/dirty-nav-context";
 import { RevisionHistoryDialog } from "@/components/page-editor/revision-history-dialog";
 import { EditorSidebar } from "@/components/page-editor/sidebar";
+import { toIsoString } from "@/utils/time.utils";
 import type { EditorDocument } from "@/components/page-editor/use-editor-document";
 import { usePageEditor } from "@/components/page-editor/use-page-editor";
 import { Button } from "@/components/ui/button";
@@ -46,13 +47,6 @@ const PAGES_PATH = "/dashboard/pages";
 
 /** Idle debounce before a quiet autosave while the document is dirty. */
 const AUTOSAVE_DELAY_MS = 2000;
-
-function toExpectedUpdatedAt(
-  value: Date | string | null | undefined,
-): string | undefined {
-  if (!value) return undefined;
-  return typeof value === "string" ? value : value.toISOString();
-}
 
 function hasLevel1Heading(nodes: BlockNode[]): boolean {
   for (const node of nodes) {
@@ -315,11 +309,11 @@ export function EditorShell({
             </Button>
           ) : null}
           {extraActions}
-          {history && toExpectedUpdatedAt(history.expectedUpdatedAt) ? (
+          {history && toIsoString(history.expectedUpdatedAt) ? (
             <RevisionHistoryDialog
               entityType={history.entityType}
               entityId={history.entityId}
-              expectedUpdatedAt={toExpectedUpdatedAt(history.expectedUpdatedAt)!}
+              expectedUpdatedAt={toIsoString(history.expectedUpdatedAt)!}
               canEdit={canEdit}
               dirty={editor.dirty}
               onRestored={(content) => editor.loadContent(content)}

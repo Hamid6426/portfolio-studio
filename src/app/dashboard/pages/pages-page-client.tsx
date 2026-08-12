@@ -51,21 +51,12 @@ import {
 import type { PageListItem } from "@/responses/pages";
 import { pageEditorPath } from "@/lib/pages/editor-path";
 import { pagePreviewPath, pagePublicPath } from "@/lib/pages/preview-path";
+import { formatDate, toIsoString } from "@/utils/time.utils";
+import { formString } from "@/utils/form.utils";
 
 type PagesPageClientProps = {
   permissions: Permission[] | string;
 };
-
-function formatDate(value: Date | string | null): string {
-  if (!value) return "—";
-  const date = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 export function PagesPageClient({ permissions }: PagesPageClientProps) {
   const pagesQuery = usePagesQuery();
@@ -121,18 +112,13 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
     setFieldErrors({});
 
     const formData = new FormData(event.currentTarget);
-    const title = String(formData.get("title") ?? "").trim();
-    const slug = String(formData.get("slug") ?? "").trim();
-    const description = String(formData.get("description") ?? "").trim();
-    const blockId = String(formData.get("blockId") ?? "").trim();
+    const title = formString(formData, "title");
+    const slug = formString(formData, "slug");
+    const description = formString(formData, "description");
+    const blockId = formString(formData, "blockId");
 
     if (editing) {
-      const expectedUpdatedAt =
-        typeof editing.updatedAt === "string"
-          ? editing.updatedAt
-          : editing.updatedAt
-            ? new Date(editing.updatedAt).toISOString()
-            : null;
+      const expectedUpdatedAt = toIsoString(editing.updatedAt) ?? null;
       if (!expectedUpdatedAt) {
         toast.error("Missing page version — reload and try again.");
         return;

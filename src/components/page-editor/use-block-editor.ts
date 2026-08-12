@@ -7,13 +7,7 @@ import { useEditorDocument } from "@/components/page-editor/use-editor-document"
 import type { BlockNode } from "@/db/schema.types";
 import { useUpdateBlockMutation } from "@/queries/blocks";
 import type { BlockSummary } from "@/responses/blocks";
-
-function toExpectedUpdatedAt(
-  value: Date | string | null | undefined,
-): string | undefined {
-  if (!value) return undefined;
-  return typeof value === "string" ? value : value.toISOString();
-}
+import { toIsoString } from "@/utils/time.utils";
 
 /** Binds the shared editor document to a reusable block's `children`. */
 export function useBlockEditor(
@@ -27,7 +21,7 @@ export function useBlockEditor(
     children: BlockNode[],
     saveOptions?: { quiet?: boolean },
   ) {
-    const expectedUpdatedAt = toExpectedUpdatedAt(block.updatedAt);
+    const expectedUpdatedAt = toIsoString(block.updatedAt);
     if (!expectedUpdatedAt) {
       toast.error("Missing block version — reload and try again.");
       return "error" as const;

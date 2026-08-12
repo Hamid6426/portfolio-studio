@@ -3,15 +3,7 @@ import {
   ROUTE_PERMISSIONS,
   type Permission,
 } from "@/config/permissions";
-
-/** `create-admin` → `Create Admin` */
-function humanizeKebab(value: string): string {
-  return value
-    .split("-")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
+import { humanizeKebab } from "@/utils/string.utils";
 
 export const ROUTE_PERMISSION_OPTIONS = Object.entries(ROUTE_PERMISSIONS).map(
   ([key, value]) => ({

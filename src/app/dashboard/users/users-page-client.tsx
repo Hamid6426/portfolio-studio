@@ -37,22 +37,13 @@ import {
 } from "@/queries/users";
 import { useRolesQuery } from "@/queries/roles";
 import type { UserSummary } from "@/responses/users";
+import { formEmail, formString } from "@/utils/form.utils";
+import { formatDate } from "@/utils/time.utils";
 
 type UsersPageClientProps = {
   permissions: Permission[] | string;
   currentUserId: string;
 };
-
-function formatDate(value: Date | string | null): string {
-  if (!value) return "—";
-  const date = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 export function UsersPageClient({
   permissions,
@@ -104,9 +95,9 @@ export function UsersPageClient({
     setFieldErrors({});
 
     const formData = new FormData(event.currentTarget);
-    const name = String(formData.get("name") ?? "").trim();
-    const email = String(formData.get("email") ?? "").trim().toLowerCase();
-    const role = String(formData.get("role") ?? "").trim();
+    const name = formString(formData, "name");
+    const email = formEmail(formData, "email");
+    const role = formString(formData, "role");
     const password = String(formData.get("password") ?? "");
 
     if (editing) {

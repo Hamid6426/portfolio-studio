@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Loader2Icon } from "lucide-react";
 import { useCreateAdminMutation } from "@/queries/auth";
+import { formEmail, formString } from "@/utils/form.utils";
 
 export default function SetupPage() {
   const router = useRouter();
@@ -35,8 +36,8 @@ export default function SetupPage() {
 
     const formData = new FormData(event.currentTarget);
     const result = await createAdminMutation.mutateAsync({
-      name: String(formData.get("name") ?? "").trim(),
-      email: String(formData.get("email") ?? "").trim().toLowerCase(),
+      name: formString(formData, "name"),
+      email: formEmail(formData, "email"),
       password: String(formData.get("password") ?? ""),
       confirmPassword: String(formData.get("confirmPassword") ?? ""),
     });

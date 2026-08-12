@@ -32,6 +32,7 @@ src/payloads/       # Zod request payloads (e.g. auth)
 src/responses/      # ApiSuccess / ApiError (+ domain unions)
 src/lib/axiosInstance.ts  # Axios + 401 refresh interceptor (3 retries)
 src/lib/auth/             # cookies, tokens, session helpers
+src/utils/                # shared helpers (`string|time|bytes|form.utils.ts`)
 src/services/       # Frontend services (Axios → /api)
 src/repositories/   # Backend services + DB for API controllers
 src/queries/        # TanStack Query hooks (use frontend services)

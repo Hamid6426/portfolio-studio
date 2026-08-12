@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { useLoginMutation } from "@/queries/auth";
 import { safeRedirectPath } from "@/lib/auth/safe-redirect";
+import { formEmail } from "@/utils/form.utils";
 
 export function LoginForm() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export function LoginForm() {
 
     const formData = new FormData(event.currentTarget);
     const result = await loginMutation.mutateAsync({
-      email: String(formData.get("email") ?? "").trim().toLowerCase(),
+      email: formEmail(formData, "email"),
       password: String(formData.get("password") ?? ""),
     });
 

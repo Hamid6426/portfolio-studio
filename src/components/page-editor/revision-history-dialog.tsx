@@ -21,6 +21,7 @@ import {
 import type { RevisionEntityType } from "@/repositories/revisions";
 import { getRevisionRequest } from "@/services/revisions";
 import { cn } from "@/lib/utils";
+import { formatDateTime } from "@/utils/time.utils";
 
 type RevisionHistoryDialogProps = {
   entityType: RevisionEntityType;
@@ -30,16 +31,6 @@ type RevisionHistoryDialogProps = {
   dirty: boolean;
   onRestored: (content: BlockNode[]) => void;
 };
-
-function formatWhen(value: Date | string | null): string {
-  if (!value) return "Unknown time";
-  const date = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) return "Unknown time";
-  return date.toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-}
 
 function sourceLabel(source: string): string {
   if (source === "autosave") return "Autosave";
@@ -148,7 +139,7 @@ export function RevisionHistoryDialog({
                     >
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">
-                          {formatWhen(revision.createdAt)}
+                          {formatDateTime(revision.createdAt)}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {sourceLabel(revision.source)}

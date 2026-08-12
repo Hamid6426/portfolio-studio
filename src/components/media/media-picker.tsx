@@ -15,18 +15,13 @@ import {
 import { MAX_UPLOAD_BYTES } from "@/lib/media/constants";
 import { useAssetsQuery, useUploadAssetMutation } from "@/queries/assets";
 import { cn } from "@/lib/utils";
+import { formatBytes } from "@/utils/bytes.utils";
 
 type MediaPickerProps = {
   /** Called with the public `/upload/…` URL when the user picks or uploads. */
   onSelect: (url: string, meta?: { altHint?: string }) => void;
   disabled?: boolean;
 };
-
-function formatBytes(size: number): string {
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 /** Compact control used in the image block settings panel. */
 export function MediaPickerButton({ onSelect, disabled }: MediaPickerProps) {

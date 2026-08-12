@@ -32,16 +32,11 @@ import {
   useDeleteAssetMutation,
   useUploadAssetMutation,
 } from "@/queries/assets";
+import { formatBytes } from "@/utils/bytes.utils";
 
 type MediaPageClientProps = {
   permissions: Permission[] | string;
 };
-
-function formatBytes(size: number): string {
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 export function MediaPageClient({ permissions }: MediaPageClientProps) {
   const assetsQuery = useAssetsQuery();
