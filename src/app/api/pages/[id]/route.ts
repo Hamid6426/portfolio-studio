@@ -37,11 +37,14 @@ export async function PATCH(request: Request, context: RouteContext) {
       "blockId",
       "content",
       "expectedUpdatedAt",
+      "revisionKind",
     ],
   });
   if (!parsed.ok) return parsed.response;
 
-  const response = await updatePage(id, parsed.data);
+  const response = await updatePage(id, parsed.data, {
+    userId: auth.session.sub,
+  });
   return NextResponse.json(response, { status: response.statusCode });
 }
 

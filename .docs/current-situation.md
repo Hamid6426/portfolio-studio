@@ -1,6 +1,6 @@
 # Current situation
 
-**Last verified: 2026-08-12 (autosave + layout blocks).** Treat this header as an
+**Last verified: 2026-08-12 (version history).** Treat this header as an
 expiry stamp — re-check against the tree before acting on anything critical.
 
 A snapshot of what actually works, what is known-broken, and the design decisions that
@@ -46,6 +46,7 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
 - Duplicate selected block (Layers, Settings, `Ctrl/Cmd+D`) with remapped ids.
 - Copy / cut / paste blocks (shared in-tab clipboard + best-effort system JSON).
 - Debounced autosave (2s, quiet) while dirty; manual Save still toasts.
+- Version history (History dialog) with restore; migration `0016`.
 
 ### Publishing
 - `pages.content` draft vs `pages.published_snapshot` public payload.
@@ -114,7 +115,7 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
 None from the previous 17-item backlog. Remaining work is planned product depth — see
 [`future-plans.md`](./future-plans.md). Operator follow-up on existing installs:
 
-- Run `bun run db:migrate` through `0015` if not already applied.
+- Run `bun run db:migrate` through **`0016`** if not already applied.
 - Re-seed with `bun run db:seed -- --force` if rows predate theme CSS variables
   in section seeds (or the flex-wrap seed fix).
 - Ensure the process can write to project-root `upload/` (created on first upload).

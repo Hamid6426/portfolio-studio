@@ -25,6 +25,7 @@ import {
   createBlockPayloadSchema,
   updateBlockPayloadSchema,
 } from "@/payloads/blocks";
+import { maybeRecordRevision } from "@/repositories/revisions";
 import type {
   BlockListItem,
   BlockResponse,
@@ -325,6 +326,10 @@ export async function createBlock(
 export async function updateBlock(
   id: string,
   payload: UpdateBlockPayload,
+  options: {
+    userId?: string | null;
+    revisionSource?: "autosave" | "manual" | "restore";
+  } = {},
 ): Promise<BlockResponse> {
   const parsed = updateBlockPayloadSchema.safeParse(payload);
 
@@ -429,6 +434,19 @@ export async function updateBlock(
         statusCode: 500,
         message: "Something went wrong while updating the block.",
       };
+    }
+
+    if (parsed.data.children !== undefined) {
+      await maybeRecordRevision({
+        entityType: "block",
+        entityId: id,
+        nodes: parsed.data.children,
+        source:
+          options.revisionSource ??
+          parsed.data.revisionKind ??
+          "manual",
+        createdBy: options.userId,
+      });
     }
 
     return {

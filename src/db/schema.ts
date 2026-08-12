@@ -134,3 +134,29 @@ export const assetsTable = pgTable(
   },
   (table) => [index("assets_uploaded_by_idx").on(table.uploadedBy)],
 );
+
+/**
+ * Point-in-time copies of page/block draft trees for History / restore.
+ * Autosaves are throttled; identical trees are skipped — see
+ * `repositories/revisions.ts`.
+ */
+export const contentRevisionsTable = pgTable(
+  "content_revisions",
+  {
+    ...baseColumns,
+    /** `"page"` or `"block"`. */
+    entityType: varchar("entity_type", { length: 16 }).notNull(),
+    entityId: varchar("entity_id").notNull(),
+    document: jsonb("document").$type<BlockDocument>().notNull(),
+    /** `"autosave"` | `"manual"` | `"restore"`. */
+    source: varchar("source", { length: 16 }).notNull(),
+    createdBy: varchar("created_by").references(() => userTable.id),
+  },
+  (table) => [
+    index("content_revisions_entity_created_idx").on(
+      table.entityType,
+      table.entityId,
+      table.createdAt,
+    ),
+  ],
+);

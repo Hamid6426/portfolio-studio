@@ -32,6 +32,7 @@ export type EditorAction =
   | { type: "undo" }
   | { type: "redo" }
   | { type: "saved"; content: BlockNode[] }
+  | { type: "load"; content: BlockNode[] }
   | { type: "sync"; content: BlockNode[]; key: string };
 
 export function initEditorDoc(content: BlockNode[]): EditorDoc {
@@ -112,6 +113,20 @@ export function editorReducer(
 
     case "saved":
       return { ...state, baseline: action.content, conflict: false };
+
+    case "load": {
+      const key = treeKey(action.content);
+      return {
+        past: [],
+        present: action.content,
+        future: [],
+        baseline: action.content,
+        serverKey: key,
+        conflict: false,
+        lastMergeKey: null,
+        lastMergeAt: 0,
+      };
+    }
 
     case "sync": {
       if (action.key === state.serverKey) return state;

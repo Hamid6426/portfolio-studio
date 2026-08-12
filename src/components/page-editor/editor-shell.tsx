@@ -16,6 +16,7 @@ import { toast } from "sonner";
 
 import { EditorCanvas } from "@/components/page-editor/canvas";
 import { useDirtyNav } from "@/components/page-editor/dirty-nav-context";
+import { RevisionHistoryDialog } from "@/components/page-editor/revision-history-dialog";
 import { EditorSidebar } from "@/components/page-editor/sidebar";
 import type { EditorDocument } from "@/components/page-editor/use-editor-document";
 import { usePageEditor } from "@/components/page-editor/use-page-editor";
@@ -35,6 +36,7 @@ import {
 } from "@/config/permissions";
 import type { BlockNode } from "@/db/schema.types";
 import { pagePreviewPath, pagePublicPath } from "@/lib/pages/preview-path";
+import type { RevisionEntityType } from "@/repositories/revisions";
 import { getBlockRequest } from "@/services/blocks";
 import { useLayoutBlocksQuery } from "@/queries/blocks";
 import type { BlockListItem } from "@/responses/blocks";
@@ -44,6 +46,13 @@ const PAGES_PATH = "/dashboard/pages";
 
 /** Idle debounce before a quiet autosave while the document is dirty. */
 const AUTOSAVE_DELAY_MS = 2000;
+
+function toExpectedUpdatedAt(
+  value: Date | string | null | undefined,
+): string | undefined {
+  if (!value) return undefined;
+  return typeof value === "string" ? value : value.toISOString();
+}
 
 function hasLevel1Heading(nodes: BlockNode[]): boolean {
   for (const node of nodes) {
@@ -96,6 +105,12 @@ type EditorShellProps = {
   excludeLayoutBlockId?: string;
   /** Optional actions rendered before Save (e.g. Publish block). */
   extraActions?: ReactNode;
+  /** Enables the History dialog for this draft. */
+  history?: {
+    entityType: RevisionEntityType;
+    entityId: string;
+    expectedUpdatedAt: Date | string | null;
+  };
 };
 
 export function EditorShell({
@@ -109,6 +124,7 @@ export function EditorShell({
   canEdit,
   excludeLayoutBlockId,
   extraActions,
+  history,
 }: EditorShellProps) {
   const router = useRouter();
   const { setDirty } = useDirtyNav();
@@ -299,6 +315,16 @@ export function EditorShell({
             </Button>
           ) : null}
           {extraActions}
+          {history && toExpectedUpdatedAt(history.expectedUpdatedAt) ? (
+            <RevisionHistoryDialog
+              entityType={history.entityType}
+              entityId={history.entityId}
+              expectedUpdatedAt={toExpectedUpdatedAt(history.expectedUpdatedAt)!}
+              canEdit={canEdit}
+              dirty={editor.dirty}
+              onRestored={(content) => editor.loadContent(content)}
+            />
+          ) : null}
           {canEdit ? (
             <Button
               type="button"
@@ -461,6 +487,11 @@ export function PageEditorShell({ page, permissions }: PageEditorShellProps) {
       previewHref={previewHref}
       // The API enforces `pagesEdit`; without this the Save button just 403s.
       canEdit={canEdit}
+      history={{
+        entityType: "page",
+        entityId: page.id,
+        expectedUpdatedAt: page.updatedAt,
+      }}
     />
   );
 }

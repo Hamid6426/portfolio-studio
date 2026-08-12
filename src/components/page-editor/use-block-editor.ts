@@ -37,6 +37,7 @@ export function useBlockEditor(
       payload: {
         children,
         expectedUpdatedAt,
+        revisionKind: saveOptions?.quiet ? "autosave" : "manual",
       },
     });
     if (!result.success) {

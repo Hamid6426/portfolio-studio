@@ -246,6 +246,11 @@ export function useEditorDocument({
     [content, onSave],
   );
 
+  const loadContent = useCallback((nodes: BlockNode[]) => {
+    dispatch({ type: "load", content: nodes });
+    setSelectedId(null);
+  }, []);
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (isTypingTarget(event.target)) return;
@@ -447,6 +452,7 @@ export function useEditorDocument({
     undo,
     redo,
     save,
+    loadContent,
   };
 }
 

@@ -17,7 +17,8 @@ Stay inside the **self-hosted, single-site** CMS scope.
 3. ~~**More block types**~~ — list, grid, card, spacer, embed done.
 4. ~~**Autosave**~~ — 2s debounce while dirty; quiet (no success toast);
    pauses on pending / external conflict; 409 opens the existing dialog.
-5. **Version history** — after autosave; heavier than autosave alone.
+5. ~~**Version history**~~ — `content_revisions` table; History dialog restore;
+   autosave revisions throttled (5 min) / deduped; keep last 50.
 6. **Richer text marks** (bold / italic / links) — last among editor items;
    needs a real text model beyond plain `props.text` strings.
 7. **Multi-select** — shift/ctrl selection for bulk duplicate/copy/delete.

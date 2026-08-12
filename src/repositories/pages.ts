@@ -25,6 +25,7 @@ import {
   createPagePayloadSchema,
   updatePagePayloadSchema,
 } from "@/payloads/pages";
+import { maybeRecordRevision } from "@/repositories/revisions";
 import type {
   ListPagesResponse,
   PageListItem,
@@ -700,6 +701,11 @@ export async function createPage(
 export async function updatePage(
   id: string,
   payload: UpdatePagePayload,
+  options: {
+    userId?: string | null;
+    /** Overrides payload.revisionKind when recording history. */
+    revisionSource?: "autosave" | "manual" | "restore";
+  } = {},
 ): Promise<PageResponse> {
   const parsed = updatePagePayloadSchema.safeParse(payload);
 
@@ -794,6 +800,19 @@ export async function updatePage(
     }
 
     await db.update(pagesTable).set(updates).where(eq(pagesTable.id, id));
+
+    if (parsed.data.content !== undefined) {
+      await maybeRecordRevision({
+        entityType: "page",
+        entityId: id,
+        nodes: parsed.data.content,
+        source:
+          options.revisionSource ??
+          parsed.data.revisionKind ??
+          "manual",
+        createdBy: options.userId,
+      });
+    }
 
     // Edits never reach the public site — it serves `publishedSnapshot` until
     // the next publish. The one exception is the slug, which is the page's

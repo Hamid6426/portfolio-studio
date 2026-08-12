@@ -320,6 +320,16 @@ opens the same conflict dialog as manual Save. Manual Save still toasts.
 
 ---
 
+## Version history
+
+`content_revisions` stores draft snapshots for pages and blocks. Successful
+content saves call `maybeRecordRevision`: skip identical trees; throttle
+`autosave` to one revision per 5 minutes; always record `manual` / `restore`
+when content changed; prune to the newest 50 per entity. Editor **History**
+opens a list and can restore (blocked while dirty). Migration `0016`.
+
+---
+
 ## Migrations
 
 | | |
@@ -333,3 +343,6 @@ opens the same conflict dialog as manual Save. Manual Save still toasts.
 | `0011` | system-role permission reset (route matcher change) |
 | `0012` | `blocks.published_children` + indexes |
 | `0013` | custom-role permission rewrite + `expires_at` index |
+| `0014` | `site_settings` themes |
+| `0015` | `assets` local media |
+| `0016` | `content_revisions` version history |

@@ -31,6 +31,8 @@ export const updatePagePayloadSchema = z.object({
   expectedUpdatedAt: z.string().datetime({
     message: "expectedUpdatedAt is required for concurrent edits.",
   }),
+  /** Drives revision history density; defaults to manual. */
+  revisionKind: z.enum(["autosave", "manual"]).optional(),
 });
 
 export type UpdatePagePayload = z.infer<typeof updatePagePayloadSchema>;

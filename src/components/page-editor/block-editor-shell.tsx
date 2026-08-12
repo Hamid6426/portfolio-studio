@@ -83,6 +83,11 @@ export function BlockEditorShell({
         canEdit={canEdit}
         excludeLayoutBlockId={block.id}
         extraActions={publishAction}
+        history={{
+          entityType: "block",
+          entityId: block.id,
+          expectedUpdatedAt: block.updatedAt,
+        }}
       />
 
       <Dialog open={publishOpen} onOpenChange={setPublishOpen}>

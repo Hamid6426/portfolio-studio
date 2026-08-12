@@ -16,6 +16,7 @@ export const updateBlockPayloadSchema = createBlockPayloadSchema.partial().exten
   expectedUpdatedAt: z.string().datetime({
     message: "expectedUpdatedAt is required for concurrent edits.",
   }),
+  revisionKind: z.enum(["autosave", "manual"]).optional(),
 });
 
 export type UpdateBlockPayload = z.infer<typeof updateBlockPayloadSchema>;
