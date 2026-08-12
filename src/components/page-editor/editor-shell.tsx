@@ -350,7 +350,8 @@ export function EditorShell({
         <EditorCanvas
           content={editor.content}
           selectedId={editor.selectedId}
-          onSelect={editor.setSelectedId}
+          selectedIds={editor.selectedIds}
+          onSelect={editor.selectNode}
           onReorder={editor.reorder}
           onTextChange={editor.updateNodeText}
         />
@@ -358,7 +359,8 @@ export function EditorShell({
           content={editor.content}
           selected={editor.selected}
           selectedId={editor.selectedId}
-          onSelect={editor.setSelectedId}
+          selectedIds={editor.selectedIds}
+          onSelect={editor.selectNode}
           onAdd={editor.addBlock}
           layoutBlocks={layoutBlocks}
           onInsertLayout={(block) => void handleInsertLayout(block)}

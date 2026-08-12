@@ -13,7 +13,7 @@ Stay inside the **self-hosted, single-site** CMS scope.
 
 1. ~~**Duplicate selected block**~~ — done (Layers / Settings / `Ctrl|Cmd+D`).
 2. ~~**Copy / cut / paste**~~ — done (in-tab + system JSON clipboard; Layers /
-   Settings / `Ctrl|Cmd+C|X|V`). **Multi-select** still open.
+   Settings / `Ctrl|Cmd+C|X|V`).
 3. ~~**More block types**~~ — list, grid, card, spacer, embed done.
 4. ~~**Autosave**~~ — 2s debounce while dirty; quiet (no success toast);
    pauses on pending / external conflict; 409 opens the existing dialog.
@@ -21,7 +21,8 @@ Stay inside the **self-hosted, single-site** CMS scope.
    autosave revisions throttled (5 min) / deduped; keep last 50.
 6. ~~**Richer text marks**~~ — `props.spans` (bold / italic / link); canvas
    Ctrl/Cmd+B|I|K while editing; plain `text` still works.
-7. **Multi-select** — shift/ctrl selection for bulk duplicate/copy/delete.
+7. ~~**Multi-select**~~ — Shift range / Ctrl|Cmd toggle; bulk duplicate, copy,
+   cut, delete (selection roots).
 ---
 
 ## Theme follow-ups (optional)

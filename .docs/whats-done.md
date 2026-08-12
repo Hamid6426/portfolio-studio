@@ -340,6 +340,15 @@ I, and K (link). Sidebar text fields rewrite plain text and clear spans.
 
 ---
 
+## Multi-select
+
+Canvas and Layers: **Shift+click** selects a flatten-tree range from the anchor;
+**Ctrl/Cmd+click** toggles. Duplicate / copy / cut / delete (and shortcuts)
+operate on selection **roots** (a selected parent absorbs selected descendants).
+Move / indent / style / props stay single-selection only.
+
+---
+
 ## Migrations
 
 | | |

@@ -5,6 +5,9 @@ import {
   duplicateNodeAfter,
   findNode,
   findParent,
+  rangeSelectIds,
+  removeNodesByIds,
+  selectionRootIds,
 } from "@/components/page-editor/tree-ops";
 import type { BlockNode } from "@/db/schema.types";
 
@@ -54,5 +57,36 @@ describe("duplicateNodeAfter", () => {
 
   it("returns null for a missing id", () => {
     expect(duplicateNodeAfter([text("a", "x")], "missing")).toBeNull();
+  });
+});
+
+describe("selectionRootIds", () => {
+  it("drops descendants when an ancestor is also selected", () => {
+    const tree = [section("s", [text("t1", "x"), text("t2", "y")])];
+    expect(selectionRootIds(tree, ["s", "t1", "t2"])).toEqual(["s"]);
+  });
+
+  it("keeps document order for sibling roots", () => {
+    const tree = [text("a", "1"), text("b", "2"), text("c", "3")];
+    expect(selectionRootIds(tree, ["c", "a"])).toEqual(["a", "c"]);
+  });
+});
+
+describe("rangeSelectIds", () => {
+  it("selects an inclusive flatten-tree range", () => {
+    const tree = [
+      section("s", [text("t1", "x"), text("t2", "y")]),
+      text("z", "z"),
+    ];
+    expect(rangeSelectIds(tree, "t1", "z")).toEqual(["t1", "t2", "z"]);
+  });
+});
+
+describe("removeNodesByIds", () => {
+  it("removes several roots at once", () => {
+    const tree = [text("a", "1"), text("b", "2"), text("c", "3")];
+    expect(
+      removeNodesByIds(tree, new Set(["a", "c"])).map((n) => n.id),
+    ).toEqual(["b"]);
   });
 });

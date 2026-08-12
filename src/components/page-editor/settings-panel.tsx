@@ -22,6 +22,8 @@ import { cn } from "@/lib/utils";
 
 type SettingsPanelProps = {
   selected: BlockNode | null;
+  /** When > 1, show bulk actions only (selected may be null). */
+  selectionCount?: number;
   onChange: (props: Record<string, unknown>) => void;
   onStylesChange: (styles: ResponsiveStyles) => void;
   onDelete: () => void;
@@ -104,6 +106,7 @@ function CompactInput({
 
 export function SettingsPanel({
   selected,
+  selectionCount = selected ? 1 : 0,
   onChange,
   onStylesChange,
   onDelete,
@@ -113,6 +116,72 @@ export function SettingsPanel({
   onPaste,
   canPaste,
 }: SettingsPanelProps) {
+  if (selectionCount > 1) {
+    return (
+      <div>
+        <Section title="Selection">
+          <p className="text-sm text-muted-foreground">
+            {selectionCount} blocks selected. Duplicate, copy, cut, or delete
+            apply to the selection (nested picks collapse to roots).
+          </p>
+        </Section>
+        <Section title="Actions">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={onDuplicate}
+          >
+            <CopyIcon data-icon="inline-start" />
+            Duplicate
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={onCopy}
+          >
+            <ClipboardCopyIcon data-icon="inline-start" />
+            Copy
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={onCut}
+          >
+            <ScissorsIcon data-icon="inline-start" />
+            Cut
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full"
+            disabled={!canPaste}
+            onClick={onPaste}
+          >
+            <ClipboardPasteIcon data-icon="inline-start" />
+            Paste
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            className="w-full"
+            onClick={onDelete}
+          >
+            <Trash2Icon data-icon="inline-start" />
+            Delete selection
+          </Button>
+        </Section>
+      </div>
+    );
+  }
+
   if (!selected) {
     return (
       <div className="grid gap-2 p-3">

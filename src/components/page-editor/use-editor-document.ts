@@ -24,7 +24,9 @@ import {
   moveNode,
   moveSibling,
   outdentNode,
-  removeNodeById,
+  rangeSelectIds,
+  removeNodesByIds,
+  selectionRootIds,
   updateNodeById,
   cloneNodeWithNewIds,
   duplicateNodeAfter,
@@ -51,6 +53,13 @@ function isDialogTarget(target: EventTarget | null): boolean {
 export type EditorSaveOptions = {
   /** Skip success toasts (used by debounced autosave). */
   quiet?: boolean;
+};
+
+export type SelectNodeOptions = {
+  /** Ctrl/Cmd+click — add or remove from the selection. */
+  toggle?: boolean;
+  /** Shift+click — select the flatten-tree range from the anchor. */
+  range?: boolean;
 };
 
 export type EditorDocumentSource = {
@@ -88,9 +97,16 @@ export function useEditorDocument({
     serverContent,
     initEditorDoc,
   );
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectionAnchorId, setSelectionAnchorId] = useState<string | null>(
+    null,
+  );
   /** Bumps when the shared editor clipboard changes so Paste buttons re-enable. */
   const [clipboardEpoch, setClipboardEpoch] = useState(0);
+
+  /** Primary selection — last id in the multi-select list (settings / styles). */
+  const selectedId =
+    selectedIds.length > 0 ? selectedIds[selectedIds.length - 1]! : null;
 
   const content = doc.present;
   const dirty = useMemo(
@@ -110,6 +126,59 @@ export function useEditorDocument({
 
   const undo = useCallback(() => dispatch({ type: "undo" }), []);
   const redo = useCallback(() => dispatch({ type: "redo" }), []);
+
+  const replaceSelection = useCallback((ids: string[], anchor?: string | null) => {
+    const unique = [...new Set(ids.filter(Boolean))];
+    setSelectedIds(unique);
+    setSelectionAnchorId(
+      anchor === undefined ? (unique[unique.length - 1] ?? null) : anchor,
+    );
+  }, []);
+
+  const selectNode = useCallback(
+    (id: string | null, options: SelectNodeOptions = {}) => {
+      if (id === null) {
+        replaceSelection([]);
+        return;
+      }
+
+      if (options.range && selectionAnchorId) {
+        replaceSelection(
+          rangeSelectIds(content, selectionAnchorId, id),
+          selectionAnchorId,
+        );
+        return;
+      }
+
+      if (options.toggle) {
+        setSelectedIds((prev) => {
+          if (prev.includes(id)) {
+            const next = prev.filter((entry) => entry !== id);
+            setSelectionAnchorId((anchor) => {
+              if (next.length === 0) return null;
+              if (anchor && next.includes(anchor)) return anchor;
+              return next[next.length - 1] ?? null;
+            });
+            return next;
+          }
+          setSelectionAnchorId((anchor) => anchor ?? id);
+          return [...prev, id];
+        });
+        return;
+      }
+
+      replaceSelection([id], id);
+    },
+    [content, replaceSelection, selectionAnchorId],
+  );
+
+  /** Single-id setter kept for call sites that replace the whole selection. */
+  const setSelectedId = useCallback(
+    (id: string | null) => {
+      selectNode(id);
+    },
+    [selectNode],
+  );
 
   // Pull in server updates (our own save, or another tab) without clobbering
   // edits that are still in progress here.
@@ -142,7 +211,7 @@ export function useEditorDocument({
         located.index + 1,
       );
     });
-    setSelectedId(node.id);
+    replaceSelection([node.id], node.id);
   }
 
   function insertLibraryBlock(libraryChildren: BlockNode[]) {
@@ -159,49 +228,58 @@ export function useEditorDocument({
       }
       return next;
     });
-    if (cloned[0]) setSelectedId(cloned[0].id);
+    if (cloned[0]) replaceSelection([cloned[0].id], cloned[0].id);
   }
 
-  const deleteBlock = useCallback(
-    (id: string) => {
-      apply((nodes) => (findNode(nodes, id) ? removeNodeById(nodes, id) : nodes));
-      setSelectedId((current) => (current === id ? null : current));
-    },
-    [apply],
-  );
-
-  function deleteSelected() {
-    if (!selectedId) return;
-    deleteBlock(selectedId);
-  }
+  const deleteSelected = useCallback(() => {
+    if (selectedIds.length === 0) return;
+    const roots = selectionRootIds(content, selectedIds);
+    if (roots.length === 0) return;
+    const idSet = new Set(roots);
+    apply((nodes) => removeNodesByIds(nodes, idSet));
+    replaceSelection([]);
+  }, [apply, content, replaceSelection, selectedIds]);
 
   const duplicateSelected = useCallback(() => {
-    if (!selectedId) return;
-    let duplicatedId: string | null = null;
+    if (selectedIds.length === 0) return;
+    const roots = selectionRootIds(content, selectedIds);
+    if (roots.length === 0) return;
+
+    const duplicatedIds: string[] = [];
     apply((nodes) => {
-      const result = duplicateNodeAfter(nodes, selectedId);
-      if (!result) return nodes;
-      duplicatedId = result.duplicatedId;
-      return result.nodes;
+      let next = nodes;
+      // Last → first so earlier inserts do not shift later targets.
+      for (const id of [...roots].reverse()) {
+        const result = duplicateNodeAfter(next, id);
+        if (!result) continue;
+        next = result.nodes;
+        duplicatedIds.unshift(result.duplicatedId);
+      }
+      return next;
     });
-    if (duplicatedId) setSelectedId(duplicatedId);
-  }, [apply, selectedId]);
+    if (duplicatedIds.length > 0) {
+      replaceSelection(duplicatedIds);
+    }
+  }, [apply, content, replaceSelection, selectedIds]);
 
   const copySelected = useCallback(() => {
-    if (!selectedId) return false;
-    const node = findNode(content, selectedId);
-    if (!node) return false;
-    setEditorClipboard([node]);
+    if (selectedIds.length === 0) return false;
+    const roots = selectionRootIds(content, selectedIds);
+    const nodes = roots
+      .map((id) => findNode(content, id))
+      .filter((node): node is BlockNode => Boolean(node));
+    if (nodes.length === 0) return false;
+    setEditorClipboard(nodes);
     setClipboardEpoch((value) => value + 1);
-    void writeSystemClipboard([node]);
+    void writeSystemClipboard(nodes);
     return true;
-  }, [content, selectedId]);
+  }, [content, selectedIds]);
 
   const cutSelected = useCallback(() => {
-    if (!selectedId || !canEdit) return;
+    if (selectedIds.length === 0 || !canEdit) return;
     if (!copySelected()) return;
-    deleteBlock(selectedId);
-  }, [canEdit, copySelected, deleteBlock, selectedId]);
+    deleteSelected();
+  }, [canEdit, copySelected, deleteSelected, selectedIds.length]);
 
   const pasteClipboard = useCallback(async () => {
     if (!canEdit) return;
@@ -229,8 +307,13 @@ export function useEditorDocument({
       }
       return next;
     });
-    if (cloned[0]) setSelectedId(cloned[0].id);
-  }, [apply, canEdit, selectedId]);
+    if (cloned.length > 0) {
+      replaceSelection(
+        cloned.map((node) => node.id),
+        cloned[0]!.id,
+      );
+    }
+  }, [apply, canEdit, replaceSelection, selectedId]);
 
   const save = useCallback(
     async (
@@ -247,10 +330,13 @@ export function useEditorDocument({
     [content, onSave],
   );
 
-  const loadContent = useCallback((nodes: BlockNode[]) => {
-    dispatch({ type: "load", content: nodes });
-    setSelectedId(null);
-  }, []);
+  const loadContent = useCallback(
+    (nodes: BlockNode[]) => {
+      dispatch({ type: "load", content: nodes });
+      replaceSelection([]);
+    },
+    [replaceSelection],
+  );
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -283,27 +369,27 @@ export function useEditorDocument({
 
       if (
         (event.key === "Delete" || event.key === "Backspace") &&
-        selectedId &&
+        selectedIds.length > 0 &&
         canEdit
       ) {
         event.preventDefault();
-        deleteBlock(selectedId);
+        deleteSelected();
         return;
       }
 
-      if (mod && key === "d" && selectedId && canEdit) {
+      if (mod && key === "d" && selectedIds.length > 0 && canEdit) {
         event.preventDefault();
         duplicateSelected();
         return;
       }
 
-      if (mod && key === "c" && selectedId) {
+      if (mod && key === "c" && selectedIds.length > 0) {
         event.preventDefault();
         copySelected();
         return;
       }
 
-      if (mod && key === "x" && selectedId && canEdit) {
+      if (mod && key === "x" && selectedIds.length > 0 && canEdit) {
         event.preventDefault();
         cutSelected();
         return;
@@ -318,8 +404,8 @@ export function useEditorDocument({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [
-    selectedId,
-    deleteBlock,
+    selectedIds.length,
+    deleteSelected,
     duplicateSelected,
     copySelected,
     cutSelected,
@@ -404,7 +490,7 @@ export function useEditorDocument({
       `${nodeId}:props`,
     );
     if (selectedId !== nodeId) {
-      setSelectedId(nodeId);
+      replaceSelection([nodeId], nodeId);
     }
   }
 
@@ -413,22 +499,22 @@ export function useEditorDocument({
   }
 
   function moveSelectedUp() {
-    if (!selectedId) return;
+    if (selectedIds.length !== 1 || !selectedId) return;
     apply((nodes) => moveSibling(nodes, selectedId, -1));
   }
 
   function moveSelectedDown() {
-    if (!selectedId) return;
+    if (selectedIds.length !== 1 || !selectedId) return;
     apply((nodes) => moveSibling(nodes, selectedId, 1));
   }
 
   function outdentSelected() {
-    if (!selectedId) return;
+    if (selectedIds.length !== 1 || !selectedId) return;
     apply((nodes) => outdentNode(nodes, selectedId));
   }
 
   function indentSelected() {
-    if (!selectedId) return;
+    if (selectedIds.length !== 1 || !selectedId) return;
     apply((nodes) => indentNode(nodes, selectedId));
   }
 
@@ -438,6 +524,7 @@ export function useEditorDocument({
   return {
     content,
     selectedId,
+    selectedIds,
     selected,
     dirty,
     conflict: doc.conflict,
@@ -446,6 +533,7 @@ export function useEditorDocument({
     canPaste,
     pending: saving,
     setSelectedId,
+    selectNode,
     addBlock,
     insertLibraryBlock,
     deleteSelected,

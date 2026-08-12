@@ -241,7 +241,11 @@ export function definitionFor(type: string): BlockDefinition | undefined {
 
 type RenderOpts = {
   selectedId?: string | null;
-  onSelect?: (id: string) => void;
+  selectedIds?: readonly string[];
+  onSelect?: (
+    id: string,
+    options?: { toggle?: boolean; range?: boolean },
+  ) => void;
   editable?: boolean;
   /** Editor canvas: render nested children (e.g. sortable wrappers). */
   renderChildren?: (children: BlockNode[], parent: BlockNode) => ReactNode;
@@ -298,12 +302,16 @@ function BlockRenderer({
   node: BlockNode;
   opts: RenderOpts;
 }) {
-  const selected = opts.selectedId === node.id;
+  const selected =
+    opts.selectedIds?.includes(node.id) || opts.selectedId === node.id;
   const editable = Boolean(opts.editable);
   const onClick = (event: React.MouseEvent) => {
     if (!editable || !opts.onSelect) return;
     event.stopPropagation();
-    opts.onSelect(node.id);
+    opts.onSelect(node.id, {
+      toggle: event.metaKey || event.ctrlKey,
+      range: event.shiftKey,
+    });
   };
 
   const ring = selected

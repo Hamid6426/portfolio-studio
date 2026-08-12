@@ -57,7 +57,11 @@ const VIEWPORT_MAX_WIDTH: Record<ViewportWidth, string> = {
 type CanvasProps = {
   content: BlockNode[];
   selectedId: string | null;
-  onSelect: (id: string | null) => void;
+  selectedIds: readonly string[];
+  onSelect: (
+    id: string | null,
+    options?: { toggle?: boolean; range?: boolean },
+  ) => void;
   onReorder: (nodeId: string, parentId: string | null, index: number) => void;
   /** Update a node's text / optional rich spans (inline canvas editing). */
   onTextChange: (
@@ -71,7 +75,11 @@ type SortableTreeProps = {
   /** Owning container, `null` at the root of the document. */
   parentId: string | null;
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  selectedIds: readonly string[];
+  onSelect: (
+    id: string,
+    options?: { toggle?: boolean; range?: boolean },
+  ) => void;
   onTextChange: (
     nodeId: string,
     next: { text: string; spans: TextSpan[] },
@@ -224,12 +232,17 @@ function EmptyContainerDropZone({ parentId }: { parentId: string }) {
 function SortableBlock({
   node,
   selectedId,
+  selectedIds,
   onSelect,
   onTextChange,
 }: {
   node: BlockNode;
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  selectedIds: readonly string[];
+  onSelect: (
+    id: string,
+    options?: { toggle?: boolean; range?: boolean },
+  ) => void;
   onTextChange: (
     nodeId: string,
     next: { text: string; spans: TextSpan[] },
@@ -264,6 +277,7 @@ function SortableBlock({
       {renderBlockTree([node], {
         editable: true,
         selectedId,
+        selectedIds,
         onSelect,
         renderEditableText: ({
           node: textNode,
@@ -281,7 +295,7 @@ function SortableBlock({
             spans={spans}
             multiline={multiline}
             allowLinks={allowLinks}
-            selected={selectedId === textNode.id}
+            selected={selectedIds.includes(textNode.id)}
             className={className}
             domProps={domProps}
             onSelect={() => onSelect(textNode.id)}
@@ -293,6 +307,7 @@ function SortableBlock({
             nodes={children}
             parentId={parent.id}
             selectedId={selectedId}
+            selectedIds={selectedIds}
             onSelect={onSelect}
             onTextChange={onTextChange}
           />
@@ -307,6 +322,7 @@ function SortableTree({
   nodes,
   parentId,
   selectedId,
+  selectedIds,
   onSelect,
   onTextChange,
 }: SortableTreeProps) {
@@ -327,6 +343,7 @@ function SortableTree({
             key={node.id}
             node={node}
             selectedId={selectedId}
+            selectedIds={selectedIds}
             onSelect={onSelect}
             onTextChange={onTextChange}
           />
@@ -350,6 +367,7 @@ function DragPreview({ node }: { node: BlockNode }) {
 export function EditorCanvas({
   content,
   selectedId,
+  selectedIds,
   onSelect,
   onReorder,
   onTextChange,
@@ -488,6 +506,7 @@ export function EditorCanvas({
                 nodes={content}
                 parentId={null}
                 selectedId={selectedId}
+                selectedIds={selectedIds}
                 onSelect={onSelect}
                 onTextChange={onTextChange}
               />

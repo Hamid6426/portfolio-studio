@@ -20,7 +20,11 @@ type EditorSidebarProps = {
   content: BlockNode[];
   selected: BlockNode | null;
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  selectedIds: readonly string[];
+  onSelect: (
+    id: string,
+    options?: { toggle?: boolean; range?: boolean },
+  ) => void;
   onAdd: (type: BlockType) => void;
   layoutBlocks: BlockListItem[];
   onInsertLayout: (block: BlockListItem) => void;
@@ -42,6 +46,7 @@ export function EditorSidebar({
   content,
   selected,
   selectedId,
+  selectedIds,
   onSelect,
   onAdd,
   layoutBlocks,
@@ -59,6 +64,8 @@ export function EditorSidebar({
   onOutdent,
   onIndent,
 }: EditorSidebarProps) {
+  const multi = selectedIds.length > 1;
+
   return (
     <aside className="flex h-full w-80 shrink-0 flex-col border-l border-border bg-background">
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -82,6 +89,7 @@ export function EditorSidebar({
           <LayersPanel
             content={content}
             selectedId={selectedId}
+            selectedIds={selectedIds}
             canPaste={canPaste}
             onSelect={onSelect}
             onMoveUp={onMoveUp}
@@ -100,11 +108,17 @@ export function EditorSidebar({
             <SlidersHorizontalIcon className="size-3.5 shrink-0 opacity-70" />
             Style
           </div>
-          <StylePanel
-            content={content}
-            selected={selected}
-            onChange={onStylesChange}
-          />
+          {multi ? (
+            <p className="px-3 py-3 text-sm text-muted-foreground">
+              Select a single block to edit styles.
+            </p>
+          ) : (
+            <StylePanel
+              content={content}
+              selected={selected}
+              onChange={onStylesChange}
+            />
+          )}
         </section>
 
         <section>
@@ -113,7 +127,8 @@ export function EditorSidebar({
             Settings
           </div>
           <SettingsPanel
-            selected={selected}
+            selected={multi ? null : selected}
+            selectionCount={selectedIds.length}
             onChange={onPropsChange}
             onStylesChange={onStylesChange}
             onDelete={onDelete}

@@ -20,8 +20,12 @@ import { cn } from "@/lib/utils";
 type LayersPanelProps = {
   content: BlockNode[];
   selectedId: string | null;
+  selectedIds: readonly string[];
   canPaste: boolean;
-  onSelect: (id: string) => void;
+  onSelect: (
+    id: string,
+    options?: { toggle?: boolean; range?: boolean },
+  ) => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
   onOutdent: () => void;
@@ -66,6 +70,7 @@ function moveAvailability(content: BlockNode[], selectedId: string | null) {
 export function LayersPanel({
   content,
   selectedId,
+  selectedIds,
   canPaste,
   onSelect,
   onMoveUp,
@@ -78,7 +83,9 @@ export function LayersPanel({
   onPaste,
 }: LayersPanelProps) {
   const rows = flattenTree(content);
-  const moves = moveAvailability(content, selectedId);
+  const single = selectedIds.length === 1;
+  const moves = moveAvailability(content, single ? selectedId : null);
+  const hasSelection = selectedIds.length > 0;
 
   if (rows.length === 0) {
     return (
@@ -104,7 +111,7 @@ export function LayersPanel({
   return (
     <div className="flex flex-col gap-1 p-2">
       <div className="mb-1 flex flex-wrap gap-1 px-0.5">
-        {selectedId ? (
+        {hasSelection ? (
           <>
             <Button
               type="button"
@@ -195,21 +202,33 @@ export function LayersPanel({
         </Button>
       </div>
 
+      {selectedIds.length > 1 ? (
+        <p className="px-1 pb-1 text-[10px] text-muted-foreground">
+          {selectedIds.length} selected · Shift range · Ctrl/Cmd toggle
+        </p>
+      ) : null}
+
       {rows.map(({ node, depth }) => {
         const def = definitionFor(node.type);
         const label =
           typeof node.props.text === "string" && node.props.text
             ? `${def?.label ?? node.type}: ${node.props.text.slice(0, 24)}`
             : (def?.label ?? node.type);
+        const isSelected = selectedIds.includes(node.id);
 
         return (
           <button
             key={node.id}
             type="button"
-            onClick={() => onSelect(node.id)}
+            onClick={(event) =>
+              onSelect(node.id, {
+                toggle: event.metaKey || event.ctrlKey,
+                range: event.shiftKey,
+              })
+            }
             className={cn(
               "rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted/60",
-              selectedId === node.id && "bg-muted text-foreground",
+              isSelected && "bg-muted text-foreground",
             )}
             style={{ paddingLeft: `${8 + depth * 12}px` }}
           >

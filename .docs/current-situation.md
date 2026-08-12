@@ -1,6 +1,6 @@
 # Current situation
 
-**Last verified: 2026-08-12 (rich text marks).** Treat this header as an
+**Last verified: 2026-08-12 (multi-select).** Treat this header as an
 expiry stamp — re-check against the tree before acting on anything critical.
 
 A snapshot of what actually works, what is known-broken, and the design decisions that
@@ -48,6 +48,7 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
 - Copy / cut / paste blocks (shared in-tab clipboard + best-effort system JSON).
 - Debounced autosave (2s, quiet) while dirty; manual Save still toasts.
 - Version history (History dialog) with restore; migration `0016`.
+- Multi-select (Shift range, Ctrl/Cmd toggle) with bulk duplicate/copy/cut/delete.
 
 ### Publishing
 - `pages.content` draft vs `pages.published_snapshot` public payload.

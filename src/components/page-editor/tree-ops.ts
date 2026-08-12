@@ -60,6 +60,69 @@ export function removeNodeById(
     );
 }
 
+/** Remove many nodes in one pass (safe when both parent and child are listed). */
+export function removeNodesByIds(
+  nodes: BlockNode[],
+  ids: ReadonlySet<string>,
+): BlockNode[] {
+  if (ids.size === 0) return nodes;
+  return nodes
+    .filter((node) => !ids.has(node.id))
+    .map((node) =>
+      node.children
+        ? { ...node, children: removeNodesByIds(node.children, ids) }
+        : node,
+    );
+}
+
+/**
+ * Selected ids whose ancestors are not also selected — the roots to copy,
+ * cut, duplicate, or delete as a group.
+ */
+export function selectionRootIds(
+  nodes: BlockNode[],
+  selectedIds: readonly string[],
+): string[] {
+  const idSet = new Set(selectedIds);
+  const roots: string[] = [];
+
+  for (const id of selectedIds) {
+    if (!findNode(nodes, id)) continue;
+    let ancestorSelected = false;
+    let located = findParent(nodes, id);
+    while (located?.parent) {
+      if (idSet.has(located.parent.id)) {
+        ancestorSelected = true;
+        break;
+      }
+      located = findParent(nodes, located.parent.id);
+    }
+    if (!ancestorSelected) roots.push(id);
+  }
+
+  // Preserve document order.
+  const order = new Map(
+    flattenTree(nodes).map((row, index) => [row.node.id, index]),
+  );
+  return roots.sort(
+    (a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0),
+  );
+}
+
+/** Inclusive range of ids in flatten-tree order between two endpoints. */
+export function rangeSelectIds(
+  nodes: BlockNode[],
+  fromId: string,
+  toId: string,
+): string[] {
+  const flat = flattenTree(nodes).map((row) => row.node.id);
+  const a = flat.indexOf(fromId);
+  const b = flat.indexOf(toId);
+  if (a < 0 || b < 0) return [toId];
+  const [lo, hi] = a < b ? [a, b] : [b, a];
+  return flat.slice(lo, hi + 1);
+}
+
 export function insertChild(
   nodes: BlockNode[],
   parentId: string | null,
