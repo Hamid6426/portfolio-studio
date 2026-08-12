@@ -90,7 +90,7 @@ export function divider(styles: Styles = {}): BlockNode {
 }
 
 /*
- * No `image` builder: seeded content would have to point at a remote host, and
- * a dead placeholder URL is worse than no picture. Add images from the
- * dashboard (`/dashboard/pages/edit`) once the upload has a real URL.
+ * No `image` builder: add images from the dashboard media library
+ * (`/dashboard/media` or the image block picker) so `src` points at a real
+ * `/upload/…` URL rather than a dead remote placeholder.
  */

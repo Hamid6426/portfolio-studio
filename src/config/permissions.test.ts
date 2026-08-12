@@ -121,9 +121,21 @@ describe("canAccessRoute", () => {
       expected: true,
     },
     {
+      name: "editor defaults allow media",
+      permissions: DEFAULT_ROLE_PERMISSIONS.editor,
+      pathname: "/dashboard/media",
+      expected: true,
+    },
+    {
       name: "viewer defaults deny themes",
       permissions: DEFAULT_ROLE_PERMISSIONS.viewer,
       pathname: "/dashboard/themes",
+      expected: false,
+    },
+    {
+      name: "viewer defaults deny media",
+      permissions: DEFAULT_ROLE_PERMISSIONS.viewer,
+      pathname: "/dashboard/media",
       expected: false,
     },
     {

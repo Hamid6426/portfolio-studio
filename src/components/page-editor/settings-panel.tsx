@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { Trash2Icon } from "lucide-react";
 
+import { MediaPickerButton } from "@/components/media/media-picker";
 import { definitionFor } from "@/components/page-editor/block-registry";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -158,6 +159,26 @@ export function SettingsPanel({
 
       {selected.type === "image" ? (
         <Section title="Image">
+          <MediaPickerButton
+            onSelect={(url, meta) => {
+              const next: Record<string, unknown> = { ...props, src: url };
+              if (
+                meta?.altHint &&
+                !String(props.alt ?? "").trim()
+              ) {
+                next.alt = meta.altHint;
+              }
+              onChange(next);
+            }}
+          />
+          {props.src ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={String(props.src)}
+              alt=""
+              className="mt-1 max-h-28 w-full rounded-md object-cover ring-1 ring-border"
+            />
+          ) : null}
           <FieldRow label="Source" htmlFor="prop-src">
             <CompactInput
               id="prop-src"

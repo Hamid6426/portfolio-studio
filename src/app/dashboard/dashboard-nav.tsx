@@ -6,6 +6,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   BoxesIcon,
   FileTextIcon,
+  ImageIcon,
   LayoutDashboardIcon,
   PaletteIcon,
   ShieldIcon,
@@ -22,6 +23,7 @@ const ICONS = {
   pages: FileTextIcon,
   blocks: BoxesIcon,
   themes: PaletteIcon,
+  media: ImageIcon,
 } as const;
 
 export type DashboardNavItem = {

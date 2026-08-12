@@ -1,6 +1,6 @@
 # Current situation
 
-**Last verified: 2026-08-12 (theme engine).** Treat this header as an
+**Last verified: 2026-08-12 (local media).** Treat this header as an
 expiry stamp — re-check against the tree before acting on anything critical.
 
 A snapshot of what actually works, what is known-broken, and the design decisions that
@@ -13,7 +13,7 @@ For completed reasoning, see [`whats-done.md`](./whats-done.md).
 
 The core builder loop is complete. The security/correctness remediation and the
 follow-up open-issue backlog are closed. The product is usable for day-to-day
-authoring; remaining work is product depth (media, editor capability), not
+authoring; remaining work is product depth (editor capability), not
 blocking bugs.
 
 Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run build`.
@@ -37,6 +37,8 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
 - Reusable layout blocks at `/dashboard/blocks/edit?id=` with their own publish step.
 - Site themes at `/dashboard/themes` — registry tokens on `.ps-site`, live on
   public pages and the editor canvas.
+- Local media at `/dashboard/media` and the image-block library picker — files in
+  `upload/`, URLs at `/upload/…`.
 
 ### Publishing
 - `pages.content` draft vs `pages.published_snapshot` public payload.
@@ -94,6 +96,9 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
 9. **Portfolio themes ≠ dashboard chrome** — `:root` tokens stay for the CMS UI;
    public/editor canvas use `.ps-site` + `--ps-*`. Do not wire `next-themes` for
    site appearance.
+10. **Media lives on disk under `upload/`** — not in `public/`. Deploys need a
+    persistent volume (or accept empty media after redeploy). Do not commit
+    uploaded binaries.
 
 ---
 
@@ -102,9 +107,10 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
 None from the previous 17-item backlog. Remaining work is planned product depth — see
 [`future-plans.md`](./future-plans.md). Operator follow-up on existing installs:
 
-- Run `bun run db:migrate` through `0014` if not already applied.
+- Run `bun run db:migrate` through `0015` if not already applied.
 - Re-seed with `bun run db:seed -- --force` if rows predate theme CSS variables
   in section seeds (or the flex-wrap seed fix).
+- Ensure the process can write to project-root `upload/` (created on first upload).
 - Optionally add `public/og.png` for social previews (metadata intentionally omits a
   broken image URL until the file exists).
 

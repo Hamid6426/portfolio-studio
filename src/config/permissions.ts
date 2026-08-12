@@ -20,6 +20,7 @@ export const ROUTE_PERMISSIONS = {
   dashboardPages: "route:/dashboard/pages/*",
   dashboardBlocks: "route:/dashboard/blocks/*",
   dashboardThemes: "route:/dashboard/themes/*",
+  dashboardMedia: "route:/dashboard/media/*",
   setup: "route:/setup",
   setupGuide: "route:/setup-guide",
   login: "route:/login",
@@ -43,6 +44,8 @@ export const BUTTON_PERMISSIONS = {
   blocksEdit: "button:blocks-edit",
   blocksDelete: "button:blocks-delete",
   themesEdit: "button:themes-edit",
+  mediaUpload: "button:media-upload",
+  mediaDelete: "button:media-delete",
 } as const;
 
 export const PERMISSIONS = {
@@ -68,6 +71,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     PERMISSIONS.dashboardPages,
     PERMISSIONS.dashboardBlocks,
     PERMISSIONS.dashboardThemes,
+    PERMISSIONS.dashboardMedia,
     PERMISSIONS.login,
     PERMISSIONS.signIn,
     PERMISSIONS.signOut,
@@ -79,6 +83,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     PERMISSIONS.blocksEdit,
     PERMISSIONS.blocksDelete,
     PERMISSIONS.themesEdit,
+    PERMISSIONS.mediaUpload,
+    PERMISSIONS.mediaDelete,
   ],
   viewer: [
     PERMISSIONS.dashboardOverview,

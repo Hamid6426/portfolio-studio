@@ -10,13 +10,8 @@ Read `AGENTS.md` first — it is the authority on stack, layering and routes.
 
 ## Now — product surface
 
-Theme engine (registry + `site_settings` + `/dashboard/themes`) is done. Next
-work deepens authoring and assets.
-
-### Media and uploads
-The image block is a raw URL field. A real media picker needs storage, an upload
-route, an asset table, and a browser UI. Large. Do not assume uploadthing — it is
-not a dependency.
+Local media (`upload/` + `assets` table + `/dashboard/media`) is done. No
+UploadThing / Vercel Blob — files stay on the self-hosted disk.
 
 ### Theme follow-ups (optional)
 - Theme-driven layout block swap (registry suggests a layout; applying a theme
@@ -39,6 +34,8 @@ not a dependency.
 - Optional request-id middleware that threads into `logError`.
 - Tighten `script-src` with nonces once Next’s nonce story is wired end-to-end
   (today scripts stay `'unsafe-inline'` so the app keeps booting).
+- Optional object storage adapter behind the same `assets` API if a deploy has
+  no persistent disk (not required for self-host).
 
 ### Custom domains
 Deployment configuration for a single-site self-host. **Do not build
@@ -49,6 +46,7 @@ tenant-to-domain mapping.**
 ## Explicitly not doing
 
 - **Tenant isolation of any kind.**
+- **UploadThing / cloud-only media** — local `upload/` is the storage.
 - **Replacing the hand-rolled JWT** — audited, header inside HMAC, `timingSafeEqual`,
   pinned by tests.
 - **Keyboard drag-and-drop** — Layers panel moves are the accessible path.

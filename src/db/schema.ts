@@ -1,6 +1,7 @@
 import {
   boolean,
   index,
+  integer,
   jsonb,
   pgTable,
   timestamp,
@@ -113,3 +114,23 @@ export const siteSettingsTable = pgTable("site_settings", {
     .notNull()
     .default(sql`'{}'::jsonb`),
 });
+
+/**
+ * Uploaded media files. Bytes live under project-root `upload/`; this table is
+ * the catalogue (original name, mime, size, public URL path).
+ */
+export const assetsTable = pgTable(
+  "assets",
+  {
+    ...baseColumns,
+    /** Filename on disk (`uuid.ext`) — never a user-controlled path. */
+    storedName: varchar("stored_name", { length: 255 }).notNull().unique(),
+    originalName: varchar("original_name", { length: 255 }).notNull(),
+    mimeType: varchar("mime_type", { length: 128 }).notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    /** Public path, e.g. `/upload/<stored_name>`. */
+    url: varchar("url", { length: 512 }).notNull(),
+    uploadedBy: varchar("uploaded_by").references(() => userTable.id),
+  },
+  (table) => [index("assets_uploaded_by_idx").on(table.uploadedBy)],
+);

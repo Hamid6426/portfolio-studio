@@ -246,6 +246,19 @@ admin/editor roles.
 
 ---
 
+## Local media uploads
+
+Self-hosted assets: bytes under project-root `upload/` (gitignored), catalogue in
+`assets`. Public URLs are `/upload/<uuid>.<ext>` via a Route Handler. Magic-byte
+sniffing; JPEG/PNG/GIF/WebP/AVIF only; 5 MiB cap; SVG rejected.
+
+Dashboard `/dashboard/media` plus a library/upload control on the image block
+settings panel. External URL field still works. No UploadThing / Blob dependency.
+
+Migration `0015` creates `assets` and grants media permissions to admin/editor.
+
+---
+
 ## Migrations
 
 | | |

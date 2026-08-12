@@ -21,6 +21,16 @@ export const axiosInstance = axios.create({
   withCredentials: true,
 });
 
+axiosInstance.interceptors.request.use((config) => {
+  if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+    // Let the runtime set multipart boundary; the JSON default would break uploads.
+    if (config.headers) {
+      delete config.headers["Content-Type"];
+    }
+  }
+  return config;
+});
+
 /** Shared in-flight refresh so parallel 401s only refresh once. */
 let refreshPromise: Promise<boolean> | null = null;
 

@@ -37,6 +37,10 @@ yarn-error.log*
 # private seed datasets (real personal content — never commit)
 scripts/datasets/*.private.ts
 
+# local media uploads (catalogue is in Postgres `assets`; bytes stay on disk)
+/upload/*
+!/upload/.gitkeep
+
 # vercel
 .vercel
 
