@@ -5,7 +5,8 @@ import {
   isErrorResponse,
   requireButtonPermission,
 } from "@/lib/auth/permissions";
-import type { UpdateUserPayload } from "@/payloads/users";
+import { parseBody } from "@/lib/api/parse-body";
+import { updateUserPayloadSchema } from "@/payloads/users";
 import { deleteUser, updateUser } from "@/repositories/users";
 
 type RouteContext = {
@@ -18,22 +19,12 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const { id } = await context.params;
 
-  let body: UpdateUserPayload;
+  const parsed = await parseBody(request, updateUserPayloadSchema, {
+    fields: ["name", "email", "password", "role"],
+  });
+  if (!parsed.ok) return parsed.response;
 
-  try {
-    body = (await request.json()) as UpdateUserPayload;
-  } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        statusCode: 400,
-        message: "Invalid request body.",
-      },
-      { status: 400 },
-    );
-  }
-
-  const response = await updateUser(id, body, auth.session.sub);
+  const response = await updateUser(id, parsed.data, auth.session.sub);
   return NextResponse.json(response, { status: response.statusCode });
 }
 

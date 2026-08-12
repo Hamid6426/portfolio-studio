@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { useLoginMutation } from "@/queries/auth";
+import { safeRedirectPath } from "@/lib/auth/safe-redirect";
 
 export function LoginForm() {
   const router = useRouter();
@@ -49,8 +50,7 @@ export function LoginForm() {
     }
 
     toast.success("Welcome back!");
-    const next = searchParams.get("next");
-    router.push(next?.startsWith("/") ? next : "/dashboard/overview");
+    router.push(safeRedirectPath(searchParams.get("next")));
   }
 
   const pending = loginMutation.isPending;

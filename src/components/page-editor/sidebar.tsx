@@ -13,7 +13,7 @@ import { LayersPanel } from "@/components/page-editor/layers-panel";
 import { SettingsPanel } from "@/components/page-editor/settings-panel";
 import { StylePanel } from "@/components/page-editor/style-panel";
 import type { BlockNode } from "@/db/schema";
-import type { BlockSummary } from "@/responses/blocks";
+import type { BlockListItem } from "@/responses/blocks";
 
 type EditorSidebarProps = {
   content: BlockNode[];
@@ -21,11 +21,15 @@ type EditorSidebarProps = {
   selectedId: string | null;
   onSelect: (id: string) => void;
   onAdd: (type: BlockType) => void;
-  layoutBlocks: BlockSummary[];
-  onInsertLayout: (block: BlockSummary) => void;
+  layoutBlocks: BlockListItem[];
+  onInsertLayout: (block: BlockListItem) => void;
   onStylesChange: (styles: Record<string, string>) => void;
   onPropsChange: (props: Record<string, unknown>) => void;
   onDelete: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onOutdent: () => void;
+  onIndent: () => void;
 };
 
 export function EditorSidebar({
@@ -39,6 +43,10 @@ export function EditorSidebar({
   onStylesChange,
   onPropsChange,
   onDelete,
+  onMoveUp,
+  onMoveDown,
+  onOutdent,
+  onIndent,
 }: EditorSidebarProps) {
   return (
     <aside className="flex h-full w-80 shrink-0 flex-col border-l border-border bg-background">
@@ -64,6 +72,10 @@ export function EditorSidebar({
             content={content}
             selectedId={selectedId}
             onSelect={onSelect}
+            onMoveUp={onMoveUp}
+            onMoveDown={onMoveDown}
+            onOutdent={onOutdent}
+            onIndent={onIndent}
           />
         </section>
 

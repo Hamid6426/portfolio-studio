@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { canAccessRoute } from "@/config/permissions";
 import { getAccessSession } from "@/lib/auth/session";
 import {
-  ensureDefaultRoles,
   getRolePermissions,
 } from "@/repositories/roles";
 
@@ -17,7 +16,6 @@ export default async function UsersPage() {
     redirect("/login?next=/dashboard/users");
   }
 
-  await ensureDefaultRoles();
   const permissions = await getRolePermissions(session.role);
 
   if (!canAccessRoute(permissions, "/dashboard/users")) {

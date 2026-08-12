@@ -5,7 +5,6 @@ import { getAccessSession } from "@/lib/auth/session";
 import { blockEditorPath, resolveEditorIdQuery } from "@/lib/blocks/editor-path";
 import { getBlockById } from "@/repositories/blocks";
 import {
-  ensureDefaultRoles,
   getRolePermissions,
 } from "@/repositories/roles";
 
@@ -27,7 +26,6 @@ export default async function BlockEditPage({
     redirect(`/login?next=${encodeURIComponent(editorPath)}`);
   }
 
-  await ensureDefaultRoles();
   const permissions = await getRolePermissions(session.role);
 
   if (!canAccessRoute(permissions, "/dashboard/blocks")) {

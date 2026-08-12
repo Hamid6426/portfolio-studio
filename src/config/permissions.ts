@@ -2,17 +2,22 @@
  * Permission keys assigned to roles.
  *
  * Formats:
- * - `route:<path>`  — gate access to a route (and nested paths by prefix)
- * - `button:<id>`   — show/hide a UI control
+ * - `route:<path>`   — exact path only
+ * - `route:<path>/*` — that path and all nested paths
+ * - `button:<id>`    — show/hide a UI control
+ *
+ * Bare `route:/dashboard` must never be used as a subtree grant — it used to
+ * escalate every role into /users, /roles, draft APIs, etc.
  */
 
 export const ROUTE_PERMISSIONS = {
-  dashboard: "route:/dashboard",
+  /** Whole dashboard tree (admin). */
+  dashboard: "route:/dashboard/*",
   dashboardOverview: "route:/dashboard/overview",
-  dashboardUsers: "route:/dashboard/users",
-  dashboardRoles: "route:/dashboard/roles",
-  dashboardPages: "route:/dashboard/pages",
-  dashboardBlocks: "route:/dashboard/blocks",
+  dashboardUsers: "route:/dashboard/users/*",
+  dashboardRoles: "route:/dashboard/roles/*",
+  dashboardPages: "route:/dashboard/pages/*",
+  dashboardBlocks: "route:/dashboard/blocks/*",
   setup: "route:/setup",
   setupGuide: "route:/setup-guide",
   login: "route:/login",
@@ -56,7 +61,6 @@ export const SYSTEM_ROLE_NAMES: RoleName[] = ["admin", "editor", "viewer"];
 export const DEFAULT_ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
   admin: Object.values(PERMISSIONS),
   editor: [
-    PERMISSIONS.dashboard,
     PERMISSIONS.dashboardOverview,
     PERMISSIONS.dashboardPages,
     PERMISSIONS.dashboardBlocks,
@@ -72,7 +76,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     PERMISSIONS.blocksDelete,
   ],
   viewer: [
-    PERMISSIONS.dashboard,
     PERMISSIONS.dashboardOverview,
     PERMISSIONS.login,
     PERMISSIONS.signIn,
@@ -105,7 +108,12 @@ export function hasPermission(
   return list.includes(permission);
 }
 
-/** Route access: exact match or nested under a granted `route:` prefix. */
+/**
+ * Does this role's route grants cover `pathname`?
+ *
+ * - `route:/dashboard/overview` → exact match only
+ * - `route:/dashboard/pages/*` → `/dashboard/pages` and `/dashboard/pages/...`
+ */
 export function canAccessRoute(
   permissions: Permission[] | string,
   pathname: string,
@@ -116,7 +124,11 @@ export function canAccessRoute(
   return list.some((permission) => {
     if (!permission.startsWith("route:")) return false;
     const route = permission.slice("route:".length);
-    return pathname === route || pathname.startsWith(`${route}/`);
+    if (route.endsWith("/*")) {
+      const base = route.slice(0, -2);
+      return pathname === base || pathname.startsWith(`${base}/`);
+    }
+    return pathname === route;
   });
 }
 

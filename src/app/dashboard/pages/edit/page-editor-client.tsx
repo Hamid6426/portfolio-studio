@@ -34,6 +34,19 @@ export function PageEditorClient({
     );
   }
 
+  if (pageQuery.data.data.contentUnreadable) {
+    return (
+      <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-6 text-sm">
+        <p className="font-medium text-destructive">Page content cannot be edited</p>
+        <p className="mt-1 text-muted-foreground">
+          This page was saved with document version{" "}
+          {pageQuery.data.data.unsupportedVersion ?? "unknown"}, which is newer
+          than this app supports. Upgrade Portfolio Studio to edit it.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <PageEditorShell page={pageQuery.data.data} permissions={permissions} />
   );

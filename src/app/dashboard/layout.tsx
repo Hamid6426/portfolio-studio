@@ -2,16 +2,11 @@ import Link from "next/link";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { DirtyNavProvider } from "@/components/page-editor/dirty-nav-context";
 import { canAccessRoute } from "@/config/permissions";
-import {
-  ACCESS_TOKEN_COOKIE,
-  REFRESH_TOKEN_COOKIE,
-} from "@/config/storage-keys";
+import { REFRESH_TOKEN_COOKIE } from "@/config/storage-keys";
 import { getAccessSession } from "@/lib/auth/session";
-import {
-  ensureDefaultRoles,
-  getRolePermissions,
-} from "@/repositories/roles";
+import { getRolePermissions } from "@/repositories/roles";
 
 import {
   DashboardNav,
@@ -66,55 +61,76 @@ export default async function DashboardLayout({
       );
     }
 
-    // Stale/invalid access cookie with no refresh used to bounce
-    // /login ↔ /dashboard forever (proxy treated cookie presence as signed-in).
-    jar.delete(ACCESS_TOKEN_COOKIE);
-    redirect(`/login?next=${encodeURIComponent(pathname)}`);
+    // Clear sealed cookies via a Route Handler — `cookies().delete()` throws
+    // in Server Components under Next.js 16.
+    redirect(
+      `/api/auth/session/clear?next=${encodeURIComponent(pathname)}`,
+    );
   }
 
-  await ensureDefaultRoles();
   const permissions = await getRolePermissions(session.role);
   const visibleNav = navItems.filter((item) =>
     canAccessRoute(permissions, item.href),
   );
 
+  if (visibleNav.length === 0) {
+    return (
+      <div className="flex min-h-screen flex-1 flex-col items-center justify-center gap-3 px-6">
+        <h1 className="text-lg font-semibold">No dashboard access</h1>
+        <p className="max-w-md text-center text-sm text-muted-foreground">
+          Your account ({session.email}) does not have permission to open any
+          dashboard pages. Ask an admin to update your role.
+        </p>
+        <Link href="/login" className="text-sm underline underline-offset-4">
+          Back to sign in
+        </Link>
+      </div>
+    );
+  }
+
   if (!canAccessRoute(permissions, pathname)) {
-    redirect("/dashboard/overview");
+    const fallback = visibleNav[0]!.href;
+    if (pathname === fallback) {
+      redirect("/login");
+    }
+    redirect(fallback);
   }
 
   return (
-    <div className="grid min-h-screen flex-1 grid-cols-[14rem_1fr]">
-      <aside className="flex flex-col border-r border-border bg-background">
-        <div className="flex h-14 items-center border-b border-border px-5">
-          <Link
-            href="/dashboard/overview"
-            className="text-sm font-semibold tracking-tight"
-          >
-            Portfolio Studio
-          </Link>
+    <DirtyNavProvider>
+      <div className="grid min-h-screen flex-1 grid-cols-[14rem_1fr]">
+        <aside className="flex flex-col border-r border-border bg-background">
+          <div className="flex h-14 items-center border-b border-border px-5">
+            <Link
+              href={visibleNav[0]!.href}
+              className="text-sm font-semibold tracking-tight"
+            >
+              Portfolio Studio
+            </Link>
+          </div>
+
+          <DashboardNav items={visibleNav} />
+
+          <div className="mt-auto space-y-3 border-t border-border px-3 py-4">
+            <p className="truncate px-2 text-xs text-muted-foreground">
+              {session.email}
+            </p>
+            <DashboardSignOut permissions={permissions} />
+          </div>
+        </aside>
+
+        <div className="flex min-h-0 flex-col">
+          <header className="flex h-14 shrink-0 items-center border-b border-border px-6">
+            <h1 className="text-sm font-medium text-muted-foreground">
+              Dashboard
+            </h1>
+          </header>
+
+          <main className="flex flex-1 flex-col overflow-auto p-6">
+            {children}
+          </main>
         </div>
-
-        <DashboardNav items={visibleNav} />
-
-        <div className="mt-auto space-y-3 border-t border-border px-3 py-4">
-          <p className="truncate px-2 text-xs text-muted-foreground">
-            {session.email}
-          </p>
-          <DashboardSignOut permissions={permissions} />
-        </div>
-      </aside>
-
-      <div className="flex min-h-0 flex-col">
-        <header className="flex h-14 shrink-0 items-center border-b border-border px-6">
-          <h1 className="text-sm font-medium text-muted-foreground">
-            Dashboard
-          </h1>
-        </header>
-
-        <main className="flex flex-1 flex-col overflow-auto p-6">
-          {children}
-        </main>
       </div>
-    </div>
+    </DirtyNavProvider>
   );
 }

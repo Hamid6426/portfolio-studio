@@ -130,8 +130,9 @@ decision.
   presence as signed-in; layout deletes a stale access cookie before sending to
   `/login`; login page redirects only after a verified session.
 - [x] **Dead server actions** — removed `login/actions.ts` and `setup/actions.ts`.
-- [ ] **Setup is not transactional** — two concurrent `POST /api/auth/setup` calls can
-  both pass `checkAdminExists()` and create two admins.
+- [x] **Setup is not transactional** — `createAdminUser` uses
+  `pg_advisory_xact_lock(hashtext('portfolio-studio:setup'))` so concurrent setup
+  calls serialize.
 - [ ] **Migration check is shallow** (`src/config/migration.ts`) — only tests that
   `drizzle.__drizzle_migrations` exists.
 - [ ] **Deletes are hard deletes.** Soft delete needs a partial unique index first
@@ -149,6 +150,11 @@ Stored shape is now `{ version, nodes }` (`BlockDocument`) for `pages.content`,
 treated as version 0 and upgraded on every read via `migrateBlockDocument` in
 `src/lib/blocks/document.ts`. Bump `CURRENT_BLOCK_DOCUMENT_VERSION` and add a
 step there when Phase 2 changes the tree model.
+
+**BlockDocument v2 gate (5d)** — done. Documents with `version > CURRENT` return
+`unsupported-version` on read and are refused on write. Public pages and editors
+show an error instead of clamping. Required before any responsive/breakpoint v2
+work that bumps the stored version.
 
 ~~A `version` field on the stored document plus a `migrate()` step on read is cheap now
 and expensive later.~~

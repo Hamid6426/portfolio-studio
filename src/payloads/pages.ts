@@ -28,6 +28,7 @@ export const updatePagePayloadSchema = z.object({
   description: z.string().trim().optional(),
   content: blockNodeTreeSchema.optional(),
   blockId: z.string().trim().nullable().optional(),
+  expectedUpdatedAt: z.string().datetime().optional(),
 });
 
 export type UpdatePagePayload = z.infer<typeof updatePagePayloadSchema>;

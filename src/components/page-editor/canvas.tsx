@@ -2,13 +2,20 @@
 
 import { createContext, useContext, useState } from "react";
 import {
+  MonitorIcon,
+  SmartphoneIcon,
+  TabletIcon,
+} from "lucide-react";
+import {
   DndContext,
   DragOverlay,
+  MeasuringStrategy,
   PointerSensor,
   closestCenter,
   useDroppable,
   useSensor,
   useSensors,
+  type Active,
   type DragEndEvent,
   type DragMoveEvent,
   type DragStartEvent,
@@ -33,6 +40,15 @@ import {
 } from "@/components/page-editor/tree-ops";
 import type { BlockNode } from "@/db/schema";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+
+type ViewportWidth = 360 | 768 | "full";
+
+const VIEWPORT_MAX_WIDTH: Record<ViewportWidth, string> = {
+  360: "max-w-[360px]",
+  768: "max-w-[768px]",
+  full: "max-w-4xl",
+};
 
 type CanvasProps = {
   content: BlockNode[];
@@ -76,11 +92,17 @@ function parseContainerDropId(id: string): string | null {
 
 const DropIndicatorContext = createContext<DropIndicator>(null);
 
-/** Live pointer Y in viewport space, derived from the activator + drag delta. */
+/** Live pointer Y in viewport space. Prefers dnd-kit's translated rect (scroll-safe). */
 function pointerY(event: {
+  active: Active;
   activatorEvent: Event;
   delta: { y: number };
 }): number | null {
+  const translated = event.active.rect.current.translated;
+  if (translated) {
+    return translated.top + translated.height / 2;
+  }
+
   const activator = event.activatorEvent;
   // PointerEvent extends MouseEvent, so this covers mouse, pen and touch-pointer.
   if (activator instanceof MouseEvent) {
@@ -195,11 +217,10 @@ function SortableBlock({
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+  const { listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: node.id });
   const indicator = useContext(DropIndicatorContext);
 
-  const isSelected = selectedId === node.id;
   const showBefore =
     indicator?.overId === node.id && indicator.side === "before";
   const showAfter = indicator?.overId === node.id && indicator.side === "after";
@@ -217,11 +238,9 @@ function SortableBlock({
       // directly; dnd-kit marks the native event as captured, so the innermost
       // block wins and nested activators never fight over the same gesture.
       {...listeners}
-      // The sortable a11y attributes (role, tabIndex, aria-roledescription,
-      // aria-describedby) are scoped to the selected block. Spreading them on
-      // every wrapper turned each nested block into a tab stop and duplicated
-      // the same roledescription down the whole tree.
-      {...(isSelected ? attributes : null)}
+      // Sortable a11y attributes (role, tabIndex, space-to-pick-up) are omitted:
+      // this editor uses pointer drag only, and spreading them duplicated tab
+      // stops and screen-reader hints down the nested tree.
     >
       {showBefore ? <DropLine side="before" /> : null}
       {renderBlockTree([node], {
@@ -295,6 +314,7 @@ export function EditorCanvas({
   );
   const [activeId, setActiveId] = useState<string | null>(null);
   const [drop, setDrop] = useState<DropState | null>(null);
+  const [viewport, setViewport] = useState<ViewportWidth>("full");
 
   const activeNode = activeId ? findNode(content, activeId) : null;
 
@@ -333,13 +353,57 @@ export function EditorCanvas({
 
   return (
     <div
-      className="min-h-full flex-1 bg-zinc-950 p-8"
+      className="relative min-h-0 flex-1 overflow-y-auto bg-zinc-950 p-8"
       onClick={() => onSelect(null)}
     >
+      <div className="pointer-events-none absolute top-3 right-3 z-10 flex gap-1">
+        <Button
+          type="button"
+          variant={viewport === 360 ? "secondary" : "ghost"}
+          size="icon-sm"
+          className="pointer-events-auto size-8 bg-background/90 shadow-sm"
+          aria-label="360px preview width"
+          title="360px"
+          onClick={(event) => {
+            event.stopPropagation();
+            setViewport(360);
+          }}
+        >
+          <SmartphoneIcon className="size-3.5" />
+        </Button>
+        <Button
+          type="button"
+          variant={viewport === 768 ? "secondary" : "ghost"}
+          size="icon-sm"
+          className="pointer-events-auto size-8 bg-background/90 shadow-sm"
+          aria-label="768px preview width"
+          title="768px"
+          onClick={(event) => {
+            event.stopPropagation();
+            setViewport(768);
+          }}
+        >
+          <TabletIcon className="size-3.5" />
+        </Button>
+        <Button
+          type="button"
+          variant={viewport === "full" ? "secondary" : "ghost"}
+          size="icon-sm"
+          className="pointer-events-auto size-8 bg-background/90 shadow-sm"
+          aria-label="Full preview width"
+          title="Full width"
+          onClick={(event) => {
+            event.stopPropagation();
+            setViewport("full");
+          }}
+        >
+          <MonitorIcon className="size-3.5" />
+        </Button>
+      </div>
       <div
         className={cn(
-          "mx-auto min-h-[70vh] max-w-4xl rounded-xl bg-background text-foreground shadow-2xl ring-1 ring-border",
-          "overflow-hidden",
+          "mx-auto min-h-[70vh] rounded-xl bg-background text-foreground shadow-2xl ring-1 ring-border transition-[max-width] duration-200",
+          VIEWPORT_MAX_WIDTH[viewport],
         )}
         onClick={(event) => event.stopPropagation()}
       >
@@ -352,6 +416,9 @@ export function EditorCanvas({
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
+            measuring={{
+              droppable: { strategy: MeasuringStrategy.Always },
+            }}
             onDragStart={handleDragStart}
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}

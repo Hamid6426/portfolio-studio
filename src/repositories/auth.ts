@@ -1,20 +1,27 @@
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, lt, sql } from "drizzle-orm";
 
-import { checkAdminExists } from "@/config/setup";
+import {
+  DEFAULT_ROLE_PERMISSIONS,
+  serializePermissions,
+  type RoleName,
+} from "@/config/permissions";
 import { db } from "@/db/client";
-import { userRefreshTokenTable, userTable } from "@/db/schema";
+import { rolesTable, userRefreshTokenTable, userTable } from "@/db/schema";
 import { REFRESH_TOKEN_TTL_MS } from "@/lib/auth/constants";
 import {
   createRefreshToken,
   hashRefreshToken,
   signAccessToken,
 } from "@/lib/auth/tokens";
-import { hashPassword, verifyPassword } from "@/lib/password";
+import {
+  hashPassword,
+  needsRehash,
+  verifyPassword,
+  verifyPasswordDummy,
+} from "@/lib/password";
 import {
   createAdminPayloadSchema,
   loginPayloadSchema,
-  type CreateAdminPayload,
-  type LoginPayload,
 } from "@/payloads/auth";
 import type {
   CreateAdminResponse,
@@ -23,7 +30,6 @@ import type {
   RefreshResponse,
 } from "@/responses/auth";
 import { apiErrorFromPostgres } from "@/lib/db/errors";
-import { ensureDefaultRoles } from "@/repositories/roles";
 
 function firstIssueField<T extends string>(
   path: PropertyKey | undefined,
@@ -68,14 +74,38 @@ async function issueTokenPair(user: {
   return { accessToken, refreshToken };
 }
 
+/** Best-effort cleanup; never blocks login on failure. */
+async function sweepExpiredRefreshTokens(): Promise<void> {
+  try {
+    await db
+      .delete(userRefreshTokenTable)
+      .where(lt(userRefreshTokenTable.expiresAt, new Date()));
+  } catch (error) {
+    console.error("Expired refresh-token sweep failed:", error);
+  }
+}
+
+async function ensureRolesInTx(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+): Promise<void> {
+  for (const roleName of Object.keys(
+    DEFAULT_ROLE_PERMISSIONS,
+  ) as RoleName[]) {
+    const existing = await tx.query.rolesTable.findFirst({
+      where: eq(rolesTable.roleName, roleName),
+      columns: { id: true },
+    });
+    if (existing) continue;
+    await tx.insert(rolesTable).values({
+      roleName,
+      permissions: serializePermissions(DEFAULT_ROLE_PERMISSIONS[roleName]),
+    });
+  }
+}
+
 /** Backend auth service + DB access used by API route controllers. */
-export async function loginUser(
-  payload: LoginPayload,
-): Promise<LoginUserResult> {
-  const parsed = loginPayloadSchema.safeParse({
-    ...payload,
-    email: payload.email.trim().toLowerCase(),
-  });
+export async function loginUser(payload: unknown): Promise<LoginUserResult> {
+  const parsed = loginPayloadSchema.safeParse(payload);
 
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
@@ -93,11 +123,14 @@ export async function loginUser(
   const { email, password } = parsed.data;
 
   try {
+    await sweepExpiredRefreshTokens();
+
     const user = await db.query.userTable.findFirst({
       where: eq(userTable.email, email),
     });
 
-    if (!user || !verifyPassword(password, user.password)) {
+    if (!user) {
+      await verifyPasswordDummy(password);
       return {
         response: {
           success: false,
@@ -106,6 +139,28 @@ export async function loginUser(
             "We couldn't find an account with that email and password. Check your details and try again.",
         },
       };
+    }
+
+    const valid = await verifyPassword(password, user.password);
+    if (!valid) {
+      return {
+        response: {
+          success: false,
+          statusCode: 401,
+          message:
+            "We couldn't find an account with that email and password. Check your details and try again.",
+        },
+      };
+    }
+
+    if (needsRehash(user.password)) {
+      await db
+        .update(userTable)
+        .set({
+          password: await hashPassword(password),
+          updatedAt: new Date(),
+        })
+        .where(eq(userTable.id, user.id));
     }
 
     const tokens = await issueTokenPair({
@@ -139,7 +194,10 @@ export async function loginUser(
   }
 }
 
-/** Rotate refresh token + issue a new access token. */
+/**
+ * Rotate refresh token + issue a new access token.
+ * The DELETE is the claim — zero rows means the token was already used or expired.
+ */
 export async function refreshSession(
   rawRefreshToken: string | undefined,
 ): Promise<RefreshSessionResult> {
@@ -156,14 +214,18 @@ export async function refreshSession(
   const tokenHash = hashRefreshToken(rawRefreshToken);
 
   try {
-    const stored = await db.query.userRefreshTokenTable.findFirst({
-      where: and(
-        eq(userRefreshTokenTable.token, tokenHash),
-        gt(userRefreshTokenTable.expiresAt, new Date()),
-      ),
-    });
+    const claimed = await db
+      .delete(userRefreshTokenTable)
+      .where(
+        and(
+          eq(userRefreshTokenTable.token, tokenHash),
+          gt(userRefreshTokenTable.expiresAt, new Date()),
+        ),
+      )
+      .returning({ userId: userRefreshTokenTable.userId });
 
-    if (!stored) {
+    const claimedRow = claimed[0];
+    if (!claimedRow) {
       return {
         response: {
           success: false,
@@ -174,14 +236,10 @@ export async function refreshSession(
     }
 
     const user = await db.query.userTable.findFirst({
-      where: eq(userTable.id, stored.userId),
+      where: eq(userTable.id, claimedRow.userId),
     });
 
     if (!user) {
-      await db
-        .delete(userRefreshTokenTable)
-        .where(eq(userRefreshTokenTable.id, stored.id));
-
       return {
         response: {
           success: false,
@@ -190,11 +248,6 @@ export async function refreshSession(
         },
       };
     }
-
-    // Rotate: remove used refresh token, issue a new pair.
-    await db
-      .delete(userRefreshTokenTable)
-      .where(eq(userRefreshTokenTable.id, stored.id));
 
     const tokens = await issueTokenPair({
       id: user.id,
@@ -229,7 +282,9 @@ export async function logoutSession(
     try {
       await db
         .delete(userRefreshTokenTable)
-        .where(eq(userRefreshTokenTable.token, hashRefreshToken(rawRefreshToken)));
+        .where(
+          eq(userRefreshTokenTable.token, hashRefreshToken(rawRefreshToken)),
+        );
     } catch (error) {
       console.error("Logout cleanup failed:", error);
     }
@@ -244,13 +299,9 @@ export async function logoutSession(
 
 /** Backend auth service + DB access used by API route controllers. */
 export async function createAdminUser(
-  payload: CreateAdminPayload,
+  payload: unknown,
 ): Promise<CreateAdminResponse> {
-  const parsed = createAdminPayloadSchema.safeParse({
-    ...payload,
-    name: payload.name.trim(),
-    email: payload.email.trim().toLowerCase(),
-  });
+  const parsed = createAdminPayloadSchema.safeParse(payload);
 
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
@@ -268,39 +319,57 @@ export async function createAdminUser(
     };
   }
 
-  if (await checkAdminExists()) {
-    return {
-      success: false,
-      statusCode: 409,
-      message: "An admin account already exists. Please sign in instead.",
-    };
-  }
-
   const { name, email, password } = parsed.data;
 
-  const existing = await db.query.userTable.findFirst({
-    where: eq(userTable.email, email),
-    columns: { id: true },
-  });
-
-  if (existing) {
-    return {
-      success: false,
-      statusCode: 409,
-      field: "email",
-      message:
-        "An account with this email already exists. Try signing in instead.",
-    };
-  }
-
   try {
-    await ensureDefaultRoles();
+    return await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtext('portfolio-studio:setup'))`,
+      );
 
-    await db.insert(userTable).values({
-      name,
-      email,
-      password: hashPassword(password),
-      role: "admin",
+      const admins = await tx
+        .select({ id: userTable.id })
+        .from(userTable)
+        .where(eq(userTable.role, "admin"))
+        .limit(1);
+
+      if (admins.length > 0) {
+        return {
+          success: false as const,
+          statusCode: 409 as const,
+          message: "An admin account already exists. Please sign in instead.",
+        };
+      }
+
+      const existing = await tx.query.userTable.findFirst({
+        where: eq(userTable.email, email),
+        columns: { id: true },
+      });
+
+      if (existing) {
+        return {
+          success: false as const,
+          statusCode: 409 as const,
+          field: "email" as const,
+          message:
+            "An account with this email already exists. Try signing in instead.",
+        };
+      }
+
+      await ensureRolesInTx(tx);
+
+      await tx.insert(userTable).values({
+        name,
+        email,
+        password: await hashPassword(password),
+        role: "admin",
+      });
+
+      return {
+        success: true as const,
+        statusCode: 201 as const,
+        data: null,
+      };
     });
   } catch (error) {
     console.error("Failed to create admin account:", error);
@@ -310,10 +379,4 @@ export async function createAdminUser(
       "Something went wrong while creating your account. Please try again in a moment.",
     );
   }
-
-  return {
-    success: true,
-    statusCode: 201,
-    data: null,
-  };
 }

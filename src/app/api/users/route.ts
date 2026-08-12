@@ -6,7 +6,8 @@ import {
   requireButtonPermission,
   requireRoutePermission,
 } from "@/lib/auth/permissions";
-import type { CreateUserPayload } from "@/payloads/users";
+import { parseBody } from "@/lib/api/parse-body";
+import { createUserPayloadSchema } from "@/payloads/users";
 import { createUser, listUsers } from "@/repositories/users";
 
 export async function GET() {
@@ -21,21 +22,11 @@ export async function POST(request: Request) {
   const auth = await requireButtonPermission(PERMISSIONS.usersCreate);
   if (isErrorResponse(auth)) return auth;
 
-  let body: CreateUserPayload;
+  const parsed = await parseBody(request, createUserPayloadSchema, {
+    fields: ["name", "email", "password", "role"],
+  });
+  if (!parsed.ok) return parsed.response;
 
-  try {
-    body = (await request.json()) as CreateUserPayload;
-  } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        statusCode: 400,
-        message: "Invalid request body.",
-      },
-      { status: 400 },
-    );
-  }
-
-  const response = await createUser(body);
+  const response = await createUser(parsed.data);
   return NextResponse.json(response, { status: response.statusCode });
 }

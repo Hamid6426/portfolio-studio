@@ -7,11 +7,13 @@ import { getStartupState } from "@/config/startup";
 import { redirect } from "next/navigation";
 import { Toaster } from "@/components/ui/sonner";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { getAppUrl } from "@/lib/app-url";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const syne = Syne({ subsets: ["latin"], variable: "--font-display" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(`${getAppUrl()}/`),
   title: "Portfolio Studio",
   description:
     "Design, manage, and publish your portfolio from one place — themes, blocks, and a live site.",

@@ -5,7 +5,6 @@ import { getAccessSession } from "@/lib/auth/session";
 import { getPageBySlug } from "@/repositories/pages";
 import { pageEditorPath, resolveEditorSlugQuery } from "@/lib/pages/editor-path";
 import {
-  ensureDefaultRoles,
   getRolePermissions,
 } from "@/repositories/roles";
 
@@ -27,7 +26,6 @@ export default async function PageEditPage({
     redirect(`/login?next=${encodeURIComponent(editorPath)}`);
   }
 
-  await ensureDefaultRoles();
   const permissions = await getRolePermissions(session.role);
 
   if (!canAccessRoute(permissions, "/dashboard/pages")) {

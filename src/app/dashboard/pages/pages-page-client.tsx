@@ -48,7 +48,7 @@ import {
   useUnpublishPageMutation,
   useUpdatePageMutation,
 } from "@/queries/pages";
-import type { PageSummary } from "@/responses/pages";
+import type { PageListItem } from "@/responses/pages";
 import { pageEditorPath } from "@/lib/pages/editor-path";
 import { pagePreviewPath, pagePublicPath } from "@/lib/pages/preview-path";
 
@@ -81,10 +81,10 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
   const canDelete = canShowButton(permissions, PERMISSIONS.pagesDelete);
 
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<PageSummary | null>(null);
-  const [deleting, setDeleting] = useState<PageSummary | null>(null);
-  const [publishing, setPublishing] = useState<PageSummary | null>(null);
-  const [unpublishing, setUnpublishing] = useState<PageSummary | null>(null);
+  const [editing, setEditing] = useState<PageListItem | null>(null);
+  const [deleting, setDeleting] = useState<PageListItem | null>(null);
+  const [publishing, setPublishing] = useState<PageListItem | null>(null);
+  const [unpublishing, setUnpublishing] = useState<PageListItem | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const pages = useMemo(
@@ -110,7 +110,7 @@ export function PagesPageClient({ permissions }: PagesPageClientProps) {
     setFormOpen(true);
   }
 
-  function openEdit(page: PageSummary) {
+  function openEdit(page: PageListItem) {
     setEditing(page);
     setFieldErrors({});
     setFormOpen(true);

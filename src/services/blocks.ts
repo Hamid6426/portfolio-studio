@@ -65,6 +65,17 @@ export async function updateBlockRequest(
   }
 }
 
+export async function publishBlockRequest(id: string): Promise<BlockResponse> {
+  try {
+    const { data } = await axiosInstance.post<BlockResponse>(
+      `/api/blocks/${id}/publish`,
+    );
+    return data;
+  } catch (error) {
+    return getApiErrorResponse(error);
+  }
+}
+
 export async function deleteBlockRequest(id: string): Promise<BlockResponse> {
   try {
     const { data } = await axiosInstance.delete<BlockResponse>(

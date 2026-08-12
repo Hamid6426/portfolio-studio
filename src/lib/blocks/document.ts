@@ -7,6 +7,10 @@ import type { BlockDocument, BlockNode } from "@/db/schema";
  */
 export const CURRENT_BLOCK_DOCUMENT_VERSION = 1;
 
+export type MigrateResult =
+  | { ok: true; document: BlockDocument }
+  | { ok: false; reason: "unsupported-version"; version: number };
+
 const EMPTY_BLOCK_DOCUMENT: BlockDocument = {
   version: CURRENT_BLOCK_DOCUMENT_VERSION,
   nodes: [],
@@ -31,6 +35,30 @@ function isBlockDocument(value: unknown): value is BlockDocument {
   return Array.isArray(record.nodes);
 }
 
+/** Read the stored version without upgrading legacy shapes. */
+export function storedDocumentVersion(raw: unknown): number {
+  if (raw == null) return 0;
+  if (Array.isArray(raw)) return 0;
+  if (isBlockDocument(raw)) {
+    return typeof raw.version === "number" && Number.isFinite(raw.version)
+      ? raw.version
+      : 0;
+  }
+  return 0;
+}
+
+/**
+ * Refuse writes when the stored jsonb was saved by a newer build. Call before
+ * persisting edits to `content` / `children` / `publishedChildren`.
+ */
+export function refuseWriteIfUnsupported(raw: unknown): string | null {
+  const version = storedDocumentVersion(raw);
+  if (version > CURRENT_BLOCK_DOCUMENT_VERSION) {
+    return `This content was saved with a newer editor (version ${version}). Upgrade the app before editing.`;
+  }
+  return null;
+}
+
 /**
  * Bring any stored jsonb value up to {@link CURRENT_BLOCK_DOCUMENT_VERSION}.
  *
@@ -39,11 +67,14 @@ function isBlockDocument(value: unknown): value is BlockDocument {
  * - `{ version, nodes }` documents at any older version
  * - null / garbage → empty current document
  *
+ * Newer-than-this-build documents return `unsupported-version` — they must not
+ * be clamped or written back down.
+ *
  * Call this on every read path. Writes should go through {@link toBlockDocument}.
  */
-export function migrateBlockDocument(raw: unknown): BlockDocument {
+export function migrateBlockDocument(raw: unknown): MigrateResult {
   if (raw == null) {
-    return { ...EMPTY_BLOCK_DOCUMENT, nodes: [] };
+    return { ok: true, document: { ...EMPTY_BLOCK_DOCUMENT, nodes: [] } };
   }
 
   if (Array.isArray(raw)) {
@@ -58,21 +89,28 @@ export function migrateBlockDocument(raw: unknown): BlockDocument {
     return migrateNodes(version, raw.nodes);
   }
 
-  return { ...EMPTY_BLOCK_DOCUMENT, nodes: [] };
+  return { ok: true, document: { ...EMPTY_BLOCK_DOCUMENT, nodes: [] } };
 }
 
 /** Convenience: migrate then return only the node tree for editors/APIs. */
 export function nodesFromStored(raw: unknown): BlockNode[] {
-  return migrateBlockDocument(raw).nodes;
+  const result = migrateBlockDocument(raw);
+  return result.ok ? result.document.nodes : [];
+}
+
+/** True when {@link migrateBlockDocument} would refuse to render the tree. */
+export function isUnsupportedStoredDocument(raw: unknown): boolean {
+  const result = migrateBlockDocument(raw);
+  return !result.ok && result.reason === "unsupported-version";
 }
 
 /**
  * Version-to-version transforms. v0 → v1 only wraps the array; later bumps
  * land here as pure functions over `nodes`.
  */
-function migrateNodes(fromVersion: number, nodes: BlockNode[]): BlockDocument {
+function migrateNodes(fromVersion: number, nodes: BlockNode[]): MigrateResult {
   let version = fromVersion;
-  let current = nodes;
+  const current = nodes;
 
   if (version < 0) version = 0;
 
@@ -84,12 +122,14 @@ function migrateNodes(fromVersion: number, nodes: BlockNode[]): BlockDocument {
   // Future: if (version < 2) { current = migrateV1ToV2(current); version = 2; }
 
   if (version > CURRENT_BLOCK_DOCUMENT_VERSION) {
-    // Newer than this build — keep nodes, clamp version so we can still render.
-    version = CURRENT_BLOCK_DOCUMENT_VERSION;
+    return { ok: false, reason: "unsupported-version", version };
   }
 
   return {
-    version: CURRENT_BLOCK_DOCUMENT_VERSION,
-    nodes: current,
+    ok: true,
+    document: {
+      version: CURRENT_BLOCK_DOCUMENT_VERSION,
+      nodes: current,
+    },
   };
 }

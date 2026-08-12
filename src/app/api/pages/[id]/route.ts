@@ -6,7 +6,8 @@ import {
   requireButtonPermission,
   requireRoutePermission,
 } from "@/lib/auth/permissions";
-import type { UpdatePagePayload } from "@/payloads/pages";
+import { parseBody } from "@/lib/api/parse-body";
+import { updatePagePayloadSchema } from "@/payloads/pages";
 import { deletePage, getPageById, updatePage } from "@/repositories/pages";
 
 type RouteContext = {
@@ -28,22 +29,19 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const { id } = await context.params;
 
-  let body: UpdatePagePayload;
+  const parsed = await parseBody(request, updatePagePayloadSchema, {
+    fields: [
+      "title",
+      "slug",
+      "description",
+      "blockId",
+      "content",
+      "expectedUpdatedAt",
+    ],
+  });
+  if (!parsed.ok) return parsed.response;
 
-  try {
-    body = (await request.json()) as UpdatePagePayload;
-  } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        statusCode: 400,
-        message: "Invalid request body.",
-      },
-      { status: 400 },
-    );
-  }
-
-  const response = await updatePage(id, body);
+  const response = await updatePage(id, parsed.data);
   return NextResponse.json(response, { status: response.statusCode });
 }
 

@@ -2,7 +2,11 @@ import { z } from "zod";
 
 export const createUserPayloadSchema = z.object({
   name: z.string().trim().min(1, "Please enter a name."),
-  email: z.email("Please enter a valid email address."),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .pipe(z.email("Please enter a valid email address.")),
   password: z
     .string()
     .min(8, "Your password needs to be at least 8 characters."),
@@ -13,7 +17,11 @@ export type CreateUserPayload = z.infer<typeof createUserPayloadSchema>;
 
 export const updateUserPayloadSchema = z.object({
   name: z.string().trim().min(1, "Please enter a name."),
-  email: z.email("Please enter a valid email address."),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .pipe(z.email("Please enter a valid email address.")),
   role: z.string().trim().min(1, "Please choose a role."),
   password: z
     .string()

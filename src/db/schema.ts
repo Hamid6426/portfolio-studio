@@ -1,8 +1,10 @@
 import {
   boolean,
+  index,
   jsonb,
   pgTable,
   timestamp,
+  uniqueIndex,
   varchar,
   text,
 } from "drizzle-orm/pg-core";
@@ -16,26 +18,37 @@ export const rolesTable = pgTable("roles", {
   permissions: text("permissions").notNull().default(""),
 });
 
-export const userTable = pgTable("users", {
-  ...baseColumns,
-  email: varchar("email", { length: 255 }).notNull().unique(),
-  password: varchar("password", { length: 255 }).notNull(),
-  name: varchar("name", { length: 255 }).notNull(),
-  /** Matches `roles.role_name` (source of permissions). */
-  role: varchar("role", { length: 64 })
-    .notNull()
-    .default("viewer")
-    .references(() => rolesTable.roleName),
-});
+export const userTable = pgTable(
+  "users",
+  {
+    ...baseColumns,
+    email: varchar("email", { length: 255 }).notNull().unique(),
+    password: varchar("password", { length: 255 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    /** Matches `roles.role_name` (source of permissions). */
+    role: varchar("role", { length: 64 })
+      .notNull()
+      .default("viewer")
+      .references(() => rolesTable.roleName),
+  },
+  (table) => [index("users_role_idx").on(table.role)],
+);
 
-export const userRefreshTokenTable = pgTable("user_refresh_tokens", {
-  ...baseColumns,
-  userId: varchar("user_id")
-    .notNull()
-    .references(() => userTable.id),
-  token: varchar("token", { length: 255 }).notNull(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-});
+export const userRefreshTokenTable = pgTable(
+  "user_refresh_tokens",
+  {
+    ...baseColumns,
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => userTable.id),
+    token: varchar("token", { length: 255 }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("user_refresh_tokens_token_uidx").on(table.token),
+    index("user_refresh_tokens_user_id_idx").on(table.userId),
+  ],
+);
 
 /** Nested HTML-like node stored inside a {@link BlockDocument}. */
 export type BlockNode = {
@@ -58,18 +71,27 @@ export type BlockDocument = {
 
 const emptyBlockDocumentSql = sql`'{"version":1,"nodes":[]}'::jsonb`;
 
-export const blocksTable = pgTable("blocks", {
-  ...baseColumns,
-  name: varchar("name", { length: 255 }).notNull(),
-  description: text("description").notNull().default(""),
-  /** When true, this block can be attached to pages as a reusable layout. */
-  canBeLayout: boolean("can_be_layout").notNull().default(false),
-  /** Versioned nested child elements for this block. */
-  children: jsonb("children")
-    .$type<BlockDocument>()
-    .notNull()
-    .default(emptyBlockDocumentSql),
-});
+export const blocksTable = pgTable(
+  "blocks",
+  {
+    ...baseColumns,
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description").notNull().default(""),
+    /** When true, this block can be attached to pages as a reusable layout. */
+    canBeLayout: boolean("can_be_layout").notNull().default(false),
+    /** Versioned nested child elements for this block (draft). */
+    children: jsonb("children")
+      .$type<BlockDocument>()
+      .notNull()
+      .default(emptyBlockDocumentSql),
+    /**
+     * Published layout tree. Public pages that reference this block as a layout
+     * read this column — editing `children` alone does not change the live site.
+     */
+    publishedChildren: jsonb("published_children").$type<BlockDocument>(),
+  },
+  (table) => [index("blocks_can_be_layout_idx").on(table.canBeLayout)],
+);
 
 /**
  * Frozen copy of everything the public renderer reads from a page, written
@@ -84,6 +106,8 @@ export type PublishedPageSnapshot = {
   description: string;
   blockId: string | null;
   content: BlockDocument;
+  /** Layout block tree frozen at publish time. */
+  layoutChildren?: BlockDocument;
 };
 
 export const pagesTable = pgTable("pages", {

@@ -4,10 +4,6 @@ import { db } from "@/db/client";
 import { userRefreshTokenTable, userTable } from "@/db/schema";
 import { apiErrorFromPostgres } from "@/lib/db/errors";
 import { hashPassword } from "@/lib/password";
-import type {
-  CreateUserPayload,
-  UpdateUserPayload,
-} from "@/payloads/users";
 import {
   createUserPayloadSchema,
   updateUserPayloadSchema,
@@ -73,14 +69,9 @@ export async function listUsers(): Promise<ListUsersResponse> {
 }
 
 export async function createUser(
-  payload: CreateUserPayload,
+  payload: unknown,
 ): Promise<UserResponse> {
-  const parsed = createUserPayloadSchema.safeParse({
-    ...payload,
-    name: payload.name.trim(),
-    email: payload.email.trim().toLowerCase(),
-    role: payload.role.trim(),
-  });
+  const parsed = createUserPayloadSchema.safeParse(payload);
 
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
@@ -128,7 +119,7 @@ export async function createUser(
       .values({
         name,
         email,
-        password: hashPassword(password),
+        password: await hashPassword(password),
         role,
       })
       .returning({
@@ -164,15 +155,10 @@ export async function createUser(
 
 export async function updateUser(
   id: string,
-  payload: UpdateUserPayload,
+  payload: unknown,
   actorUserId: string,
 ): Promise<UserResponse> {
-  const parsed = updateUserPayloadSchema.safeParse({
-    ...payload,
-    name: payload.name.trim(),
-    email: payload.email.trim().toLowerCase(),
-    role: payload.role.trim(),
-  });
+  const parsed = updateUserPayloadSchema.safeParse(payload);
 
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
@@ -267,7 +253,7 @@ export async function updateUser(
     };
 
     if (password && password.length > 0) {
-      updates.password = hashPassword(password);
+      updates.password = await hashPassword(password);
     }
 
     const [updated] = await db
@@ -288,6 +274,13 @@ export async function updateUser(
         statusCode: 500,
         message: "Something went wrong while updating the user.",
       };
+    }
+
+    // Password change must revoke outstanding sessions.
+    if (password && password.length > 0) {
+      await db
+        .delete(userRefreshTokenTable)
+        .where(eq(userRefreshTokenTable.userId, id));
     }
 
     return {

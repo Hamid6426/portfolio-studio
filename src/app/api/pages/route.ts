@@ -6,7 +6,8 @@ import {
   requireButtonPermission,
   requireRoutePermission,
 } from "@/lib/auth/permissions";
-import type { CreatePagePayload } from "@/payloads/pages";
+import { parseBody } from "@/lib/api/parse-body";
+import { createPagePayloadSchema } from "@/payloads/pages";
 import { createPage, listPages } from "@/repositories/pages";
 
 export async function GET() {
@@ -21,21 +22,11 @@ export async function POST(request: Request) {
   const auth = await requireButtonPermission(PERMISSIONS.pagesCreate);
   if (isErrorResponse(auth)) return auth;
 
-  let body: CreatePagePayload;
+  const parsed = await parseBody(request, createPagePayloadSchema, {
+    fields: ["title", "slug", "description", "blockId", "content"],
+  });
+  if (!parsed.ok) return parsed.response;
 
-  try {
-    body = (await request.json()) as CreatePagePayload;
-  } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        statusCode: 400,
-        message: "Invalid request body.",
-      },
-      { status: 400 },
-    );
-  }
-
-  const response = await createPage(body);
+  const response = await createPage(parsed.data);
   return NextResponse.json(response, { status: response.statusCode });
 }

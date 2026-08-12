@@ -152,15 +152,14 @@ async function seedAdminUser(admin: PortfolioDataset["admin"]): Promise<void> {
     return;
   }
 
-  // Same shape the setup flow inserts (`repositories/auth.ts`). Two things
-  // matter: `hashPassword` writes `scrypt:<salt>:<hash>`, the only scheme
-  // `verifyPassword` accepts, and the email is stored lowercase because
-  // `loginUser` lowercases before looking it up.
+  // Same shape the setup flow inserts (`repositories/auth.ts`). Passwords are
+  // stored as parameterized scrypt; email is lowercase because `loginUser`
+  // lowercases before lookup.
   await db.insert(userTable).values({
     name: admin.name,
     email: admin.email,
     role: ADMIN_ROLE,
-    password: hashPassword(admin.password),
+    password: await hashPassword(admin.password),
   });
 
   log(`user       created ${admin.email} (role: ${ADMIN_ROLE})`);

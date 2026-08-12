@@ -6,7 +6,8 @@ import {
   requireButtonPermission,
   requireRoutePermission,
 } from "@/lib/auth/permissions";
-import type { UpdateBlockPayload } from "@/payloads/blocks";
+import { parseBody } from "@/lib/api/parse-body";
+import { updateBlockPayloadSchema } from "@/payloads/blocks";
 import {
   deleteBlock,
   getBlockResponseById,
@@ -32,22 +33,18 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const { id } = await context.params;
 
-  let body: UpdateBlockPayload;
+  const parsed = await parseBody(request, updateBlockPayloadSchema, {
+    fields: [
+      "name",
+      "description",
+      "canBeLayout",
+      "children",
+      "expectedUpdatedAt",
+    ],
+  });
+  if (!parsed.ok) return parsed.response;
 
-  try {
-    body = (await request.json()) as UpdateBlockPayload;
-  } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        statusCode: 400,
-        message: "Invalid request body.",
-      },
-      { status: 400 },
-    );
-  }
-
-  const response = await updateBlock(id, body);
+  const response = await updateBlock(id, parsed.data);
   return NextResponse.json(response, { status: response.statusCode });
 }
 

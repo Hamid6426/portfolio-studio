@@ -6,14 +6,20 @@ import type { BlockType } from "@/components/page-editor/block-registry";
 import { createBlockNode } from "@/components/page-editor/block-registry";
 import {
   findNode,
+  findParent,
+  indentNode,
   insertChild,
   moveNode,
+  moveSibling,
+  outdentNode,
   removeNodeById,
   updateNodeById,
 } from "@/components/page-editor/tree-ops";
 import type { BlockNode } from "@/db/schema";
 
 const HISTORY_LIMIT = 100;
+
+const MERGE_WINDOW_MS = 500;
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -24,6 +30,10 @@ function isTypingTarget(target: EventTarget | null): boolean {
     tag === "SELECT" ||
     target.isContentEditable
   );
+}
+
+function isDialogTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && Boolean(target.closest('[role="dialog"]'));
 }
 
 function treeKey(nodes: BlockNode[]): string {
@@ -40,10 +50,16 @@ type EditorDoc = {
   serverKey: string;
   /** The server moved on while we had unsaved edits. */
   conflict: boolean;
+  lastMergeKey: string | null;
+  lastMergeAt: number;
 };
 
 type EditorAction =
-  | { type: "apply"; transform: (nodes: BlockNode[]) => BlockNode[] }
+  | {
+      type: "apply";
+      transform: (nodes: BlockNode[]) => BlockNode[];
+      mergeKey?: string;
+    }
   | { type: "undo" }
   | { type: "redo" }
   | { type: "saved"; content: BlockNode[] }
@@ -55,11 +71,28 @@ function editorReducer(state: EditorDoc, action: EditorAction): EditorDoc {
       const present = action.transform(state.present);
       // Tree ops return the same reference for impossible/no-op edits.
       if (present === state.present) return state;
+
+      const now = Date.now();
+      const merge =
+        action.mergeKey !== undefined &&
+        action.mergeKey === state.lastMergeKey &&
+        now - state.lastMergeAt < MERGE_WINDOW_MS;
+
+      if (merge) {
+        return {
+          ...state,
+          present,
+          lastMergeAt: now,
+        };
+      }
+
       return {
         ...state,
         past: [...state.past, state.present].slice(-HISTORY_LIMIT),
         present,
         future: [],
+        lastMergeKey: action.mergeKey ?? null,
+        lastMergeAt: action.mergeKey !== undefined ? now : 0,
       };
     }
 
@@ -111,6 +144,8 @@ function editorReducer(state: EditorDoc, action: EditorAction): EditorDoc {
         baseline: action.content,
         serverKey: action.key,
         conflict: false,
+        lastMergeKey: null,
+        lastMergeAt: 0,
       };
     }
 
@@ -127,6 +162,8 @@ function initEditorDoc(content: BlockNode[]): EditorDoc {
     baseline: content,
     serverKey: treeKey(content),
     conflict: false,
+    lastMergeKey: null,
+    lastMergeAt: 0,
   };
 }
 
@@ -136,10 +173,10 @@ export type EditorDocumentSource = {
   /** True while the owning save request is in flight. */
   saving: boolean;
   /**
-   * Persist a snapshot of the tree. Return `false` when the save failed so the
-   * document stays dirty; reporting the failure to the user is the caller's job.
+   * Persist a snapshot of the tree. Return `ok` on success; `conflict` when the
+   * server rejected an optimistic-concurrency check; `error` for other failures.
    */
-  onSave: (content: BlockNode[]) => Promise<boolean>;
+  onSave: (content: BlockNode[]) => Promise<"ok" | "conflict" | "error">;
 };
 
 /**
@@ -168,8 +205,11 @@ export function useEditorDocument({
   );
 
   const apply = useCallback(
-    (transform: (nodes: BlockNode[]) => BlockNode[]) => {
-      dispatch({ type: "apply", transform });
+    (
+      transform: (nodes: BlockNode[]) => BlockNode[],
+      mergeKey?: string,
+    ) => {
+      dispatch({ type: "apply", transform, mergeKey });
     },
     [],
   );
@@ -187,12 +227,26 @@ export function useEditorDocument({
   function addBlock(type: BlockType, parentId: string | null = null) {
     const node = createBlockNode(type);
     apply((nodes) => {
-      const target =
-        parentId ??
-        (selectedId && findNode(nodes, selectedId)?.children !== undefined
-          ? selectedId
-          : null);
-      return insertChild(nodes, target, node);
+      if (parentId !== null) {
+        return insertChild(nodes, parentId, node);
+      }
+      if (!selectedId) {
+        return insertChild(nodes, null, node);
+      }
+      const selected = findNode(nodes, selectedId);
+      if (selected?.children !== undefined) {
+        return insertChild(nodes, selectedId, node);
+      }
+      const located = findParent(nodes, selectedId);
+      if (!located) {
+        return insertChild(nodes, null, node);
+      }
+      return insertChild(
+        nodes,
+        located.parent?.id ?? null,
+        node,
+        located.index + 1,
+      );
     });
     setSelectedId(node.id);
   }
@@ -200,9 +254,17 @@ export function useEditorDocument({
   function insertLibraryBlock(libraryChildren: BlockNode[]) {
     const cloned = structuredClone(libraryChildren).map(remapIds);
     if (cloned.length === 0) return;
-    apply((nodes) =>
-      cloned.reduce((acc, node) => insertChild(acc, null, node), nodes),
-    );
+    apply((nodes) => {
+      const located = selectedId ? findParent(nodes, selectedId) : null;
+      const parentId = located?.parent?.id ?? null;
+      let index = located !== null ? located.index + 1 : nodes.length;
+      let next = nodes;
+      for (const node of cloned) {
+        next = insertChild(next, parentId, node, index);
+        index += 1;
+      }
+      return next;
+    });
     if (cloned[0]) setSelectedId(cloned[0].id);
   }
 
@@ -219,9 +281,20 @@ export function useEditorDocument({
     deleteBlock(selectedId);
   }
 
+  const save = useCallback(async (): Promise<"ok" | "conflict" | "error"> => {
+    // Snapshot now so edits made while the request is in flight stay dirty.
+    const snapshot = content;
+    const result = await onSave(snapshot);
+    if (result === "ok") {
+      dispatch({ type: "saved", content: snapshot });
+    }
+    return result;
+  }, [content, onSave]);
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (isTypingTarget(event.target)) return;
+      if (isDialogTarget(event.target)) return;
 
       const mod = event.metaKey || event.ctrlKey;
       const key = event.key.toLowerCase();
@@ -240,7 +313,16 @@ export function useEditorDocument({
         return;
       }
 
-      if (event.key === "Delete" && selectedId) {
+      if (mod && key === "s") {
+        event.preventDefault();
+        void save();
+        return;
+      }
+
+      if (
+        (event.key === "Delete" || event.key === "Backspace") &&
+        selectedId
+      ) {
         event.preventDefault();
         deleteBlock(selectedId);
       }
@@ -248,7 +330,7 @@ export function useEditorDocument({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selectedId, deleteBlock, undo, redo]);
+  }, [selectedId, deleteBlock, undo, redo, save]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -265,28 +347,40 @@ export function useEditorDocument({
 
   function updateSelected(patch: Partial<Pick<BlockNode, "props" | "styles">>) {
     if (!selectedId) return;
-    apply((nodes) =>
-      updateNodeById(nodes, selectedId, (node) => ({
-        ...node,
-        props: patch.props ? { ...node.props, ...patch.props } : node.props,
-        styles: patch.styles
-          ? { ...(node.styles ?? {}), ...patch.styles }
-          : node.styles,
-      })),
+    const mergeKey =
+      patch.props !== undefined
+        ? `${selectedId}:props`
+        : patch.styles !== undefined
+          ? `${selectedId}:styles`
+          : undefined;
+    apply(
+      (nodes) =>
+        updateNodeById(nodes, selectedId, (node) => ({
+          ...node,
+          props: patch.props ? { ...node.props, ...patch.props } : node.props,
+          styles: patch.styles
+            ? { ...(node.styles ?? {}), ...patch.styles }
+            : node.styles,
+        })),
+      mergeKey,
     );
   }
 
   function setSelectedStyles(styles: Record<string, string>) {
     if (!selectedId) return;
-    apply((nodes) =>
-      updateNodeById(nodes, selectedId, (node) => ({ ...node, styles })),
+    apply(
+      (nodes) =>
+        updateNodeById(nodes, selectedId, (node) => ({ ...node, styles })),
+      `${selectedId}:styles`,
     );
   }
 
   function setSelectedProps(props: Record<string, unknown>) {
     if (!selectedId) return;
-    apply((nodes) =>
-      updateNodeById(nodes, selectedId, (node) => ({ ...node, props })),
+    apply(
+      (nodes) =>
+        updateNodeById(nodes, selectedId, (node) => ({ ...node, props })),
+      `${selectedId}:props`,
     );
   }
 
@@ -294,13 +388,24 @@ export function useEditorDocument({
     apply((nodes) => moveNode(nodes, nodeId, parentId, index));
   }
 
-  async function save() {
-    // Snapshot now so edits made while the request is in flight stay dirty.
-    const snapshot = content;
-    const saved = await onSave(snapshot);
-    if (!saved) return false;
-    dispatch({ type: "saved", content: snapshot });
-    return true;
+  function moveSelectedUp() {
+    if (!selectedId) return;
+    apply((nodes) => moveSibling(nodes, selectedId, -1));
+  }
+
+  function moveSelectedDown() {
+    if (!selectedId) return;
+    apply((nodes) => moveSibling(nodes, selectedId, 1));
+  }
+
+  function outdentSelected() {
+    if (!selectedId) return;
+    apply((nodes) => outdentNode(nodes, selectedId));
+  }
+
+  function indentSelected() {
+    if (!selectedId) return;
+    apply((nodes) => indentNode(nodes, selectedId));
   }
 
   const selected = selectedId ? findNode(content, selectedId) : null;
@@ -322,6 +427,10 @@ export function useEditorDocument({
     setSelectedStyles,
     setSelectedProps,
     reorder,
+    moveSelectedUp,
+    moveSelectedDown,
+    outdentSelected,
+    indentSelected,
     undo,
     redo,
     save,

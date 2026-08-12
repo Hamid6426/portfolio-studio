@@ -11,6 +11,7 @@ import {
   UsersIcon,
 } from "lucide-react";
 
+import { useDirtyNav } from "@/components/page-editor/dirty-nav-context";
 import { Button } from "@/components/ui/button";
 
 const ICONS = {
@@ -29,6 +30,7 @@ export type DashboardNavItem = {
 
 export function DashboardNav({ items }: { items: DashboardNavItem[] }) {
   const pathname = usePathname();
+  const { dirty } = useDirtyNav();
 
   return (
     <nav className="flex flex-1 flex-col gap-1 p-3">
@@ -40,7 +42,20 @@ export function DashboardNav({ items }: { items: DashboardNavItem[] }) {
         return (
           <Button
             key={item.href}
-            render={<Link href={item.href} />}
+            render={
+              <Link
+                href={item.href}
+                // Browser back/forward is intentionally unguarded — onNavigate
+                // only runs for in-app Link clicks, not history traversal.
+                onNavigate={(event) => {
+                  if (!dirty) return;
+                  const leave = window.confirm(
+                    "You have unsaved changes. Leave without saving?",
+                  );
+                  if (!leave) event.preventDefault();
+                }}
+              />
+            }
             variant={active ? "secondary" : "ghost"}
             aria-current={active ? "page" : undefined}
             className="justify-start gap-2"

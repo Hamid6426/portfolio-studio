@@ -34,6 +34,19 @@ export function BlockEditorClient({
     );
   }
 
+  if (blockQuery.data.data.contentUnreadable) {
+    return (
+      <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-6 text-sm">
+        <p className="font-medium text-destructive">Block content cannot be edited</p>
+        <p className="mt-1 text-muted-foreground">
+          This block was saved with document version{" "}
+          {blockQuery.data.data.unsupportedVersion ?? "unknown"}, which is newer
+          than this app supports. Upgrade Portfolio Studio to edit it.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <BlockEditorShell block={blockQuery.data.data} permissions={permissions} />
   );

@@ -17,7 +17,14 @@ export type StartupState =
       state: "needs-setup";
     };
 
+/** Once ready, skip re-checking on every request until process restart. */
+let readyCached = false;
+
 export async function getStartupState(): Promise<StartupState> {
+  if (readyCached) {
+    return { state: "ready" };
+  }
+
   const database = await checkDatabaseConnection();
 
   if (!database.success) {
@@ -43,6 +50,7 @@ export async function getStartupState(): Promise<StartupState> {
     };
   }
 
+  readyCached = true;
   return {
     state: "ready",
   };

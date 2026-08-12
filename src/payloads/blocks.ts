@@ -12,6 +12,8 @@ export const createBlockPayloadSchema = z.object({
 
 export type CreateBlockPayload = z.infer<typeof createBlockPayloadSchema>;
 
-export const updateBlockPayloadSchema = createBlockPayloadSchema;
+export const updateBlockPayloadSchema = createBlockPayloadSchema.partial().extend({
+  expectedUpdatedAt: z.string().datetime().optional(),
+});
 
 export type UpdateBlockPayload = z.infer<typeof updateBlockPayloadSchema>;

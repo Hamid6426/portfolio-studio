@@ -6,7 +6,8 @@ import {
   requireButtonPermission,
   requireSession,
 } from "@/lib/auth/permissions";
-import type { CreateRolePayload } from "@/payloads/roles";
+import { parseBody } from "@/lib/api/parse-body";
+import { createRolePayloadSchema } from "@/payloads/roles";
 import { createRole, listRoles } from "@/repositories/roles";
 
 export async function GET() {
@@ -37,21 +38,11 @@ export async function POST(request: Request) {
   const auth = await requireButtonPermission(PERMISSIONS.rolesCreate);
   if (isErrorResponse(auth)) return auth;
 
-  let body: CreateRolePayload;
+  const parsed = await parseBody(request, createRolePayloadSchema, {
+    fields: ["roleName", "permissions"],
+  });
+  if (!parsed.ok) return parsed.response;
 
-  try {
-    body = (await request.json()) as CreateRolePayload;
-  } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        statusCode: 400,
-        message: "Invalid request body.",
-      },
-      { status: 400 },
-    );
-  }
-
-  const response = await createRole(body);
+  const response = await createRole(parsed.data);
   return NextResponse.json(response, { status: response.statusCode });
 }

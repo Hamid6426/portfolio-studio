@@ -28,4 +28,5 @@ export const blockQueryKey = (id: string) => ["blocks", id] as const;
 export const BLOCKS_LAYOUT_QUERY_KEY = ["blocks", "layout"] as const;
 export const BLOCKS_CREATE_MUTATION_KEY = ["blocks", "create"] as const;
 export const BLOCKS_UPDATE_MUTATION_KEY = ["blocks", "update"] as const;
+export const BLOCKS_PUBLISH_MUTATION_KEY = ["blocks", "publish"] as const;
 export const BLOCKS_DELETE_MUTATION_KEY = ["blocks", "delete"] as const;

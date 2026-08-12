@@ -4,19 +4,27 @@ import type {
 } from "@/responses/common";
 import type { BlockNode } from "@/db/schema";
 
-export type BlockSummary = {
+export type BlockListItem = {
   id: string;
   name: string;
   description: string;
   canBeLayout: boolean;
   childCount: number;
-  children: BlockNode[];
   createdAt: Date | string | null;
+  updatedAt: Date | string | null;
   publishedAt: Date | string | null;
 };
 
+/** Full block record for the editor and GET /api/blocks/:id. */
+export type BlockSummary = BlockListItem & {
+  children: BlockNode[];
+  /** Set when `children` cannot be read on this build. */
+  contentUnreadable?: boolean;
+  unsupportedVersion?: number;
+};
+
 export type ListBlocksResponse =
-  | ApiSuccessResponse<BlockSummary[]>
+  | ApiSuccessResponse<BlockListItem[]>
   | ApiErrorResponse;
 
 export type BlockResponse = ApiSuccessResponse<BlockSummary> | ApiErrorResponse;

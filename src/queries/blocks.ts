@@ -10,6 +10,7 @@ import {
   BLOCKS_CREATE_MUTATION_KEY,
   BLOCKS_DELETE_MUTATION_KEY,
   BLOCKS_LAYOUT_QUERY_KEY,
+  BLOCKS_PUBLISH_MUTATION_KEY,
   BLOCKS_QUERY_KEY,
   BLOCKS_UPDATE_MUTATION_KEY,
   blockQueryKey,
@@ -25,6 +26,7 @@ import {
   getBlockRequest,
   listBlocksRequest,
   listLayoutBlocksRequest,
+  publishBlockRequest,
   updateBlockRequest,
 } from "@/services/blocks";
 
@@ -40,6 +42,8 @@ export function useBlockQuery(id: string) {
     queryKey: blockQueryKey(id),
     queryFn: () => getBlockRequest(id),
     enabled: Boolean(id),
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -85,6 +89,21 @@ export function useUpdateBlockMutation() {
         void queryClient.invalidateQueries({
           queryKey: blockQueryKey(variables.id),
         });
+      }
+    },
+  });
+}
+
+export function usePublishBlockMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<BlockResponse, Error, string>({
+    mutationKey: BLOCKS_PUBLISH_MUTATION_KEY,
+    mutationFn: publishBlockRequest,
+    onSuccess: (result, id) => {
+      if (result.success) {
+        invalidateBlockQueries(queryClient);
+        void queryClient.invalidateQueries({ queryKey: blockQueryKey(id) });
       }
     },
   });

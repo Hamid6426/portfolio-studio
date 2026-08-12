@@ -28,8 +28,6 @@ import {
   updatePageRequest,
 } from "@/services/pages";
 
-// These belong beside the other keys in `@/config/storage-keys`, but that file
-// is outside this change's scope; move them there when convenient.
 const PAGES_PUBLISH_MUTATION_KEY = ["pages", "publish"] as const;
 const PAGES_UNPUBLISH_MUTATION_KEY = ["pages", "unpublish"] as const;
 
@@ -45,6 +43,8 @@ export function usePageQuery(id: string) {
     queryKey: pageQueryKey(id),
     queryFn: () => getPageRequest(id),
     enabled: Boolean(id),
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
   });
 }
 

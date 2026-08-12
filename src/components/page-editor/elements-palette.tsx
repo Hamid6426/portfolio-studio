@@ -22,7 +22,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { BlockSummary } from "@/responses/blocks";
+import type { BlockListItem } from "@/responses/blocks";
 
 const ELEMENT_ICONS: Record<BlockType, LucideIcon> = {
   section: LayoutTemplateIcon,
@@ -36,8 +36,8 @@ const ELEMENT_ICONS: Record<BlockType, LucideIcon> = {
 
 type ElementsPaletteProps = {
   onAdd: (type: BlockType) => void;
-  layoutBlocks: BlockSummary[];
-  onInsertLayout: (block: BlockSummary) => void;
+  layoutBlocks: BlockListItem[];
+  onInsertLayout: (block: BlockListItem) => void;
 };
 
 export function ElementsPalette({

@@ -50,6 +50,19 @@ function joinSides(top: string, right: string, bottom: string, left: string) {
   return `${top} ${right} ${bottom} ${left}`;
 }
 
+/** Append `px` when the user enters a bare number (e.g. `16` → `16px`). */
+function commitDimValue(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (/^-?\d+(\.\d+)?$/.test(trimmed)) return `${trimmed}px`;
+  return trimmed;
+}
+
+function swatchHex(value: string | undefined, fallback: string): string {
+  if (value?.startsWith("#") && value.length >= 4) return value.slice(0, 7);
+  return fallback;
+}
+
 function Section({
   title,
   children,
@@ -86,12 +99,14 @@ function CompactInput({
   value,
   placeholder,
   onChange,
+  onCommit,
   className,
   "aria-label": ariaLabel,
 }: {
   value: string;
   placeholder?: string;
   onChange: (value: string) => void;
+  onCommit?: (value: string) => void;
   className?: string;
   "aria-label"?: string;
 }) {
@@ -101,6 +116,11 @@ function CompactInput({
       value={value}
       placeholder={placeholder}
       onChange={(event) => onChange(event.target.value)}
+      onBlur={
+        onCommit
+          ? (event) => onCommit(event.target.value)
+          : undefined
+      }
       className={cn(
         "h-7 rounded-md px-2 text-xs shadow-none md:text-xs",
         className,
@@ -135,7 +155,7 @@ function Segmented({
                 ? "bg-muted text-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
-            onClick={() => onChange(option.value)}
+            onClick={() => onChange(active ? "" : option.value)}
           >
             {option.icon ?? option.label}
           </button>
@@ -148,10 +168,12 @@ function Segmented({
 function SideInputs({
   values,
   onChange,
+  onCommit,
   labels,
 }: {
   values: [string, string, string, string];
   onChange: (next: [string, string, string, string]) => void;
+  onCommit?: (next: [string, string, string, string]) => void;
   labels: [string, string, string, string];
 }) {
   return (
@@ -167,6 +189,15 @@ function SideInputs({
             copy[index] = next;
             onChange(copy);
           }}
+          onCommit={
+            onCommit
+              ? (next) => {
+                  const copy = [...values] as [string, string, string, string];
+                  copy[index] = next;
+                  onCommit(copy);
+                }
+              : undefined
+          }
         />
       ))}
     </div>
@@ -178,12 +209,14 @@ function DimInput({
   value,
   placeholder,
   onChange,
+  onCommit,
   "aria-label": ariaLabel,
 }: {
   label: string;
   value: string;
   placeholder?: string;
   onChange: (value: string) => void;
+  onCommit?: (value: string) => void;
   "aria-label"?: string;
 }) {
   return (
@@ -193,6 +226,41 @@ function DimInput({
       </span>
       <CompactInput
         aria-label={ariaLabel ?? label}
+        value={value}
+        placeholder={placeholder}
+        onChange={onChange}
+        onCommit={onCommit}
+      />
+    </div>
+  );
+}
+
+function ColorField({
+  swatchLabel,
+  inputLabel,
+  value,
+  placeholder,
+  fallbackHex,
+  onChange,
+}: {
+  swatchLabel: string;
+  inputLabel: string;
+  value: string;
+  placeholder?: string;
+  fallbackHex: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <input
+        type="color"
+        aria-label={swatchLabel}
+        className="size-7 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
+        value={swatchHex(value, fallbackHex)}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      <CompactInput
+        aria-label={inputLabel}
         value={value}
         placeholder={placeholder}
         onChange={onChange}
@@ -215,6 +283,9 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
     styles.display === "flex" ||
     Boolean(
       styles.flexDirection ||
+        styles.flexWrap ||
+        styles.flex ||
+        styles.minWidth ||
         styles.gap ||
         styles.justifyContent ||
         styles.alignItems,
@@ -225,6 +296,25 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
     if (!value.trim()) delete next[key];
     else next[key] = value;
     onChange(next);
+  }
+
+  function setDimField(key: string, value: string) {
+    setField(key, commitDimValue(value));
+  }
+
+  function commitSides(
+    key: "padding" | "margin",
+    sides: [string, string, string, string],
+  ) {
+    setField(
+      key,
+      joinSides(
+        commitDimValue(sides[0]),
+        commitDimValue(sides[1]),
+        commitDimValue(sides[2]),
+        commitDimValue(sides[3]),
+      ),
+    );
   }
 
   function setSides(
@@ -246,12 +336,14 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
             value={styles.width ?? ""}
             placeholder="Auto"
             onChange={(value) => setField("width", value)}
+            onCommit={(value) => setDimField("width", value)}
           />
           <DimInput
             label="H"
             value={styles.height ?? ""}
             placeholder="Auto"
             onChange={(value) => setField("height", value)}
+            onCommit={(value) => setDimField("height", value)}
           />
         </div>
         <FieldRow label="Max W">
@@ -260,6 +352,7 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
             value={styles.maxWidth ?? ""}
             placeholder="None"
             onChange={(value) => setField("maxWidth", value)}
+            onCommit={(value) => setDimField("maxWidth", value)}
           />
         </FieldRow>
         <FieldRow label="Display">
@@ -269,7 +362,6 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
             options={[
               { value: "block", label: "Block", title: "Block" },
               { value: "flex", label: "Flex", title: "Flex" },
-              { value: "grid", label: "Grid", title: "Grid" },
               { value: "none", label: "None", title: "None" },
             ]}
           />
@@ -278,7 +370,7 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
           <>
             <FieldRow label="Dir">
               <Segmented
-                value={styles.flexDirection ?? "column"}
+                value={styles.flexDirection ?? ""}
                 onChange={(value) => setField("flexDirection", value)}
                 options={[
                   {
@@ -292,6 +384,33 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
                     icon: <ArrowDownIcon className="size-3.5" />,
                   },
                 ]}
+              />
+            </FieldRow>
+            <FieldRow label="Wrap">
+              <Segmented
+                value={styles.flexWrap ?? ""}
+                onChange={(value) => setField("flexWrap", value)}
+                options={[
+                  { value: "nowrap", label: "No", title: "No wrap" },
+                  { value: "wrap", label: "Yes", title: "Wrap" },
+                ]}
+              />
+            </FieldRow>
+            <FieldRow label="Flex">
+              <CompactInput
+                aria-label="Flex"
+                value={styles.flex ?? ""}
+                placeholder="1 1 auto"
+                onChange={(value) => setField("flex", value)}
+              />
+            </FieldRow>
+            <FieldRow label="Min W">
+              <CompactInput
+                aria-label="Min width"
+                value={styles.minWidth ?? ""}
+                placeholder="0"
+                onChange={(value) => setField("minWidth", value)}
+                onCommit={(value) => setDimField("minWidth", value)}
               />
             </FieldRow>
             <FieldRow label="Justify">
@@ -356,6 +475,7 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
                 value={styles.gap ?? ""}
                 placeholder="0"
                 onChange={(value) => setField("gap", value)}
+                onCommit={(value) => setDimField("gap", value)}
               />
             </FieldRow>
           </>
@@ -369,6 +489,7 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
               values={padding}
               labels={["Padding top", "Padding right", "Padding bottom", "Padding left"]}
               onChange={(next) => setSides("padding", next)}
+              onCommit={(next) => commitSides("padding", next)}
             />
             <div className="grid grid-cols-4 gap-1 text-center text-[9px] text-muted-foreground">
               <span>T</span>
@@ -384,6 +505,7 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
               values={margin}
               labels={["Margin top", "Margin right", "Margin bottom", "Margin left"]}
               onChange={(next) => setSides("margin", next)}
+              onCommit={(next) => commitSides("margin", next)}
             />
             <div className="grid grid-cols-4 gap-1 text-center text-[9px] text-muted-foreground">
               <span>T</span>
@@ -403,6 +525,7 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
             value={styles.fontSize ?? ""}
             placeholder="16px"
             onChange={(value) => setField("fontSize", value)}
+            onCommit={(value) => setDimField("fontSize", value)}
           />
           <DimInput
             label="Wt"
@@ -412,6 +535,25 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
             onChange={(value) => setField("fontWeight", value)}
           />
         </div>
+        <FieldRow label="Line">
+          <CompactInput
+            aria-label="Line height"
+            value={styles.lineHeight ?? ""}
+            placeholder="1.6"
+            onChange={(value) => setField("lineHeight", value)}
+          />
+        </FieldRow>
+        <FieldRow label="Decor">
+          <Segmented
+            value={styles.textDecoration ?? ""}
+            onChange={(value) => setField("textDecoration", value)}
+            options={[
+              { value: "none", label: "None", title: "None" },
+              { value: "underline", label: "Under", title: "Underline" },
+              { value: "line-through", label: "Strike", title: "Line through" },
+            ]}
+          />
+        </FieldRow>
         <FieldRow label="Align">
           <Segmented
             value={styles.textAlign ?? ""}
@@ -436,49 +578,53 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
           />
         </FieldRow>
         <FieldRow label="Color">
-          <div className="flex items-center gap-1.5">
-            <input
-              type="color"
-              aria-label="Text color swatch"
-              className="size-7 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
-              value={
-                styles.color?.startsWith("#") && styles.color.length >= 4
-                  ? styles.color.slice(0, 7)
-                  : "#ffffff"
-              }
-              onChange={(event) => setField("color", event.target.value)}
-            />
-            <CompactInput
-              aria-label="Text color"
-              value={styles.color ?? ""}
-              placeholder="#fff"
-              onChange={(value) => setField("color", value)}
-            />
-          </div>
+          <ColorField
+            swatchLabel="Text color swatch"
+            inputLabel="Text color"
+            value={styles.color ?? ""}
+            placeholder="#fff or rgba(...)"
+            fallbackHex="#ffffff"
+            onChange={(value) => setField("color", value)}
+          />
         </FieldRow>
       </Section>
 
       <Section title="Appearance">
         <FieldRow label="Fill">
-          <div className="flex items-center gap-1.5">
-            <input
-              type="color"
-              aria-label="Background swatch"
-              className="size-7 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
-              value={
-                styles.background?.startsWith("#") && styles.background.length >= 4
-                  ? styles.background.slice(0, 7)
-                  : "#000000"
-              }
-              onChange={(event) => setField("background", event.target.value)}
-            />
-            <CompactInput
-              aria-label="Background"
-              value={styles.background ?? ""}
-              placeholder="transparent"
-              onChange={(value) => setField("background", value)}
-            />
-          </div>
+          <ColorField
+            swatchLabel="Background swatch"
+            inputLabel="Background"
+            value={styles.background ?? ""}
+            placeholder="transparent or rgba(...)"
+            fallbackHex="#000000"
+            onChange={(value) => setField("background", value)}
+          />
+        </FieldRow>
+        <FieldRow label="BG">
+          <ColorField
+            swatchLabel="Background color swatch"
+            inputLabel="Background color"
+            value={styles.backgroundColor ?? ""}
+            placeholder="transparent or rgba(...)"
+            fallbackHex="#000000"
+            onChange={(value) => setField("backgroundColor", value)}
+          />
+        </FieldRow>
+        <FieldRow label="Border">
+          <CompactInput
+            aria-label="Border"
+            value={styles.border ?? ""}
+            placeholder="1px solid #ccc"
+            onChange={(value) => setField("border", value)}
+          />
+        </FieldRow>
+        <FieldRow label="Top">
+          <CompactInput
+            aria-label="Border top"
+            value={styles.borderTop ?? ""}
+            placeholder="1px solid rgba(...)"
+            onChange={(value) => setField("borderTop", value)}
+          />
         </FieldRow>
         <FieldRow label="Radius">
           <CompactInput
@@ -486,6 +632,7 @@ export function StylePanel({ selected, onChange }: StylePanelProps) {
             value={styles.borderRadius ?? ""}
             placeholder="0"
             onChange={(value) => setField("borderRadius", value)}
+            onCommit={(value) => setDimField("borderRadius", value)}
           />
         </FieldRow>
         <FieldRow label="Overflow">

@@ -76,8 +76,8 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     label: "Image",
     canHaveChildren: false,
     defaultProps: {
-      src: "https://placehold.co/800x450",
-      alt: "Image",
+      src: "",
+      alt: "",
     },
     defaultStyles: {
       width: "100%",
@@ -186,8 +186,21 @@ function BlockRenderer({
       : renderBlockTree(node.children ?? [], opts);
 
   switch (node.type) {
-    case "section":
-      return <section {...common}>{children}</section>;
+    case "section": {
+      const ariaLabel = node.props.ariaLabel;
+      return (
+        <section
+          {...common}
+          aria-label={
+            typeof ariaLabel === "string" && ariaLabel.trim()
+              ? ariaLabel.trim()
+              : undefined
+          }
+        >
+          {children}
+        </section>
+      );
+    }
     case "container":
       return <div {...common}>{children}</div>;
     case "heading": {
@@ -215,6 +228,8 @@ function BlockRenderer({
           {...common}
           src={src || undefined}
           alt={String(node.props.alt ?? "")}
+          loading="lazy"
+          decoding="async"
         />
       );
     }
@@ -247,6 +262,7 @@ function BlockRenderer({
     case "divider":
       return <hr {...common} />;
     default:
+      if (!editable) return null;
       return (
         <div {...common}>
           Unknown block: {node.type}

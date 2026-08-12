@@ -142,6 +142,51 @@ export function moveNode(
   return insertChild(without, newParentId, node, at);
 }
 
+/** Move one slot among siblings; no-op at list boundaries. */
+export function moveSibling(
+  nodes: BlockNode[],
+  nodeId: string,
+  direction: -1 | 1,
+): BlockNode[] {
+  const located = findParent(nodes, nodeId);
+  if (!located) return nodes;
+
+  const targetIndex = located.index + direction;
+  if (targetIndex < 0 || targetIndex >= located.siblings.length) return nodes;
+
+  const parentId = located.parent?.id ?? null;
+  const index = direction === -1 ? located.index - 1 : located.index + 1;
+  return moveNode(nodes, nodeId, parentId, index);
+}
+
+/** Lift a node out of its parent, placing it immediately after the parent. */
+export function outdentNode(nodes: BlockNode[], nodeId: string): BlockNode[] {
+  const located = findParent(nodes, nodeId);
+  if (!located?.parent) return nodes;
+
+  const parentLocated = findParent(nodes, located.parent.id);
+  if (!parentLocated) return nodes;
+
+  const grandParentId = parentLocated.parent?.id ?? null;
+  return moveNode(nodes, nodeId, grandParentId, parentLocated.index + 1);
+}
+
+/** Nest a node under its previous sibling when that sibling accepts children. */
+export function indentNode(nodes: BlockNode[], nodeId: string): BlockNode[] {
+  const located = findParent(nodes, nodeId);
+  if (!located || located.index === 0) return nodes;
+
+  const prevSibling = located.siblings[located.index - 1]!;
+  if (prevSibling.children === undefined) return nodes;
+
+  return moveNode(
+    nodes,
+    nodeId,
+    prevSibling.id,
+    prevSibling.children.length,
+  );
+}
+
 export function flattenTree(
   nodes: BlockNode[],
   depth = 0,

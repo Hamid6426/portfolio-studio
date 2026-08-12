@@ -1,4 +1,4 @@
-import { and, asc, eq, isNotNull, isNull, ne } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, ne, sql } from "drizzle-orm";
 import { revalidateTag, unstable_cache } from "next/cache";
 
 import { db } from "@/db/client";
@@ -9,9 +9,10 @@ import {
   type BlockNode,
   type PublishedPageSnapshot,
 } from "@/db/schema";
+import { firstIssueField } from "@/lib/api/first-issue-field";
 import {
   migrateBlockDocument,
-  nodesFromStored,
+  refuseWriteIfUnsupported,
   toBlockDocument,
 } from "@/lib/blocks/document";
 import { apiErrorFromPostgres } from "@/lib/db/errors";
@@ -26,6 +27,7 @@ import {
 } from "@/payloads/pages";
 import type {
   ListPagesResponse,
+  PageListItem,
   PageResponse,
   PageSummary,
 } from "@/responses/pages";
@@ -40,6 +42,55 @@ const RESERVED_SLUGS = new Set([
   "error",
 ]);
 
+function pageChildCountSql(column: typeof pagesTable.content) {
+  return sql<number>`CASE
+    WHEN jsonb_typeof(${column}) = 'array' THEN jsonb_array_length(${column})
+    ELSE coalesce(jsonb_array_length(${column}->'nodes'), 0)
+  END`.mapWith(Number);
+}
+
+function toPageListItem(row: {
+  id: string;
+  title: string;
+  slug: string | null;
+  description: string;
+  blockId: string | null;
+  blockName: string | null;
+  childCount: number;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  publishedAt: Date | null;
+}): PageListItem {
+  return {
+    id: row.id,
+    title: row.title,
+    slug: row.slug,
+    description: row.description,
+    blockId: row.blockId,
+    blockName: row.blockName,
+    childCount: row.childCount,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    publishedAt: row.publishedAt,
+  };
+}
+
+function contentFromStored(raw: BlockDocument | BlockNode[] | null): {
+  content: BlockNode[];
+  contentUnreadable?: boolean;
+  unsupportedVersion?: number;
+} {
+  const migrated = migrateBlockDocument(raw);
+  if (!migrated.ok) {
+    return {
+      content: [],
+      contentUnreadable: true,
+      unsupportedVersion: migrated.version,
+    };
+  }
+  return { content: migrated.document.nodes };
+}
+
 function toPageSummary(row: {
   id: string;
   title: string;
@@ -49,26 +100,36 @@ function toPageSummary(row: {
   blockId: string | null;
   blockName: string | null;
   createdAt: Date | null;
+  updatedAt: Date | null;
   publishedAt: Date | null;
 }): PageSummary {
+  const { content, contentUnreadable, unsupportedVersion } = contentFromStored(
+    row.content,
+  );
   return {
     id: row.id,
     title: row.title,
     slug: row.slug,
     description: row.description,
-    content: nodesFromStored(row.content),
+    content,
+    contentUnreadable,
+    unsupportedVersion,
+    childCount: content.length,
     blockId: row.blockId,
     blockName: row.blockName,
     createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
     publishedAt: row.publishedAt,
   };
 }
 
-function firstIssueField<T extends string>(
-  path: PropertyKey | undefined,
-  allowed: readonly T[],
-): T | undefined {
-  return allowed.find((value) => value === path);
+function timestampsMatch(
+  expected: string | undefined,
+  actual: Date | null,
+): boolean {
+  if (expected === undefined) return true;
+  if (!actual) return false;
+  return actual.toISOString() === expected;
 }
 
 function normalizeSlug(slug: string): string | null {
@@ -76,7 +137,20 @@ function normalizeSlug(slug: string): string | null {
   return trimmed.length === 0 ? null : trimmed;
 }
 
-const pageSelect = {
+const pageListSelect = {
+  id: pagesTable.id,
+  title: pagesTable.title,
+  slug: pagesTable.slug,
+  description: pagesTable.description,
+  blockId: pagesTable.blockId,
+  blockName: blocksTable.name,
+  childCount: pageChildCountSql(pagesTable.content).as("child_count"),
+  createdAt: pagesTable.createdAt,
+  updatedAt: pagesTable.updatedAt,
+  publishedAt: pagesTable.publishedAt,
+} as const;
+
+const pageDetailSelect = {
   id: pagesTable.id,
   title: pagesTable.title,
   slug: pagesTable.slug,
@@ -85,12 +159,13 @@ const pageSelect = {
   blockId: pagesTable.blockId,
   blockName: blocksTable.name,
   createdAt: pagesTable.createdAt,
+  updatedAt: pagesTable.updatedAt,
   publishedAt: pagesTable.publishedAt,
 } as const;
 
-/** Same as `pageSelect` plus the frozen public copy, for public reads. */
+/** Same as `pageDetailSelect` plus the frozen public copy, for public reads. */
 const publicPageSelect = {
-  ...pageSelect,
+  ...pageDetailSelect,
   publishedSnapshot: pagesTable.publishedSnapshot,
 } as const;
 
@@ -99,7 +174,7 @@ const notDeleted = isNull(pagesTable.deletedAt);
 
 async function loadPageSummary(id: string): Promise<PageSummary | null> {
   const rows = await db
-    .select(pageSelect)
+    .select(pageDetailSelect)
     .from(pagesTable)
     .leftJoin(blocksTable, eq(pagesTable.blockId, blocksTable.id))
     .where(and(eq(pagesTable.id, id), notDeleted))
@@ -196,7 +271,7 @@ async function assertLayoutBlock(
 export async function listPages(): Promise<ListPagesResponse> {
   try {
     const pages = await db
-      .select(pageSelect)
+      .select(pageListSelect)
       .from(pagesTable)
       .leftJoin(blocksTable, eq(pagesTable.blockId, blocksTable.id))
       .where(notDeleted)
@@ -205,7 +280,7 @@ export async function listPages(): Promise<ListPagesResponse> {
     return {
       success: true,
       statusCode: 200,
-      data: pages.map(toPageSummary),
+      data: pages.map(toPageListItem),
     };
   } catch (error) {
     console.error("listPages failed:", error);
@@ -286,10 +361,14 @@ function toPublishedSummary(row: {
   blockId: string | null;
   blockName: string | null;
   createdAt: Date | null;
+  updatedAt: Date | null;
   publishedAt: Date | null;
   publishedSnapshot: PublishedPageSnapshot | null;
 }): PageSummary {
   const snapshot = row.publishedSnapshot;
+  const rawContent = snapshot?.content ?? row.content;
+  const { content, contentUnreadable, unsupportedVersion } =
+    contentFromStored(rawContent);
 
   return {
     id: row.id,
@@ -297,10 +376,14 @@ function toPublishedSummary(row: {
     slug: row.slug,
     title: snapshot?.title ?? row.title,
     description: snapshot?.description ?? row.description,
-    content: nodesFromStored(snapshot?.content ?? row.content),
+    content,
+    contentUnreadable,
+    unsupportedVersion,
+    childCount: content.length,
     blockId: snapshot?.blockId ?? row.blockId,
     blockName: row.blockName,
     createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
     publishedAt: row.publishedAt,
   };
 }
@@ -323,6 +406,20 @@ export async function getPublishedPage(
 
   const row = rows[0];
   return row ? toPublishedSummary(row) : null;
+}
+
+/** Slugs and timestamps for published pages (sitemap). */
+export async function listPublishedPagePaths(): Promise<
+  { slug: string | null; updatedAt: Date | null }[]
+> {
+  return db
+    .select({
+      slug: pagesTable.slug,
+      updatedAt: pagesTable.updatedAt,
+    })
+    .from(pagesTable)
+    .where(and(notDeleted, isNotNull(pagesTable.publishedAt)))
+    .orderBy(asc(pagesTable.slug));
 }
 
 /**
@@ -355,7 +452,7 @@ export async function getDraftPage(
   slug: string | null,
 ): Promise<PageSummary | null> {
   const rows = await db
-    .select(pageSelect)
+    .select(pageDetailSelect)
     .from(pagesTable)
     .leftJoin(blocksTable, eq(pagesTable.blockId, blocksTable.id))
     .where(and(slugMatches(slug), notDeleted))
@@ -400,11 +497,44 @@ export async function publishPage(id: string): Promise<PageResponse> {
       };
     }
 
+    const contentError = refuseWriteIfUnsupported(existing.content);
+    if (contentError) {
+      return {
+        success: false,
+        statusCode: 409,
+        message: contentError,
+      };
+    }
+
+    const contentMigrated = migrateBlockDocument(existing.content);
+    if (!contentMigrated.ok) {
+      return {
+        success: false,
+        statusCode: 409,
+        message: `This page uses an unsupported document version (${contentMigrated.version}). Upgrade the app before publishing.`,
+      };
+    }
+
+    let layoutChildren = toBlockDocument([]);
+    if (existing.blockId) {
+      const layout = await db.query.blocksTable.findFirst({
+        where: eq(blocksTable.id, existing.blockId),
+        columns: { publishedChildren: true },
+      });
+      if (layout?.publishedChildren) {
+        const layoutMigrated = migrateBlockDocument(layout.publishedChildren);
+        if (layoutMigrated.ok) {
+          layoutChildren = layoutMigrated.document;
+        }
+      }
+    }
+
     const snapshot: PublishedPageSnapshot = {
       title: existing.title,
       description: existing.description,
       blockId: existing.blockId,
-      content: migrateBlockDocument(existing.content),
+      content: contentMigrated.document,
+      layoutChildren,
     };
 
     await db
@@ -588,6 +718,7 @@ export async function updatePage(
         "description",
         "blockId",
         "content",
+        "expectedUpdatedAt",
       ] as const),
       message: issue?.message ?? "Please check your details and try again.",
     };
@@ -604,6 +735,28 @@ export async function updatePage(
         statusCode: 404,
         message: "Page not found.",
       };
+    }
+
+    if (
+      !timestampsMatch(parsed.data.expectedUpdatedAt, existing.updatedAt)
+    ) {
+      return {
+        success: false,
+        statusCode: 409,
+        message:
+          "This page was changed elsewhere. Reload to see the latest version.",
+      };
+    }
+
+    if (parsed.data.content !== undefined) {
+      const writeError = refuseWriteIfUnsupported(existing.content);
+      if (writeError) {
+        return {
+          success: false,
+          statusCode: 409,
+          message: writeError,
+        };
+      }
     }
 
     const updates: {

@@ -59,9 +59,11 @@ Keep gate redirect targets in PUBLIC_ROUTES or loops occur.
 
 `/` · `/home` · `/setup` · `/setup-guide` · `/login` · `/dashboard/overview` · `/dashboard/pages` · `/dashboard/pages/edit` · `/dashboard/blocks` · `/dashboard/blocks/edit` · `/dashboard/users` · `/dashboard/roles` · `/error/database` · `/[slug]`
 
+Adding a dashboard route requires adding a matching `route:` permission in `src/config/permissions.ts`. The matcher is **default deny** — undeclared paths are rejected.
+
 ## Env
 
-`.env.local`: `DATABASE_URL` (Postgres), `AUTH_SECRET` (≥32), `NODE_ENV` (`development`|`production`|`test`). Parsed in `src/config/env.ts`. Drizzle loads `.env.local` via `drizzle.config.ts`.
+`.env.local`: `DATABASE_URL` (Postgres), `AUTH_SECRET` (≥32, not the `.env.example` placeholder in production), `APP_URL` and `NEXT_PUBLIC_APP_URL` (canonical public URL), `NODE_ENV` (`development`|`production`|`test`). Parsed in `src/config/env.ts`. Drizzle loads `.env.local` via `drizzle.config.ts`.
 
 ## Commands
 
@@ -82,4 +84,5 @@ Datasets live in `scripts/datasets/` and are **pure content** — a `PortfolioDa
 - Schema changes → drizzle generate + migrate. Tables use `baseColumns`.
 - Spec/vision: `.docs/portfolio-studio.md` (read when building features).
 - Roadmap + gotchas: `.docs/roadmap.md` (read before starting anything beyond the page editor — it lists version-sensitive traps that are not obvious from the code).
-- Block trees are stored as versioned `BlockDocument` (`{ version, nodes }`) in `pages.content` / `blocks.children`. Migrate on read via `src/lib/blocks/document.ts`; never write bare arrays.
+- Post-Phase-1 remediation (authz, editor UX, SEO, block publish, ship-readiness): `.docs/remediation-plan.md`. Mostly implemented; still useful for trap notes and verification. Stage 1 (matcher + redirect + data migration + stop permission merge) was one deploy.
+- Block trees are stored as versioned `BlockDocument` (`{ version, nodes }`) in `pages.content`, `blocks.children`, and `blocks.published_children`. Migrate on read via `src/lib/blocks/document.ts`; never write bare arrays. Documents newer than `CURRENT_BLOCK_DOCUMENT_VERSION` are unreadable on this build — bump the version only with a migration step in `migrateBlockDocument`.

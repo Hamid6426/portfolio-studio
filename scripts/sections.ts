@@ -12,8 +12,9 @@
  *   `text` node cannot render line breaks: it becomes one `<p>` and the
  *   allowlist has no `whiteSpace`);
  * - "cards" are `container`s with a border/background;
- * - "rows" are `container`s with `flexDirection: row`. There is no `flexWrap`
- *   in the style allowlist, so rows are kept to at most four short items.
+ * - "rows" are `container`s with `flexDirection: row` and `flexWrap: wrap`.
+ *   Child tiles/buttons carry a `minWidth` so wrapped rows stay readable on
+ *   narrow viewports.
  */
 import type { BlockNode } from "@/db/schema";
 
@@ -66,12 +67,14 @@ const SECTION_TIGHT_ALT: Record<string, string> = {
 const WRAP: Record<string, string> = { maxWidth: "920px", gap: "20px" };
 const ROW: Record<string, string> = {
   flexDirection: "row",
+  flexWrap: "wrap",
   gap: "16px",
   alignItems: "stretch",
   maxWidth: "920px",
 };
 const NAV_ROW: Record<string, string> = {
   flexDirection: "row",
+  flexWrap: "wrap",
   gap: "10px",
   justifyContent: "center",
   alignItems: "center",
@@ -106,6 +109,8 @@ const CARD: Record<string, string> = {
   borderRadius: "12px",
   width: "100%",
   maxWidth: "100%",
+  flex: "1 1 240px",
+  minWidth: "200px",
 };
 const FLUSH_ROW: Record<string, string> = {
   gap: "2px",
@@ -121,6 +126,8 @@ const LINK_BUTTON: Record<string, string> = {
   borderRadius: "999px",
   padding: "9px 16px",
   fontSize: "15px",
+  minWidth: "120px",
+  flex: "0 1 auto",
 };
 const PRIMARY_BUTTON: Record<string, string> = {
   background: "#ffffff",
@@ -129,6 +136,8 @@ const PRIMARY_BUTTON: Record<string, string> = {
   padding: "10px 20px",
   fontSize: "15px",
   fontWeight: "600",
+  minWidth: "120px",
+  flex: "0 1 auto",
 };
 
 /** What a page needs to know about the site around it. */
@@ -219,11 +228,13 @@ function statCard(stat: Stat): BlockNode {
       padding: "18px 12px",
       alignItems: "center",
       justifyContent: "center",
+      flex: "1 1 140px",
+      minWidth: "140px",
     },
   );
 }
 
-/** Stat tiles chunked into non-wrapping rows. */
+/** Stat tiles chunked into wrapping rows. */
 function statRows(stats: Stat[], perRow: number): BlockNode[] {
   const rows: BlockNode[] = [];
   for (let i = 0; i < stats.length; i += perRow) {

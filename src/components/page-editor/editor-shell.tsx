@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ArrowLeftIcon,
   EyeIcon,
@@ -12,8 +12,10 @@ import {
   TriangleAlertIcon,
   Undo2Icon,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { EditorCanvas } from "@/components/page-editor/canvas";
+import { useDirtyNav } from "@/components/page-editor/dirty-nav-context";
 import { EditorSidebar } from "@/components/page-editor/sidebar";
 import type { EditorDocument } from "@/components/page-editor/use-editor-document";
 import { usePageEditor } from "@/components/page-editor/use-page-editor";
@@ -32,7 +34,9 @@ import {
   type Permission,
 } from "@/config/permissions";
 import { pagePreviewPath, pagePublicPath } from "@/lib/pages/preview-path";
+import { getBlockRequest } from "@/services/blocks";
 import { useLayoutBlocksQuery } from "@/queries/blocks";
+import type { BlockListItem } from "@/responses/blocks";
 import type { PageSummary } from "@/responses/pages";
 
 const PAGES_PATH = "/dashboard/pages";
@@ -51,8 +55,8 @@ function leaveCopyFor(label: string): Record<LeaveIntent, LeaveCopy> {
       confirm: "Discard and leave",
     },
     preview: {
-      title: "Preview the saved version?",
-      description: `Preview opens the last saved version of this ${label}. Unsaved edits will not appear until you save.`,
+      title: "Preview the draft?",
+      description: `Preview opens the current draft of this ${label} (including unsaved editor state only after you save). Published pages still show the draft so you can check edits before publishing.`,
       confirm: "Open preview",
     },
   };
@@ -74,6 +78,8 @@ type EditorShellProps = {
   canEdit: boolean;
   /** Layout block to keep out of the palette (a block cannot insert itself). */
   excludeLayoutBlockId?: string;
+  /** Optional actions rendered before Save (e.g. Publish block). */
+  extraActions?: ReactNode;
 };
 
 export function EditorShell({
@@ -86,8 +92,10 @@ export function EditorShell({
   previewHref,
   canEdit,
   excludeLayoutBlockId,
+  extraActions,
 }: EditorShellProps) {
   const router = useRouter();
+  const { setDirty } = useDirtyNav();
   const layoutBlocksQuery = useLayoutBlocksQuery();
   const layoutBlocks = useMemo(() => {
     const blocks = layoutBlocksQuery.data?.success
@@ -103,6 +111,12 @@ export function EditorShell({
     open: false,
     intent: "back",
   });
+  const [saveConflictOpen, setSaveConflictOpen] = useState(false);
+
+  useEffect(() => {
+    setDirty(editor.dirty);
+    return () => setDirty(false);
+  }, [editor.dirty, setDirty]);
 
   function openPreview() {
     if (!previewHref) return;
@@ -129,6 +143,28 @@ export function EditorShell({
     closeLeave();
     if (leave.intent === "back") router.push(backHref);
     if (leave.intent === "preview") openPreview();
+  }
+
+  async function handleSave() {
+    const result = await editor.save();
+    if (result === "conflict") {
+      setSaveConflictOpen(true);
+    }
+  }
+
+  async function handleInsertLayout(block: BlockListItem) {
+    const response = await getBlockRequest(block.id);
+    if (!response.success) {
+      toast.error(response.message);
+      return;
+    }
+    if (response.data.contentUnreadable) {
+      toast.error(
+        "That layout block uses a document version this app cannot read.",
+      );
+      return;
+    }
+    editor.insertLibraryBlock(response.data.children ?? []);
   }
 
   const leaveCopy = leaveCopyFor(documentLabel)[leave.intent];
@@ -204,12 +240,13 @@ export function EditorShell({
               Preview
             </Button>
           ) : null}
+          {extraActions}
           {canEdit ? (
             <Button
               type="button"
               size="sm"
               disabled={!editor.dirty || editor.pending}
-              onClick={() => void editor.save()}
+              onClick={() => void handleSave()}
             >
               {editor.pending ? (
                 <Loader2Icon
@@ -239,12 +276,14 @@ export function EditorShell({
           onSelect={editor.setSelectedId}
           onAdd={editor.addBlock}
           layoutBlocks={layoutBlocks}
-          onInsertLayout={(block) =>
-            editor.insertLibraryBlock(block.children ?? [])
-          }
+          onInsertLayout={(block) => void handleInsertLayout(block)}
           onStylesChange={editor.setSelectedStyles}
           onPropsChange={editor.setSelectedProps}
           onDelete={editor.deleteSelected}
+          onMoveUp={editor.moveSelectedUp}
+          onMoveDown={editor.moveSelectedDown}
+          onOutdent={editor.outdentSelected}
+          onIndent={editor.indentSelected}
         />
       </div>
 
@@ -271,6 +310,30 @@ export function EditorShell({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={saveConflictOpen} onOpenChange={setSaveConflictOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Could not save</DialogTitle>
+            <DialogDescription>
+              This {documentLabel} was changed elsewhere while you were editing.
+              Reload the editor to pick up the latest version before saving again.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setSaveConflictOpen(false)}
+            >
+              Keep editing
+            </Button>
+            <Button type="button" onClick={() => window.location.reload()}>
+              Reload
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -283,11 +346,9 @@ type PageEditorShellProps = {
 export function PageEditorShell({ page, permissions }: PageEditorShellProps) {
   const editor = usePageEditor(page);
 
-  // A draft is not served at its public URL, so Preview has to ask for the
-  // draft explicitly — otherwise previewing an unpublished page 404s.
-  const previewHref = page.publishedAt
-    ? pagePublicPath(page.slug)
-    : pagePreviewPath(page.slug);
+  // Always preview the draft — published public URLs serve the snapshot, which
+  // hides exactly the edits Preview is meant to check.
+  const previewHref = pagePreviewPath(page.slug);
 
   return (
     <EditorShell

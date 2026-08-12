@@ -45,37 +45,23 @@ function toRoleSummary(
   };
 }
 
-/** Ensure default roles exist; merge any newly added default permissions. */
+/** Ensure default roles exist. Does not rewrite existing permission strings —
+ *  admins can trim grants without them being silently restored on every load. */
 export async function ensureDefaultRoles(): Promise<void> {
   for (const roleName of Object.keys(
     DEFAULT_ROLE_PERMISSIONS,
   ) as RoleName[]) {
     const existing = await db.query.rolesTable.findFirst({
       where: eq(rolesTable.roleName, roleName),
-      columns: { id: true, permissions: true },
+      columns: { id: true },
     });
 
-    const defaults = DEFAULT_ROLE_PERMISSIONS[roleName];
+    if (existing) continue;
 
-    if (!existing) {
-      await db.insert(rolesTable).values({
-        roleName,
-        permissions: serializePermissions(defaults),
-      });
-      continue;
-    }
-
-    const current = parsePermissions(existing.permissions);
-    const merged = [...new Set([...current, ...defaults])];
-    if (merged.length === current.length) continue;
-
-    await db
-      .update(rolesTable)
-      .set({
-        permissions: serializePermissions(merged),
-        updatedAt: new Date(),
-      })
-      .where(eq(rolesTable.id, existing.id));
+    await db.insert(rolesTable).values({
+      roleName,
+      permissions: serializePermissions(DEFAULT_ROLE_PERMISSIONS[roleName]),
+    });
   }
 }
 

@@ -42,7 +42,7 @@ import {
   useUpdateBlockMutation,
 } from "@/queries/blocks";
 import { blockEditorPath } from "@/lib/blocks/editor-path";
-import type { BlockSummary } from "@/responses/blocks";
+import type { BlockListItem } from "@/responses/blocks";
 
 type BlocksPageClientProps = {
   permissions: Permission[] | string;
@@ -70,8 +70,8 @@ export function BlocksPageClient({ permissions }: BlocksPageClientProps) {
   const canDelete = canShowButton(permissions, PERMISSIONS.blocksDelete);
 
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<BlockSummary | null>(null);
-  const [deleting, setDeleting] = useState<BlockSummary | null>(null);
+  const [editing, setEditing] = useState<BlockListItem | null>(null);
+  const [deleting, setDeleting] = useState<BlockListItem | null>(null);
   const [canBeLayout, setCanBeLayout] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -92,7 +92,7 @@ export function BlocksPageClient({ permissions }: BlocksPageClientProps) {
     setFormOpen(true);
   }
 
-  function openEdit(block: BlockSummary) {
+  function openEdit(block: BlockListItem) {
     setEditing(block);
     setCanBeLayout(block.canBeLayout);
     setFieldErrors({});

@@ -3,11 +3,12 @@ import { notFound } from "next/navigation";
 
 import { PublicPageView } from "@/components/public-page-view";
 import { canPreviewDrafts } from "@/lib/pages/draft-preview";
+import { buildPageMetadata } from "@/lib/pages/page-metadata";
 import {
   isPreviewRequested,
   PAGE_PREVIEW_PARAM,
 } from "@/lib/pages/preview-path";
-import { getBlockById } from "@/repositories/blocks";
+import { getLayoutBlockNodes } from "@/repositories/blocks";
 import { getCachedPublishedPage, getDraftPage } from "@/repositories/pages";
 
 /**
@@ -42,10 +43,7 @@ export async function generateMetadata({
     return { title: "Home" };
   }
 
-  return {
-    title: isPreview ? `Preview — ${page.title}` : page.title,
-    ...(isPreview ? { robots: { index: false, follow: false } } : {}),
-  };
+  return buildPageMetadata(page, { isPreview });
 }
 
 /** `/` — CMS landing page (`pages.slug` is null). */
@@ -56,13 +54,30 @@ export default async function RootPage({ searchParams }: RootPageProps) {
     notFound();
   }
 
-  const layout = page.blockId ? await getBlockById(page.blockId) : null;
+  let layoutChildren: import("@/db/schema").BlockNode[] = [];
+  let layoutUnreadable = false;
+  let layoutUnsupportedVersion: number | undefined;
+
+  if (page.blockId) {
+    const layout = await getLayoutBlockNodes(
+      page.blockId,
+      isPreview ? "draft" : "published",
+    );
+    if (layout.ok) {
+      layoutChildren = layout.nodes;
+    } else if (layout.reason === "unsupported-version") {
+      layoutUnreadable = true;
+      layoutUnsupportedVersion = layout.version;
+    }
+  }
 
   return (
     <PublicPageView
       page={page}
-      layoutChildren={layout?.children ?? []}
+      layoutChildren={layoutChildren}
       isPreview={isPreview}
+      layoutUnreadable={layoutUnreadable}
+      layoutUnsupportedVersion={layoutUnsupportedVersion}
     />
   );
 }
