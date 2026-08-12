@@ -10,6 +10,7 @@ import {
 } from "@/lib/pages/preview-path";
 import { getLayoutBlockNodes } from "@/repositories/blocks";
 import { getCachedPublishedPage, getDraftPage } from "@/repositories/pages";
+import { getCachedSiteTheme } from "@/repositories/site-theme";
 
 /**
  * No `dynamic` export and no `generateStaticParams`: the root layout's startup
@@ -50,7 +51,10 @@ export async function generateMetadata(
 
 /** `/[slug]` — CMS page matched by `pages.slug`. */
 export default async function SlugPage(props: SlugPageProps) {
-  const { page, isPreview } = await resolveSlugPage(props);
+  const [{ page, isPreview }, theme] = await Promise.all([
+    resolveSlugPage(props),
+    getCachedSiteTheme(),
+  ]);
 
   if (!page) {
     notFound();
@@ -80,6 +84,8 @@ export default async function SlugPage(props: SlugPageProps) {
       isPreview={isPreview}
       layoutUnreadable={layoutUnreadable}
       layoutUnsupportedVersion={layoutUnsupportedVersion}
+      themeId={theme.themeId}
+      themeSettings={theme.themeSettings}
     />
   );
 }

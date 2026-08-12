@@ -1,6 +1,8 @@
 import { renderBlockTree } from "@/components/page-editor/block-registry";
+import { SiteThemeStyle } from "@/components/site-theme-style";
 import type { PageSummary } from "@/responses/pages";
 import type { BlockNode } from "@/db/schema";
+import type { ThemeSettings } from "@/lib/themes/types";
 import { cn } from "@/lib/utils";
 
 type PublicPageViewProps = {
@@ -10,6 +12,8 @@ type PublicPageViewProps = {
   isPreview?: boolean;
   layoutUnreadable?: boolean;
   layoutUnsupportedVersion?: number;
+  themeId: string;
+  themeSettings?: ThemeSettings | null;
 };
 
 /** Makes it obvious the visitor is not looking at the live page. */
@@ -55,6 +59,8 @@ export function PublicPageView({
   isPreview = false,
   layoutUnreadable = false,
   layoutUnsupportedVersion,
+  themeId,
+  themeSettings,
 }: PublicPageViewProps) {
   const contentUnreadable = Boolean(page.contentUnreadable);
   const hasContent =
@@ -66,9 +72,14 @@ export function PublicPageView({
     <PreviewBanner isPublished={Boolean(page.publishedAt)} />
   ) : null;
 
+  const theme = (
+    <SiteThemeStyle themeId={themeId} themeSettings={themeSettings} />
+  );
+
   if (contentUnreadable || layoutUnreadable) {
     return (
-      <div className="flex flex-1 flex-col">
+      <div className="ps-site flex flex-1 flex-col">
+        {theme}
         {banner}
         <a href="#main-content" className={skipLinkClassName}>
           Skip to main content
@@ -101,7 +112,8 @@ export function PublicPageView({
 
   if (!hasContent) {
     return (
-      <div className="flex flex-1 flex-col">
+      <div className="ps-site flex flex-1 flex-col">
+        {theme}
         {banner}
         <a href="#main-content" className={skipLinkClassName}>
           Skip to main content
@@ -115,7 +127,7 @@ export function PublicPageView({
               {page.title}
             </h1>
             {page.description ? (
-              <p className="text-lg leading-8 text-muted-foreground">
+              <p className="ps-muted text-lg leading-8">
                 {page.description}
               </p>
             ) : null}
@@ -126,7 +138,8 @@ export function PublicPageView({
   }
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="ps-site flex flex-1 flex-col">
+      {theme}
       {banner}
       <a href="#main-content" className={skipLinkClassName}>
         Skip to main content

@@ -7,6 +7,7 @@ import {
   BoxesIcon,
   FileTextIcon,
   LayoutDashboardIcon,
+  PaletteIcon,
   ShieldIcon,
   UsersIcon,
 } from "lucide-react";
@@ -20,6 +21,7 @@ const ICONS = {
   roles: ShieldIcon,
   pages: FileTextIcon,
   blocks: BoxesIcon,
+  themes: PaletteIcon,
 } as const;
 
 export type DashboardNavItem = {

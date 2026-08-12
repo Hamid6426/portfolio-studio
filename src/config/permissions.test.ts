@@ -115,6 +115,18 @@ describe("canAccessRoute", () => {
       expected: true,
     },
     {
+      name: "editor defaults allow themes",
+      permissions: DEFAULT_ROLE_PERMISSIONS.editor,
+      pathname: "/dashboard/themes",
+      expected: true,
+    },
+    {
+      name: "viewer defaults deny themes",
+      permissions: DEFAULT_ROLE_PERMISSIONS.viewer,
+      pathname: "/dashboard/themes",
+      expected: false,
+    },
+    {
       name: "editor defaults deny users",
       permissions: DEFAULT_ROLE_PERMISSIONS.editor,
       pathname: "/dashboard/users",

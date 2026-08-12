@@ -31,6 +31,11 @@ const navItems: DashboardNavItem[] = [
     icon: "blocks",
   },
   {
+    href: "/dashboard/themes",
+    label: "Themes",
+    icon: "themes",
+  },
+  {
     href: "/dashboard/users",
     label: "Users",
     icon: "users",

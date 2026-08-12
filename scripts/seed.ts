@@ -28,12 +28,14 @@ import { fileURLToPath } from "node:url";
 import { db } from "@/db/client";
 import {
   pagesTable,
+  siteSettingsTable,
   userTable,
   type BlockNode,
   type PublishedPageSnapshot,
 } from "@/db/schema";
 import { hashPassword } from "@/lib/password";
 import { toBlockDocument } from "@/lib/blocks/document";
+import { DEFAULT_THEME_ID } from "@/lib/themes/registry";
 import { ensureDefaultRoles } from "@/repositories/roles";
 
 import type { PortfolioDataset, SeedPage } from "./datasets/types";
@@ -137,6 +139,25 @@ async function seedRoles(): Promise<void> {
   // land before the admin insert or it fails with a constraint violation.
   await ensureDefaultRoles();
   log("roles      ensured admin / editor / viewer with default permissions");
+}
+
+async function seedSiteSettings(): Promise<void> {
+  const existing = await db.query.siteSettingsTable.findFirst({
+    where: eq(siteSettingsTable.key, "default"),
+    columns: { id: true, themeId: true },
+  });
+
+  if (existing) {
+    log(`theme      site theme already set (${existing.themeId}) — left unchanged`);
+    return;
+  }
+
+  await db.insert(siteSettingsTable).values({
+    key: "default",
+    themeId: DEFAULT_THEME_ID,
+    themeSettings: {},
+  });
+  log(`theme      created default site theme (${DEFAULT_THEME_ID})`);
 }
 
 async function seedAdminUser(admin: PortfolioDataset["admin"]): Promise<void> {
@@ -273,6 +294,7 @@ async function main(): Promise<void> {
   if (force) log("seed       --force: existing seeded pages will be rewritten");
 
   await seedRoles();
+  await seedSiteSettings();
   await seedAdminUser(dataset.admin);
 
   for (const page of dataset.pages) {

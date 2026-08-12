@@ -38,7 +38,9 @@ import {
   findNode,
   findParent,
 } from "@/components/page-editor/tree-ops";
+import { SiteThemeStyle } from "@/components/site-theme-style";
 import type { BlockNode } from "@/db/schema";
+import { useSiteThemeQuery } from "@/queries/themes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -315,6 +317,8 @@ export function EditorCanvas({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [drop, setDrop] = useState<DropState | null>(null);
   const [viewport, setViewport] = useState<ViewportWidth>("full");
+  const themeQuery = useSiteThemeQuery();
+  const theme = themeQuery.data?.success ? themeQuery.data.data : null;
 
   const activeNode = activeId ? findNode(content, activeId) : null;
 
@@ -402,13 +406,19 @@ export function EditorCanvas({
       </div>
       <div
         className={cn(
-          "mx-auto min-h-[70vh] rounded-xl bg-background text-foreground shadow-2xl ring-1 ring-border transition-[max-width] duration-200",
+          "ps-site mx-auto min-h-[70vh] rounded-xl shadow-2xl ring-1 ring-border transition-[max-width] duration-200",
           VIEWPORT_MAX_WIDTH[viewport],
         )}
         onClick={(event) => event.stopPropagation()}
       >
+        {theme ? (
+          <SiteThemeStyle
+            themeId={theme.themeId}
+            themeSettings={theme.themeSettings}
+          />
+        ) : null}
         {content.length === 0 ? (
-          <div className="flex min-h-[50vh] flex-col items-center justify-center gap-2 p-10 text-center text-sm text-muted-foreground">
+          <div className="ps-muted flex min-h-[50vh] flex-col items-center justify-center gap-2 p-10 text-center text-sm">
             <p>Empty canvas</p>
             <p>Add elements from the right sidebar to start building.</p>
           </div>

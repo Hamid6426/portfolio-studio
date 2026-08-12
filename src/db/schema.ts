@@ -133,3 +133,27 @@ export const pagesTable = pgTable("pages", {
   /** What the public site serves. Written on publish, `null` until then. */
   publishedSnapshot: jsonb("published_snapshot").$type<PublishedPageSnapshot>(),
 });
+
+/**
+ * Singleton site configuration (one row, `key = 'default'`).
+ * Theme definitions live in code; this table stores the active selection and
+ * optional token overrides.
+ */
+export type SiteThemeSettings = {
+  primaryColor?: string;
+  radius?: string;
+  sectionSpacing?: string;
+  fontBody?: string;
+};
+
+export const siteSettingsTable = pgTable("site_settings", {
+  ...baseColumns,
+  /** Always `"default"` for the single-site install. */
+  key: varchar("key", { length: 64 }).notNull().unique().default("default"),
+  /** Must match an id in `src/lib/themes/registry.ts`. */
+  themeId: varchar("theme_id", { length: 64 }).notNull().default("developer"),
+  themeSettings: jsonb("theme_settings")
+    .$type<SiteThemeSettings>()
+    .notNull()
+    .default(sql`'{}'::jsonb`),
+});

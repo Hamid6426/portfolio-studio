@@ -19,6 +19,7 @@ export const ROUTE_PERMISSIONS = {
   dashboardRoles: "route:/dashboard/roles/*",
   dashboardPages: "route:/dashboard/pages/*",
   dashboardBlocks: "route:/dashboard/blocks/*",
+  dashboardThemes: "route:/dashboard/themes/*",
   setup: "route:/setup",
   setupGuide: "route:/setup-guide",
   login: "route:/login",
@@ -41,6 +42,7 @@ export const BUTTON_PERMISSIONS = {
   blocksCreate: "button:blocks-create",
   blocksEdit: "button:blocks-edit",
   blocksDelete: "button:blocks-delete",
+  themesEdit: "button:themes-edit",
 } as const;
 
 export const PERMISSIONS = {
@@ -65,6 +67,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     PERMISSIONS.dashboardOverview,
     PERMISSIONS.dashboardPages,
     PERMISSIONS.dashboardBlocks,
+    PERMISSIONS.dashboardThemes,
     PERMISSIONS.login,
     PERMISSIONS.signIn,
     PERMISSIONS.signOut,
@@ -75,6 +78,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     PERMISSIONS.blocksCreate,
     PERMISSIONS.blocksEdit,
     PERMISSIONS.blocksDelete,
+    PERMISSIONS.themesEdit,
   ],
   viewer: [
     PERMISSIONS.dashboardOverview,

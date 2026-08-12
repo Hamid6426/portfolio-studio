@@ -10,26 +10,20 @@ Read `AGENTS.md` first — it is the authority on stack, layering and routes.
 
 ## Now — product surface
 
-BlockDocument v2 (responsive styles + generated classes + public `style-src-attr
-'none'`) is done. Next work changes product shape rather than the data model.
-
-Ordered by how much they change the system. **Themes are first** — they can now
-compose with generated classes instead of losing to inline attributes.
-
-### Theme engine
-One-click theme switching from the spec. Nothing exists today: one fixed `:root`
-token block in `globals.css`, no `.dark`, no switcher, no `themes` table.
-`next-themes` was removed in `a4e2e87` — check why before reintroducing it.
-
-Under **Blocks only**, a theme restyles design tokens and may swap layout blocks;
-it cannot relayout the same content. Decide how theme tokens compose with
-hand-set node styles (classes from v2): tokens as CSS variables that node styles
-may reference, or a cascade layer below `.ps-*` rules.
+Theme engine (registry + `site_settings` + `/dashboard/themes`) is done. Next
+work deepens authoring and assets.
 
 ### Media and uploads
 The image block is a raw URL field. A real media picker needs storage, an upload
 route, an asset table, and a browser UI. Large. Do not assume uploadthing — it is
 not a dependency.
+
+### Theme follow-ups (optional)
+- Theme-driven layout block swap (registry suggests a layout; applying a theme
+  can set a site-wide default layout for pages without `blockId`).
+- Per-theme dark/light pair toggled from settings (today each theme is one
+  complete token set).
+- Nonce-hardened CSP for the theme `<style>` block once Next nonces are wired.
 
 ### Editor capability
 - Inline text editing on canvas (today headings edit via sidebar).
@@ -65,3 +59,6 @@ tenant-to-domain mapping.**
 - **Viewport `@media` instead of `@container`** for block breakpoints — container
   queries are required so the editor device-width toggle and the public wrapper share
   one stylesheet.
+- **`next-themes` for OS light/dark** — removed in `a4e2e87` as unused. Portfolio
+  themes are server-selected site tokens, not a client preference toggle for the
+  dashboard chrome.

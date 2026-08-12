@@ -10,6 +10,7 @@ import {
 } from "@/lib/pages/preview-path";
 import { getLayoutBlockNodes } from "@/repositories/blocks";
 import { getCachedPublishedPage, getDraftPage } from "@/repositories/pages";
+import { getCachedSiteTheme } from "@/repositories/site-theme";
 
 /**
  * No `dynamic` export: the root layout's startup gate reads `headers()`, which
@@ -48,7 +49,10 @@ export async function generateMetadata({
 
 /** `/` — CMS landing page (`pages.slug` is null). */
 export default async function RootPage({ searchParams }: RootPageProps) {
-  const { page, isPreview } = await resolveRootPage(searchParams);
+  const [{ page, isPreview }, theme] = await Promise.all([
+    resolveRootPage(searchParams),
+    getCachedSiteTheme(),
+  ]);
 
   if (!page) {
     notFound();
@@ -78,6 +82,8 @@ export default async function RootPage({ searchParams }: RootPageProps) {
       isPreview={isPreview}
       layoutUnreadable={layoutUnreadable}
       layoutUnsupportedVersion={layoutUnsupportedVersion}
+      themeId={theme.themeId}
+      themeSettings={theme.themeSettings}
     />
   );
 }

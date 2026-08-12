@@ -3,9 +3,9 @@
  * trees. Every layout and styling decision the seed makes lives in this file,
  * which is what lets a dataset be pure content.
  *
- * The public site renders on a dark surface (`globals.css` pins
- * `color-scheme: dark`), so colours here are translucent whites over the page
- * background rather than fixed hex values.
+ * The public site is wrapped in `.ps-site` with theme tokens (`--ps-*`). Seed
+ * colours reference those variables so switching themes restyles content without
+ * rewriting the block tree.
  *
  * Composition notes — the editor has no list, table or card block, so:
  * - lists are one `text` node per item, prefixed with a bullet glyph (a single
@@ -49,20 +49,23 @@ import {
 
 /* ── shared style tokens ─────────────────────────────────────────────────── */
 
-const MUTED = "rgba(255,255,255,0.72)";
-const SUBTLE = "rgba(255,255,255,0.55)";
-const HAIRLINE = "1px solid rgba(255,255,255,0.12)";
-const CARD_BG = "rgba(255,255,255,0.04)";
+/** Follow the active site theme (`--ps-*` from `.ps-site`). */
+const MUTED = "var(--ps-muted)";
+const SUBTLE = "var(--ps-subtle)";
+const HAIRLINE = "1px solid var(--ps-border)";
+const CARD_BG = "var(--ps-card)";
 
-const SECTION: Record<string, string> = { padding: "56px 24px" };
+const SECTION: Record<string, string> = {
+  padding: "var(--ps-section-gap) 24px",
+};
 const SECTION_ALT: Record<string, string> = {
-  padding: "56px 24px",
-  background: "rgba(255,255,255,0.03)",
+  padding: "var(--ps-section-gap) 24px",
+  background: "var(--ps-surface-alt)",
 };
 const SECTION_TIGHT: Record<string, string> = { padding: "24px 24px 8px" };
 const SECTION_TIGHT_ALT: Record<string, string> = {
   padding: "24px 24px 8px",
-  background: "rgba(255,255,255,0.03)",
+  background: "var(--ps-surface-alt)",
 };
 const WRAP: Record<string, string> = { maxWidth: "920px", gap: "20px" };
 const ROW: Record<string, string> = {
@@ -106,7 +109,7 @@ const CARD: Record<string, string> = {
   padding: "18px 20px",
   background: CARD_BG,
   border: HAIRLINE,
-  borderRadius: "12px",
+  borderRadius: "var(--ps-radius)",
   width: "100%",
   maxWidth: "100%",
   flex: "1 1 240px",
@@ -115,13 +118,13 @@ const CARD: Record<string, string> = {
 const FLUSH_ROW: Record<string, string> = {
   gap: "2px",
   padding: "12px 0",
-  borderTop: "1px solid rgba(255,255,255,0.10)",
+  borderTop: HAIRLINE,
   width: "100%",
   maxWidth: "100%",
 };
 const LINK_BUTTON: Record<string, string> = {
-  background: "rgba(255,255,255,0.08)",
-  color: "rgba(255,255,255,0.95)",
+  background: "var(--ps-card)",
+  color: "var(--ps-foreground)",
   border: HAIRLINE,
   borderRadius: "999px",
   padding: "9px 16px",
@@ -130,8 +133,8 @@ const LINK_BUTTON: Record<string, string> = {
   flex: "0 1 auto",
 };
 const PRIMARY_BUTTON: Record<string, string> = {
-  background: "#ffffff",
-  color: "#111111",
+  background: "var(--ps-primary)",
+  color: "var(--ps-primary-foreground)",
   borderRadius: "999px",
   padding: "10px 20px",
   fontSize: "15px",
@@ -204,7 +207,7 @@ function navRow(nav: NavLink[], currentHref: string): BlockNode {
         link.label,
         link.href,
         link.href === currentHref
-          ? { ...LINK_BUTTON, background: "rgba(255,255,255,0.18)" }
+          ? { ...LINK_BUTTON, background: "var(--ps-surface-alt)" }
           : LINK_BUTTON,
       ),
     ),

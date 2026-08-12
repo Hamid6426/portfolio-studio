@@ -57,7 +57,7 @@ Keep gate redirect targets in PUBLIC_ROUTES or loops occur.
 
 ## Routes (do not invent)
 
-`/` · `/home` · `/setup` · `/setup-guide` · `/login` · `/dashboard/overview` · `/dashboard/pages` · `/dashboard/pages/edit` · `/dashboard/blocks` · `/dashboard/blocks/edit` · `/dashboard/users` · `/dashboard/roles` · `/error/database` · `/[slug]` · `/sitemap.xml` · `/robots.txt`
+`/` · `/home` · `/setup` · `/setup-guide` · `/login` · `/dashboard/overview` · `/dashboard/pages` · `/dashboard/pages/edit` · `/dashboard/blocks` · `/dashboard/blocks/edit` · `/dashboard/themes` · `/dashboard/users` · `/dashboard/roles` · `/error/database` · `/[slug]` · `/sitemap.xml` · `/robots.txt`
 
 Adding a dashboard route requires adding a matching `route:` permission in `src/config/permissions.ts`. Matching is **longest declared route wins, default deny** — undeclared paths (including for admin) are rejected. Use `route:/path/*` for a subtree; bare `route:/dashboard` is exact-only and never escalates into children.
 

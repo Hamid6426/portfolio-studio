@@ -225,6 +225,27 @@ to **2** with migrate-on-read (v1 flat maps → `{ base: … }`; no SQL rewrite)
 
 ---
 
+## Theme engine
+
+Portfolio themes are code-defined (`src/lib/themes/registry.ts`); the live
+selection lives in a singleton `site_settings` row (`theme_id` + optional
+overrides). `next-themes` stays out — it was removed unused in `a4e2e87`, and OS
+preference is the wrong model for a single published site look.
+
+**Composition with BlockDocument v2:** tokens become `--ps-*` custom properties on
+`.ps-site` via a generated `<style>` block (same CSP story as block classes).
+Hand-set `.ps-*` rules win when they use concrete colours; seeded content uses
+`var(--ps-…)` so switching themes restyles without rewriting trees.
+
+Dashboard at `/dashboard/themes` (admin + editor): pick Minimal / Modern /
+Creative / Professional / Developer, override primary / radius / section spacing /
+body font. Public pages and the editor canvas both apply the active theme.
+
+Migration `0014` creates `site_settings` and grants the themes route to existing
+admin/editor roles.
+
+---
+
 ## Migrations
 
 | | |

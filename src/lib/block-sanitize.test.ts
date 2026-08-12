@@ -44,4 +44,18 @@ describe("sanitizeStyles", () => {
       width: "1px",
     });
   });
+
+  it("allows theme CSS variables", () => {
+    expect(
+      sanitizeStyles({
+        color: "var(--ps-muted)",
+        background: "var(--ps-surface-alt)",
+        padding: "var(--ps-section-gap) 24px",
+      }),
+    ).toEqual({
+      color: "var(--ps-muted)",
+      background: "var(--ps-surface-alt)",
+      padding: "var(--ps-section-gap) 24px",
+    });
+  });
 });

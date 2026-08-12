@@ -70,6 +70,9 @@ export default async function OverviewPage() {
           <Button render={<Link href="/dashboard/pages" />} variant="outline">
             Manage pages
           </Button>
+          <Button render={<Link href="/dashboard/themes" />} variant="outline">
+            Themes
+          </Button>
           <Button render={<Link href="/setup-guide" />} variant="outline">
             Read setup guide
           </Button>

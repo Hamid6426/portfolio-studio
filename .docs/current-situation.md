@@ -1,6 +1,6 @@
 # Current situation
 
-**Last verified: 2026-08-12 (BlockDocument v2).** Treat this header as an
+**Last verified: 2026-08-12 (theme engine).** Treat this header as an
 expiry stamp — re-check against the tree before acting on anything critical.
 
 A snapshot of what actually works, what is known-broken, and the design decisions that
@@ -13,7 +13,7 @@ For completed reasoning, see [`whats-done.md`](./whats-done.md).
 
 The core builder loop is complete. The security/correctness remediation and the
 follow-up open-issue backlog are closed. The product is usable for day-to-day
-authoring; remaining work is product depth (themes, media, editor capability), not
+authoring; remaining work is product depth (media, editor capability), not
 blocking bugs.
 
 Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run build`.
@@ -35,6 +35,8 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
   unset/mixed state; section `aria-label`; missing-`<h1>` warning on pages.
 - Dirty-nav Dialog covers sidebar, logo, sign-out, and conflict reload.
 - Reusable layout blocks at `/dashboard/blocks/edit?id=` with their own publish step.
+- Site themes at `/dashboard/themes` — registry tokens on `.ps-site`, live on
+  public pages and the editor canvas.
 
 ### Publishing
 - `pages.content` draft vs `pages.published_snapshot` public payload.
@@ -89,8 +91,9 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
    allowlist must land together. Styles are authored per slice (`base`/`sm`/…) and
    emitted as CSS text — unsafe values are stripped before the stylesheet is built.
 7. **Cache keys must not use `""`** — landing page uses `"__root__"` for the null slug.
-8. **Block breakpoints use `@container`, not viewport `@media`** — the editor’s
-   device-width toggle only works if the tree is a containment context (`.ps-tree`).
+9. **Portfolio themes ≠ dashboard chrome** — `:root` tokens stay for the CMS UI;
+   public/editor canvas use `.ps-site` + `--ps-*`. Do not wire `next-themes` for
+   site appearance.
 
 ---
 
@@ -99,8 +102,9 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
 None from the previous 17-item backlog. Remaining work is planned product depth — see
 [`future-plans.md`](./future-plans.md). Operator follow-up on existing installs:
 
-- Run `bun run db:migrate` through `0013` if not already applied.
-- Re-seed with `bun run db:seed -- --force` if rows predate the flex-wrap seed fix.
+- Run `bun run db:migrate` through `0014` if not already applied.
+- Re-seed with `bun run db:seed -- --force` if rows predate theme CSS variables
+  in section seeds (or the flex-wrap seed fix).
 - Optionally add `public/og.png` for social previews (metadata intentionally omits a
   broken image URL until the file exists).
 
