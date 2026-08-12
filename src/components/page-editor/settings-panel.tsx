@@ -177,16 +177,37 @@ export function SettingsPanel({
                 value={String(props.text ?? "")}
                 rows={selected.type === "listItem" ? 2 : 4}
                 className="min-h-16 w-full rounded-md border border-input bg-transparent px-2 py-1.5 text-xs shadow-none"
-                onChange={(event) => setProp("text", event.target.value)}
+                onChange={(event) => {
+                  const text = event.target.value;
+                  const next: Record<string, unknown> = { ...props, text };
+                  delete next.spans;
+                  onChange(next);
+                }}
               />
             ) : (
               <CompactInput
                 id="prop-text"
                 value={String(props.text ?? "")}
-                onChange={(value) => setProp("text", value)}
+                onChange={(value) => {
+                  const next: Record<string, unknown> = { ...props, text: value };
+                  delete next.spans;
+                  onChange(next);
+                }}
               />
             )}
           </FieldRow>
+
+          {selected.type === "heading" ||
+          selected.type === "text" ||
+          selected.type === "listItem" ? (
+            <p className="text-[10px] leading-snug text-muted-foreground">
+              Marks: double-click the canvas, select text, then{" "}
+              <kbd className="font-mono">Ctrl/Cmd+B</kbd> bold,{" "}
+              <kbd className="font-mono">Ctrl/Cmd+I</kbd> italic,{" "}
+              <kbd className="font-mono">Ctrl/Cmd+K</kbd> link. Editing text
+              here clears marks.
+            </p>
+          ) : null}
 
           {selected.type === "heading" ? (
             <FieldRow label="Level" htmlFor="prop-level">

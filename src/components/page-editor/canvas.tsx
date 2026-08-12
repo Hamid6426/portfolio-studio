@@ -41,6 +41,7 @@ import {
 } from "@/components/page-editor/tree-ops";
 import { SiteThemeStyle } from "@/components/site-theme-style";
 import type { BlockNode } from "@/db/schema.types";
+import type { TextSpan } from "@/lib/blocks/rich-text";
 import { useSiteThemeQuery } from "@/queries/themes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -58,8 +59,11 @@ type CanvasProps = {
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onReorder: (nodeId: string, parentId: string | null, index: number) => void;
-  /** Update a node's `props.text` (inline canvas editing). */
-  onTextChange: (nodeId: string, text: string) => void;
+  /** Update a node's text / optional rich spans (inline canvas editing). */
+  onTextChange: (
+    nodeId: string,
+    next: { text: string; spans: TextSpan[] },
+  ) => void;
 };
 
 type SortableTreeProps = {
@@ -68,7 +72,10 @@ type SortableTreeProps = {
   parentId: string | null;
   selectedId: string | null;
   onSelect: (id: string) => void;
-  onTextChange: (nodeId: string, text: string) => void;
+  onTextChange: (
+    nodeId: string,
+    next: { text: string; spans: TextSpan[] },
+  ) => void;
 };
 
 /** Where the dragged node will land, in `moveNode` coordinates. */
@@ -223,7 +230,10 @@ function SortableBlock({
   node: BlockNode;
   selectedId: string | null;
   onSelect: (id: string) => void;
-  onTextChange: (nodeId: string, text: string) => void;
+  onTextChange: (
+    nodeId: string,
+    next: { text: string; spans: TextSpan[] },
+  ) => void;
 }) {
   const { listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: node.id });
@@ -259,14 +269,18 @@ function SortableBlock({
           node: textNode,
           tag,
           text,
+          spans,
           multiline,
+          allowLinks,
           className,
           domProps,
         }) => (
           <InlineEditableText
             tag={tag}
             text={text}
+            spans={spans}
             multiline={multiline}
+            allowLinks={allowLinks}
             selected={selectedId === textNode.id}
             className={className}
             domProps={domProps}

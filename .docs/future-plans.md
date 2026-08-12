@@ -19,8 +19,8 @@ Stay inside the **self-hosted, single-site** CMS scope.
    pauses on pending / external conflict; 409 opens the existing dialog.
 5. ~~**Version history**~~ — `content_revisions` table; History dialog restore;
    autosave revisions throttled (5 min) / deduped; keep last 50.
-6. **Richer text marks** (bold / italic / links) — last among editor items;
-   needs a real text model beyond plain `props.text` strings.
+6. ~~**Richer text marks**~~ — `props.spans` (bold / italic / link); canvas
+   Ctrl/Cmd+B|I|K while editing; plain `text` still works.
 7. **Multi-select** — shift/ctrl selection for bulk duplicate/copy/delete.
 ---
 

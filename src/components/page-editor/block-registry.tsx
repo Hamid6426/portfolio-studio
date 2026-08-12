@@ -8,6 +8,11 @@ import {
   type ResponsiveStyles,
   type StylePropertyMap,
 } from "@/lib/blocks/styles";
+import {
+  normalizeRichTextProps,
+  renderRichTextSpans,
+  type TextSpan,
+} from "@/lib/blocks/rich-text";
 import { isExternalUrl, sanitizeEmbedUrl, sanitizeUrl } from "@/lib/block-sanitize";
 import { cn } from "@/lib/utils";
 
@@ -249,7 +254,9 @@ type RenderOpts = {
     node: BlockNode;
     tag: "h1" | "h2" | "h3" | "h4" | "p" | "span" | "li";
     text: string;
+    spans: TextSpan[];
     multiline: boolean;
+    allowLinks: boolean;
     className: string;
     domProps: Record<string, unknown>;
   }) => ReactNode;
@@ -342,7 +349,7 @@ function BlockRenderer({
       return <div {...common}>{children}</div>;
     case "heading": {
       const level = Number(node.props.level ?? 2);
-      const text = String(node.props.text ?? "");
+      const rich = normalizeRichTextProps(node.props);
       const Tag = (
         level === 1
           ? "h1"
@@ -356,8 +363,10 @@ function BlockRenderer({
         return opts.renderEditableText({
           node,
           tag: Tag,
-          text,
+          text: rich.text,
+          spans: rich.spans,
           multiline: false,
+          allowLinks: true,
           className: common.className,
           domProps: {
             onClick: common.onClick,
@@ -365,16 +374,18 @@ function BlockRenderer({
           },
         });
       }
-      return <Tag {...common}>{text}</Tag>;
+      return <Tag {...common}>{renderRichTextSpans(rich.spans)}</Tag>;
     }
     case "text": {
-      const text = String(node.props.text ?? "");
+      const rich = normalizeRichTextProps(node.props);
       if (editable && opts.renderEditableText) {
         return opts.renderEditableText({
           node,
           tag: "p",
-          text,
+          text: rich.text,
+          spans: rich.spans,
           multiline: true,
+          allowLinks: true,
           className: cn(common.className, "whitespace-pre-wrap"),
           domProps: {
             onClick: common.onClick,
@@ -384,7 +395,7 @@ function BlockRenderer({
       }
       return (
         <p {...common} className={cn(common.className, "whitespace-pre-wrap")}>
-          {text}
+          {renderRichTextSpans(rich.spans)}
         </p>
       );
     }
@@ -394,13 +405,15 @@ function BlockRenderer({
       return <Tag {...common}>{children}</Tag>;
     }
     case "listItem": {
-      const text = String(node.props.text ?? "");
+      const rich = normalizeRichTextProps(node.props);
       if (editable && opts.renderEditableText) {
         return opts.renderEditableText({
           node,
           tag: "li",
-          text,
+          text: rich.text,
+          spans: rich.spans,
           multiline: true,
+          allowLinks: true,
           className: cn(common.className, "whitespace-pre-wrap"),
           domProps: {
             onClick: common.onClick,
@@ -410,7 +423,7 @@ function BlockRenderer({
       }
       return (
         <li {...common} className={cn(common.className, "whitespace-pre-wrap")}>
-          {text}
+          {renderRichTextSpans(rich.spans)}
         </li>
       );
     }
@@ -463,13 +476,16 @@ function BlockRenderer({
     }
     case "button": {
       const href = sanitizeUrl(node.props.href, "#");
-      const label = String(node.props.text ?? "Button");
+      const rich = normalizeRichTextProps(node.props);
+      const label = rich.text || "Button";
       if (editable && opts.renderEditableText) {
         return opts.renderEditableText({
           node,
           tag: "span",
           text: label,
+          spans: rich.spans.length ? rich.spans : [{ text: label }],
           multiline: false,
+          allowLinks: false,
           className: common.className,
           domProps: {
             role: "link",
@@ -497,7 +513,9 @@ function BlockRenderer({
               : undefined
           }
         >
-          {label}
+          {renderRichTextSpans(rich.spans.length ? rich.spans : [{ text: label }], {
+            editableLinks: false,
+          })}
         </a>
       );
     }

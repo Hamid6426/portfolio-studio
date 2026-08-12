@@ -30,6 +30,7 @@ import {
   duplicateNodeAfter,
 } from "@/components/page-editor/tree-ops";
 import type { BlockNode } from "@/db/schema.types";
+import type { TextSpan } from "@/lib/blocks/rich-text";
 import type { ResponsiveStyles } from "@/lib/blocks/styles";
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -381,13 +382,25 @@ export function useEditorDocument({
     );
   }
 
-  function updateNodeText(nodeId: string, text: string) {
+  function updateNodeText(
+    nodeId: string,
+    next: { text: string; spans: TextSpan[] },
+  ) {
     apply(
       (nodes) =>
-        updateNodeById(nodes, nodeId, (node) => ({
-          ...node,
-          props: { ...node.props, text },
-        })),
+        updateNodeById(nodes, nodeId, (node) => {
+          const props: Record<string, unknown> = {
+            ...node.props,
+            text: next.text,
+          };
+          const hasMarks = next.spans.some((span) => Boolean(span.marks));
+          if (hasMarks) {
+            props.spans = next.spans;
+          } else {
+            delete props.spans;
+          }
+          return { ...node, props };
+        }),
       `${nodeId}:props`,
     );
     if (selectedId !== nodeId) {

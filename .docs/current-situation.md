@@ -1,6 +1,6 @@
 # Current situation
 
-**Last verified: 2026-08-12 (version history).** Treat this header as an
+**Last verified: 2026-08-12 (rich text marks).** Treat this header as an
 expiry stamp — re-check against the tree before acting on anything critical.
 
 A snapshot of what actually works, what is known-broken, and the design decisions that
@@ -41,8 +41,9 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
   public pages and the editor canvas.
 - Local media at `/dashboard/media` and the image-block library picker — files in
   `upload/`, URLs at `/upload/…`.
-- Inline canvas editing for heading / text / button (double-click); text blocks
-  support line breaks.
+- Inline canvas editing for heading / text / button / list item (double-click);
+  text / list items support line breaks; **bold / italic / link** marks via
+  `props.spans` (Ctrl/Cmd+B|I|K while editing).
 - Duplicate selected block (Layers, Settings, `Ctrl/Cmd+D`) with remapped ids.
 - Copy / cut / paste blocks (shared in-tab clipboard + best-effort system JSON).
 - Debounced autosave (2s, quiet) while dirty; manual Save still toasts.

@@ -10,17 +10,29 @@ import {
   type PointerEvent,
 } from "react";
 
+import {
+  normalizeRichTextProps,
+  renderRichTextSpans,
+  richTextPropsPatch,
+  spansFromEditorElement,
+  spansToEditorHtml,
+  type TextSpan,
+} from "@/lib/blocks/rich-text";
 import { cn } from "@/lib/utils";
 
 type InlineEditableTextProps = {
   tag: ElementType;
   text: string;
+  /** When set, rendered/edited as rich text (bold / italic / links). */
+  spans?: TextSpan[];
   className?: string;
   /** When true, Enter inserts a newline; otherwise Enter commits. */
   multiline?: boolean;
+  /** Allow link marks (heading / text / listItem). */
+  allowLinks?: boolean;
   selected?: boolean;
   onSelect: () => void;
-  onChange: (text: string) => void;
+  onChange: (next: { text: string; spans: TextSpan[] }) => void;
   /** Extra DOM props (data-block-id, etc.). */
   domProps?: Record<string, unknown>;
 };
@@ -28,12 +40,15 @@ type InlineEditableTextProps = {
 /**
  * Canvas text editing: click selects, double-click (or Enter when selected)
  * enters contentEditable. Commits on blur; Escape cancels.
+ * While editing: Ctrl/Cmd+B bold, Ctrl/Cmd+I italic, Ctrl/Cmd+K link.
  */
 export function InlineEditableText({
   tag: Tag,
   text,
+  spans: spansProp,
   className,
   multiline = false,
+  allowLinks = true,
   selected = false,
   onSelect,
   onChange,
@@ -41,21 +56,19 @@ export function InlineEditableText({
 }: InlineEditableTextProps) {
   const ref = useRef<HTMLElement | null>(null);
   const [editing, setEditing] = useState(false);
-  const draftRef = useRef(text);
+  const normalised = normalizeRichTextProps({ text, spans: spansProp });
+  const draftSpansRef = useRef(normalised.spans);
 
   useEffect(() => {
     if (!editing) {
-      draftRef.current = text;
-      if (ref.current && ref.current.textContent !== text) {
-        ref.current.textContent = text;
-      }
+      draftSpansRef.current = normalised.spans;
     }
-  }, [text, editing]);
+  }, [editing, normalised.spans, normalised.text]);
 
   useEffect(() => {
     if (!editing || !ref.current) return;
     const el = ref.current;
-    el.textContent = draftRef.current;
+    el.innerHTML = spansToEditorHtml(draftSpansRef.current, multiline);
     el.focus();
     const selection = window.getSelection();
     if (!selection) return;
@@ -64,33 +77,72 @@ export function InlineEditableText({
     range.collapse(false);
     selection.removeAllRanges();
     selection.addRange(range);
-  }, [editing]);
+  }, [editing, multiline]);
+
+  function readSpans(): TextSpan[] {
+    if (!ref.current) return draftSpansRef.current;
+    return spansFromEditorElement(ref.current, multiline);
+  }
+
+  function emit(spans: TextSpan[]) {
+    const patch = richTextPropsPatch(spans);
+    draftSpansRef.current = patch.spans;
+    onChange(patch);
+  }
 
   function startEditing(event: MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
     onSelect();
-    draftRef.current = text;
+    draftSpansRef.current = normalised.spans;
     setEditing(true);
   }
 
   function commit() {
     if (!editing) return;
-    const next = normalizeEditableText(draftRef.current, multiline);
+    const spans = readSpans();
     setEditing(false);
-    if (next !== text) onChange(next);
+    const patch = richTextPropsPatch(spans);
+    if (
+      patch.text !== normalised.text ||
+      JSON.stringify(patch.spans) !== JSON.stringify(normalised.spans)
+    ) {
+      onChange(patch);
+    }
   }
 
   function cancel() {
-    draftRef.current = text;
-    if (ref.current) ref.current.textContent = text;
+    draftSpansRef.current = normalised.spans;
+    if (ref.current) {
+      ref.current.innerHTML = spansToEditorHtml(normalised.spans, multiline);
+    }
     setEditing(false);
   }
 
   function onInput() {
-    const raw = ref.current?.innerText ?? "";
-    draftRef.current = raw;
-    onChange(normalizeEditableText(raw, multiline));
+    emit(readSpans());
+  }
+
+  function toggleLink() {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+      return;
+    }
+    const existing = document.queryCommandValue("createLink");
+    if (existing && existing !== "false") {
+      document.execCommand("unlink");
+      emit(readSpans());
+      return;
+    }
+    const href = window.prompt("Link URL", "https://");
+    if (href == null) return;
+    const trimmed = href.trim();
+    if (!trimmed) {
+      document.execCommand("unlink");
+    } else {
+      document.execCommand("createLink", false, trimmed);
+    }
+    emit(readSpans());
   }
 
   function onKeyDown(event: KeyboardEvent) {
@@ -98,7 +150,7 @@ export function InlineEditableText({
       if (selected && (event.key === "Enter" || event.key === "F2")) {
         event.preventDefault();
         event.stopPropagation();
-        draftRef.current = text;
+        draftSpansRef.current = normalised.spans;
         setEditing(true);
       }
       return;
@@ -109,6 +161,25 @@ export function InlineEditableText({
     if (event.key === "Escape") {
       event.preventDefault();
       cancel();
+      return;
+    }
+
+    const mod = event.metaKey || event.ctrlKey;
+    if (mod && event.key.toLowerCase() === "b") {
+      event.preventDefault();
+      document.execCommand("bold");
+      emit(readSpans());
+      return;
+    }
+    if (mod && event.key.toLowerCase() === "i") {
+      event.preventDefault();
+      document.execCommand("italic");
+      emit(readSpans());
+      return;
+    }
+    if (mod && allowLinks && event.key.toLowerCase() === "k") {
+      event.preventDefault();
+      toggleLink();
       return;
     }
 
@@ -145,7 +216,9 @@ export function InlineEditableText({
         if (editing) event.stopPropagation();
       }}
     >
-      {editing ? undefined : text}
+      {editing
+        ? undefined
+        : renderRichTextSpans(normalised.spans, { editableLinks: false })}
     </Tag>
   );
 }

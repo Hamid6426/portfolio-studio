@@ -330,6 +330,16 @@ opens a list and can restore (blocked while dirty). Migration `0016`.
 
 ---
 
+## Rich text marks
+
+Heading / text / listItem (and button labels for bold/italic) store optional
+`props.spans: { text, marks? }[]` alongside plain `props.text`. Missing spans
+migrate on read to a single unmarked run. Links are sanitised (`sanitizeUrl`).
+Canvas editing round-trips through a small HTML subset; shortcuts Ctrl/Cmd+B,
+I, and K (link). Sidebar text fields rewrite plain text and clear spans.
+
+---
+
 ## Migrations
 
 | | |
