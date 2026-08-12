@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 
 import { useEditorDocument } from "@/components/page-editor/use-editor-document";
@@ -16,12 +16,16 @@ export function useBlockEditor(
 ) {
   const serverContent = useMemo(() => block.children ?? [], [block.children]);
   const updateMutation = useUpdateBlockMutation();
+  const updatedAtRef = useRef(block.updatedAt);
+  useEffect(() => {
+    updatedAtRef.current = block.updatedAt;
+  }, [block.updatedAt]);
 
   async function onSave(
     children: BlockNode[],
     saveOptions?: { quiet?: boolean },
   ) {
-    const expectedUpdatedAt = toIsoString(block.updatedAt);
+    const expectedUpdatedAt = toIsoString(updatedAtRef.current);
     if (!expectedUpdatedAt) {
       toast.error("Missing block version — reload and try again.");
       return "error" as const;
@@ -39,6 +43,7 @@ export function useBlockEditor(
       toast.error(result.message);
       return "error" as const;
     }
+    updatedAtRef.current = result.data.updatedAt;
     if (!saveOptions?.quiet) {
       toast.success("Block saved.");
     }

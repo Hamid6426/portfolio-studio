@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { DirtyNavProvider } from "@/components/page-editor/dirty-nav-context";
 import { DirtyNavLink } from "@/components/page-editor/dirty-nav-link";
+import { Toaster } from "@/components/ui/sonner";
 import { canAccessRoute } from "@/config/permissions";
 import { REFRESH_TOKEN_COOKIE } from "@/config/storage-keys";
 import { getAccessSession } from "@/lib/auth/session";
@@ -139,6 +140,7 @@ export default async function DashboardLayout({
           </main>
         </div>
       </div>
+      <Toaster richColors closeButton position="top-center" />
     </DirtyNavProvider>
   );
 }

@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { headers } from "next/headers";
 import { getStartupState } from "@/config/startup";
 import { redirect } from "next/navigation";
-import { Toaster } from "@/components/ui/sonner";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { getAppUrl } from "@/lib/app-url";
 import { bindRequestContext } from "@/lib/request-context";
@@ -56,7 +55,6 @@ export default async function RootLayout({
       <body className="flex min-h-screen flex-col">
         <QueryProvider>
           {children}
-          <Toaster richColors closeButton position="top-center" />
         </QueryProvider>
       </body>
     </html>

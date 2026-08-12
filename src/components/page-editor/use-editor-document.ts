@@ -119,13 +119,20 @@ export function useEditorDocument({
       transform: (nodes: BlockNode[]) => BlockNode[],
       mergeKey?: string,
     ) => {
+      if (!canEdit) return;
       dispatch({ type: "apply", transform, mergeKey });
     },
-    [],
+    [canEdit],
   );
 
-  const undo = useCallback(() => dispatch({ type: "undo" }), []);
-  const redo = useCallback(() => dispatch({ type: "redo" }), []);
+  const undo = useCallback(() => {
+    if (!canEdit) return;
+    dispatch({ type: "undo" });
+  }, [canEdit]);
+  const redo = useCallback(() => {
+    if (!canEdit) return;
+    dispatch({ type: "redo" });
+  }, [canEdit]);
 
   const replaceSelection = useCallback((ids: string[], anchor?: string | null) => {
     const unique = [...new Set(ids.filter(Boolean))];
@@ -232,35 +239,33 @@ export function useEditorDocument({
   }
 
   const deleteSelected = useCallback(() => {
-    if (selectedIds.length === 0) return;
+    if (!canEdit || selectedIds.length === 0) return;
     const roots = selectionRootIds(content, selectedIds);
     if (roots.length === 0) return;
     const idSet = new Set(roots);
     apply((nodes) => removeNodesByIds(nodes, idSet));
     replaceSelection([]);
-  }, [apply, content, replaceSelection, selectedIds]);
+  }, [apply, canEdit, content, replaceSelection, selectedIds]);
 
   const duplicateSelected = useCallback(() => {
-    if (selectedIds.length === 0) return;
+    if (selectedIds.length === 0 || !canEdit) return;
     const roots = selectionRootIds(content, selectedIds);
     if (roots.length === 0) return;
 
+    // Compute outside the reducer so Strict Mode double-invoke stays pure (C4).
+    let next = content;
     const duplicatedIds: string[] = [];
-    apply((nodes) => {
-      let next = nodes;
-      // Last → first so earlier inserts do not shift later targets.
-      for (const id of [...roots].reverse()) {
-        const result = duplicateNodeAfter(next, id);
-        if (!result) continue;
-        next = result.nodes;
-        duplicatedIds.unshift(result.duplicatedId);
-      }
-      return next;
-    });
-    if (duplicatedIds.length > 0) {
-      replaceSelection(duplicatedIds);
+    for (const id of [...roots].reverse()) {
+      const result = duplicateNodeAfter(next, id);
+      if (!result) continue;
+      next = result.nodes;
+      duplicatedIds.unshift(result.duplicatedId);
     }
-  }, [apply, content, replaceSelection, selectedIds]);
+    if (duplicatedIds.length === 0) return;
+    const tree = next;
+    apply(() => tree);
+    replaceSelection(duplicatedIds);
+  }, [apply, canEdit, content, replaceSelection, selectedIds]);
 
   const copySelected = useCallback(() => {
     if (selectedIds.length === 0) return false;
@@ -418,7 +423,7 @@ export function useEditorDocument({
   ]);
 
   useEffect(() => {
-    if (!dirty) return;
+    if (!canEdit || !dirty) return;
 
     function onBeforeUnload(event: BeforeUnloadEvent) {
       event.preventDefault();
@@ -428,7 +433,7 @@ export function useEditorDocument({
 
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [dirty]);
+  }, [canEdit, dirty]);
 
   function updateSelected(patch: Partial<Pick<BlockNode, "props" | "styles">>) {
     if (!selectedId) return;

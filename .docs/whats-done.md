@@ -377,3 +377,16 @@ Move / indent / style / props stay single-selection only.
 | `0015` | `assets` local media |
 | `0016` | `content_revisions` version history |
 | `0017` | `site_settings.default_layout_block_id` |
+| `0018` | assets/revisions `ON DELETE SET NULL`; live-assets + pages.block_id indexes |
+
+---
+
+## Audit remediation (2026-08-12)
+
+Closed the critical/high findings in `.docs/audit.md` and most editor/medium
+items. Headline fixes: write-path style migration (no silent wipe), restored
+drizzle meta snapshots `0014`–`0017`, atomic `UPDATE … WHERE updated_at`, CI
+Postgres for the auth matrix, Toaster only on dashboard/auth (public CSP),
+`stableStringify` for revisions/editor sync, viewer `canEdit` gates, and
+migration `0018` for FK/`SET NULL` + list indexes. Deferred: canvas WYSIWYG
+(C1), inline-edit undo (C6), list parent/child rules (C10).

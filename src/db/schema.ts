@@ -81,22 +81,26 @@ export const blocksTable = pgTable(
   (table) => [index("blocks_can_be_layout_idx").on(table.canBeLayout)],
 );
 
-export const pagesTable = pgTable("pages", {
-  ...baseColumns,
-  title: varchar("title", { length: 255 }).notNull(),
-  /** `null` = site landing page served at `/`. */
-  slug: varchar("slug", { length: 255 }).unique(),
-  description: text("description").notNull().default(""),
-  /** Editable page body tree (the draft), versioned. */
-  content: jsonb("content")
-    .$type<BlockDocument>()
-    .notNull()
-    .default(emptyBlockDocumentSql),
-  /** Optional layout block (`blocks.can_be_layout = true`). */
-  blockId: varchar("block_id").references(() => blocksTable.id),
-  /** What the public site serves. Written on publish, `null` until then. */
-  publishedSnapshot: jsonb("published_snapshot").$type<PublishedPageSnapshot>(),
-});
+export const pagesTable = pgTable(
+  "pages",
+  {
+    ...baseColumns,
+    title: varchar("title", { length: 255 }).notNull(),
+    /** `null` = site landing page served at `/`. */
+    slug: varchar("slug", { length: 255 }).unique(),
+    description: text("description").notNull().default(""),
+    /** Editable page body tree (the draft), versioned. */
+    content: jsonb("content")
+      .$type<BlockDocument>()
+      .notNull()
+      .default(emptyBlockDocumentSql),
+    /** Optional layout block (`blocks.can_be_layout = true`). */
+    blockId: varchar("block_id").references(() => blocksTable.id),
+    /** What the public site serves. Written on publish, `null` until then. */
+    publishedSnapshot: jsonb("published_snapshot").$type<PublishedPageSnapshot>(),
+  },
+  (table) => [index("pages_block_id_idx").on(table.blockId)],
+);
 
 /**
  * Singleton site configuration (one row, `key = 'default'`).
@@ -137,9 +141,13 @@ export const assetsTable = pgTable(
     sizeBytes: integer("size_bytes").notNull(),
     /** Public path, e.g. `/upload/<stored_name>`. */
     url: varchar("url", { length: 512 }).notNull(),
-    uploadedBy: varchar("uploaded_by").references(() => userTable.id),
+    uploadedBy: varchar("uploaded_by").references(() => userTable.id, {
+      onDelete: "set null",
+    }),
   },
-  (table) => [index("assets_uploaded_by_idx").on(table.uploadedBy)],
+  (table) => [
+    index("assets_live_created_idx").on(table.deletedAt, table.createdAt),
+  ],
 );
 
 /**
@@ -157,7 +165,9 @@ export const contentRevisionsTable = pgTable(
     document: jsonb("document").$type<BlockDocument>().notNull(),
     /** `"autosave"` | `"manual"` | `"restore"`. */
     source: varchar("source", { length: 16 }).notNull(),
-    createdBy: varchar("created_by").references(() => userTable.id),
+    createdBy: varchar("created_by").references(() => userTable.id, {
+      onDelete: "set null",
+    }),
   },
   (table) => [
     index("content_revisions_entity_created_idx").on(

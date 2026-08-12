@@ -21,6 +21,7 @@ type EditorSidebarProps = {
   selected: BlockNode | null;
   selectedId: string | null;
   selectedIds: readonly string[];
+  canEdit?: boolean;
   onSelect: (
     id: string,
     options?: { toggle?: boolean; range?: boolean },
@@ -47,6 +48,7 @@ export function EditorSidebar({
   selected,
   selectedId,
   selectedIds,
+  canEdit = true,
   onSelect,
   onAdd,
   layoutBlocks,
@@ -65,6 +67,7 @@ export function EditorSidebar({
   onIndent,
 }: EditorSidebarProps) {
   const multi = selectedIds.length > 1;
+  const noop = () => undefined;
 
   return (
     <aside className="flex h-full w-80 shrink-0 flex-col border-l border-border bg-background">
@@ -74,11 +77,17 @@ export function EditorSidebar({
             <ShapesIcon className="size-3.5 shrink-0 opacity-70" />
             Elements
           </div>
-          <ElementsPalette
-            onAdd={onAdd}
-            layoutBlocks={layoutBlocks}
-            onInsertLayout={onInsertLayout}
-          />
+          {canEdit ? (
+            <ElementsPalette
+              onAdd={onAdd}
+              layoutBlocks={layoutBlocks}
+              onInsertLayout={onInsertLayout}
+            />
+          ) : (
+            <p className="px-3 py-3 text-sm text-muted-foreground">
+              Read-only — you can select and inspect blocks.
+            </p>
+          )}
         </section>
 
         <section className="border-b border-border">
@@ -90,16 +99,16 @@ export function EditorSidebar({
             content={content}
             selectedId={selectedId}
             selectedIds={selectedIds}
-            canPaste={canPaste}
+            canPaste={canEdit && canPaste}
             onSelect={onSelect}
-            onMoveUp={onMoveUp}
-            onMoveDown={onMoveDown}
-            onOutdent={onOutdent}
-            onIndent={onIndent}
-            onDuplicate={onDuplicate}
+            onMoveUp={canEdit ? onMoveUp : noop}
+            onMoveDown={canEdit ? onMoveDown : noop}
+            onOutdent={canEdit ? onOutdent : noop}
+            onIndent={canEdit ? onIndent : noop}
+            onDuplicate={canEdit ? onDuplicate : noop}
             onCopy={onCopy}
-            onCut={onCut}
-            onPaste={onPaste}
+            onCut={canEdit ? onCut : noop}
+            onPaste={canEdit ? onPaste : noop}
           />
         </section>
 
@@ -112,12 +121,16 @@ export function EditorSidebar({
             <p className="px-3 py-3 text-sm text-muted-foreground">
               Select a single block to edit styles.
             </p>
-          ) : (
+          ) : canEdit ? (
             <StylePanel
               content={content}
               selected={selected}
               onChange={onStylesChange}
             />
+          ) : (
+            <p className="px-3 py-3 text-sm text-muted-foreground">
+              Styles are read-only for your role.
+            </p>
           )}
         </section>
 
@@ -129,14 +142,14 @@ export function EditorSidebar({
           <SettingsPanel
             selected={multi ? null : selected}
             selectionCount={selectedIds.length}
-            onChange={onPropsChange}
-            onStylesChange={onStylesChange}
-            onDelete={onDelete}
-            onDuplicate={onDuplicate}
+            onChange={canEdit ? onPropsChange : noop}
+            onStylesChange={canEdit ? onStylesChange : noop}
+            onDelete={canEdit ? onDelete : noop}
+            onDuplicate={canEdit ? onDuplicate : noop}
             onCopy={onCopy}
-            onCut={onCut}
-            onPaste={onPaste}
-            canPaste={canPaste}
+            onCut={canEdit ? onCut : noop}
+            onPaste={canEdit ? onPaste : noop}
+            canPaste={canEdit && canPaste}
           />
         </section>
       </div>

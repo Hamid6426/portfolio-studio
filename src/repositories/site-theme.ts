@@ -4,6 +4,7 @@ import { revalidateTag, unstable_cache } from "next/cache";
 import { db } from "@/db/client";
 import { blocksTable, siteSettingsTable } from "@/db/schema";
 import type { SiteThemeSettings } from "@/db/schema.types";
+import { PAGES_CACHE_TAG } from "@/lib/pages/cache-tags";
 import {
   DEFAULT_THEME_ID,
   getTheme,
@@ -217,6 +218,10 @@ export async function updateSiteTheme(
     }
 
     revalidateTag(SITE_THEME_CACHE_TAG, { expire: 0 });
+    // Default layout changes affect every page without its own blockId.
+    if (input.defaultLayoutBlockId !== undefined || input.themeId !== undefined) {
+      revalidateTag(PAGES_CACHE_TAG, { expire: 0 });
+    }
 
     return {
       success: true,

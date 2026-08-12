@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ArrowLeftIcon,
   EyeIcon,
@@ -143,6 +143,11 @@ export function EditorShell({
   const missingH1 =
     documentLabel === "page" && !hasLevel1Heading(editor.content);
 
+  const saveRef = useRef(editor.save);
+  useEffect(() => {
+    saveRef.current = editor.save;
+  }, [editor.save]);
+
   useEffect(() => {
     setDirty(editor.dirty);
     return () => setDirty(false);
@@ -150,13 +155,14 @@ export function EditorShell({
 
   // Debounced autosave — quiet (no success toast). Pauses while a save is in
   // flight, when the server moved on under us, or when the role is read-only.
+  // Depends on content (idle debounce), not on a fresh `save` identity (C9).
   useEffect(() => {
     if (!canEdit || !editor.dirty || editor.pending || editor.conflict) {
       return;
     }
 
     const timer = window.setTimeout(() => {
-      void editor.save({ quiet: true }).then((result) => {
+      void saveRef.current({ quiet: true }).then((result) => {
         if (result === "conflict") {
           setSaveConflictOpen(true);
         }
@@ -170,7 +176,6 @@ export function EditorShell({
     editor.content,
     editor.dirty,
     editor.pending,
-    editor.save,
   ]);
 
   function openPreview() {
@@ -345,6 +350,7 @@ export function EditorShell({
           content={editor.content}
           selectedId={editor.selectedId}
           selectedIds={editor.selectedIds}
+          canEdit={canEdit}
           onSelect={editor.selectNode}
           onReorder={editor.reorder}
           onTextChange={editor.updateNodeText}
@@ -354,6 +360,7 @@ export function EditorShell({
           selected={editor.selected}
           selectedId={editor.selectedId}
           selectedIds={editor.selectedIds}
+          canEdit={canEdit}
           onSelect={editor.selectNode}
           onAdd={editor.addBlock}
           layoutBlocks={layoutBlocks}

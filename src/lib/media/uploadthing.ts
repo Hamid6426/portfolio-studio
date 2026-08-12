@@ -64,6 +64,11 @@ export async function writeUploadThingFile(
 
 export async function removeUploadThingFile(fileKey: string): Promise<void> {
   if (!fileKey.trim()) return;
+  if (!env.UPLOADTHING_TOKEN) {
+    // Catalogue soft-delete still proceeds; operator must delete CDN objects
+    // manually if the token was removed (audit D).
+    return;
+  }
   try {
     await getUtApi().deleteFiles(fileKey);
   } catch (error) {

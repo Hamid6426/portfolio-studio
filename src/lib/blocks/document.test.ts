@@ -67,15 +67,16 @@ describe("migrateBlockDocument", () => {
     expect(nodesFromStored("nope")).toEqual([]);
   });
 
-  it("refuses a future version instead of clamping", () => {
-    const nodes = [{ id: "1", type: "text", props: { text: "hi" } }];
-    const result = migrateBlockDocument({ version: 99, nodes });
+  it("refuses a future version even when nodes are missing (audit B6)", () => {
+    const result = migrateBlockDocument({ version: 99, tree: [] });
     expect(result).toEqual({
       ok: false,
       reason: "unsupported-version",
       version: 99,
     });
-    expect(nodesFromStored({ version: 99, nodes })).toEqual([]);
+    expect(refuseWriteIfUnsupported({ version: 99, tree: [] })).toContain(
+      "newer editor",
+    );
   });
 
   it("refuses writes when stored version exceeds current", () => {

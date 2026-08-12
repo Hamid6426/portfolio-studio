@@ -1,10 +1,11 @@
 import type { BlockNode } from "@/db/schema.types";
+import { stableStringify } from "@/utils/json.utils";
 
 export const HISTORY_LIMIT = 100;
 export const MERGE_WINDOW_MS = 500;
 
 export function treeKey(nodes: BlockNode[]): string {
-  return JSON.stringify(nodes);
+  return stableStringify(nodes);
 }
 
 export type EditorDoc = {

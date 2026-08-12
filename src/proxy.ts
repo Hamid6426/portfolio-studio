@@ -75,8 +75,8 @@ export function contentSecurityPolicy(
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const nonce = createNonce();
-  const requestId =
-    request.headers.get("x-request-id")?.trim() || createRequestId();
+  // Always server-minted — never trust a client-supplied request id (audit D).
+  const requestId = createRequestId();
   const csp = contentSecurityPolicy(pathname, nonce);
 
   if (pathname.startsWith("/dashboard") && !hasAuthCookies(request)) {
@@ -106,6 +106,7 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif)$).*)",
+    // Include `/api/*` so `x-request-id` is always overwritten (audit D).
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif)$).*)",
   ],
 };

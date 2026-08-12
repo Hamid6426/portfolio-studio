@@ -25,7 +25,10 @@ import {
   createPagePayloadSchema,
   updatePagePayloadSchema,
 } from "@/payloads/pages";
-import { maybeRecordRevision } from "@/repositories/revisions";
+import {
+  deleteRevisionsForEntity,
+  maybeRecordRevision,
+} from "@/repositories/revisions";
 import type {
   ListPagesResponse,
   PageListItem,
@@ -520,9 +523,14 @@ export async function publishPage(id: string): Promise<PageResponse> {
       });
       if (layout?.publishedChildren) {
         const layoutMigrated = migrateBlockDocument(layout.publishedChildren);
-        if (layoutMigrated.ok) {
-          layoutChildren = layoutMigrated.document;
+        if (!layoutMigrated.ok) {
+          return {
+            success: false,
+            statusCode: 409,
+            message: `The layout block uses an unsupported document version (${layoutMigrated.version}). Upgrade the app before publishing.`,
+          };
         }
+        layoutChildren = layoutMigrated.document;
       }
     }
 
@@ -799,7 +807,27 @@ export async function updatePage(
       updates.content = toBlockDocument(parsed.data.content);
     }
 
-    await db.update(pagesTable).set(updates).where(eq(pagesTable.id, id));
+    const [updated] = await db
+      .update(pagesTable)
+      .set(updates)
+      .where(
+        and(
+          eq(pagesTable.id, id),
+          existing.updatedAt
+            ? eq(pagesTable.updatedAt, existing.updatedAt)
+            : isNull(pagesTable.updatedAt),
+        ),
+      )
+      .returning();
+
+    if (!updated) {
+      return {
+        success: false,
+        statusCode: 409,
+        message:
+          "This page was changed elsewhere. Reload to see the latest version.",
+      };
+    }
 
     if (parsed.data.content !== undefined) {
       await maybeRecordRevision({
@@ -861,6 +889,7 @@ export async function deletePage(id: string): Promise<PageResponse> {
     }
 
     await db.delete(pagesTable).where(eq(pagesTable.id, id));
+    await deleteRevisionsForEntity("page", id);
 
     invalidatePageCache(summary.slug);
 

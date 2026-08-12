@@ -12,6 +12,7 @@ import type {
   ApiErrorResponse,
   ApiSuccessResponse,
 } from "@/responses/common";
+import { stableStringify } from "@/utils/json.utils";
 
 export type RevisionEntityType = "page" | "block";
 export type RevisionSource = "autosave" | "manual" | "restore";
@@ -64,7 +65,7 @@ export function shouldCreateRevision(args: {
 }
 
 function documentKey(document: BlockDocument): string {
-  return JSON.stringify(document.nodes);
+  return stableStringify(document.nodes);
 }
 
 async function latestRevision(entityType: RevisionEntityType, entityId: string) {
@@ -315,4 +316,19 @@ export async function loadRevisionDocument(
   }
 
   return { ok: true, nodes: migrated.document.nodes };
+}
+
+/** Hard-delete all revisions for a page/block that is itself being deleted. */
+export async function deleteRevisionsForEntity(
+  entityType: RevisionEntityType,
+  entityId: string,
+): Promise<void> {
+  await db
+    .delete(contentRevisionsTable)
+    .where(
+      and(
+        eq(contentRevisionsTable.entityType, entityType),
+        eq(contentRevisionsTable.entityId, entityId),
+      ),
+    );
 }

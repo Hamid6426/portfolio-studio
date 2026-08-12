@@ -2,8 +2,10 @@
 
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
+  type ClipboardEvent,
   type ElementType,
   type KeyboardEvent,
   type MouseEvent,
@@ -30,8 +32,10 @@ type InlineEditableTextProps = {
   multiline?: boolean;
   /** Allow link marks (heading / text / listItem). */
   allowLinks?: boolean;
+  /** When false, text is display-only (viewer role). */
+  canEdit?: boolean;
   selected?: boolean;
-  onSelect: () => void;
+  onSelect: (options?: { toggle?: boolean; range?: boolean }) => void;
   onChange: (next: { text: string; spans: TextSpan[] }) => void;
   /** Extra DOM props (data-block-id, etc.). */
   domProps?: Record<string, unknown>;
@@ -49,6 +53,7 @@ export function InlineEditableText({
   className,
   multiline = false,
   allowLinks = true,
+  canEdit = true,
   selected = false,
   onSelect,
   onChange,
@@ -58,6 +63,8 @@ export function InlineEditableText({
   const [editing, setEditing] = useState(false);
   const normalised = normalizeRichTextProps({ text, spans: spansProp });
   const draftSpansRef = useRef(normalised.spans);
+  /** Snapshot at edit start — Escape restores this (audit C5). */
+  const editOriginRef = useRef(normalised);
 
   useEffect(() => {
     if (!editing) {
@@ -79,6 +86,12 @@ export function InlineEditableText({
     selection.addRange(range);
   }, [editing, multiline]);
 
+  // Clear leftover contentEditable DOM before React remounts children (audit C2).
+  useLayoutEffect(() => {
+    if (editing || !ref.current) return;
+    ref.current.innerHTML = "";
+  }, [editing]);
+
   function readSpans(): TextSpan[] {
     if (!ref.current) return draftSpansRef.current;
     return spansFromEditorElement(ref.current, multiline);
@@ -91,9 +104,11 @@ export function InlineEditableText({
   }
 
   function startEditing(event: MouseEvent) {
+    if (!canEdit) return;
     event.preventDefault();
     event.stopPropagation();
     onSelect();
+    editOriginRef.current = normalised;
     draftSpansRef.current = normalised.spans;
     setEditing(true);
   }
@@ -104,23 +119,40 @@ export function InlineEditableText({
     setEditing(false);
     const patch = richTextPropsPatch(spans);
     if (
-      patch.text !== normalised.text ||
-      JSON.stringify(patch.spans) !== JSON.stringify(normalised.spans)
+      patch.text !== editOriginRef.current.text ||
+      JSON.stringify(patch.spans) !== JSON.stringify(editOriginRef.current.spans)
     ) {
       onChange(patch);
     }
   }
 
   function cancel() {
-    draftSpansRef.current = normalised.spans;
-    if (ref.current) {
-      ref.current.innerHTML = spansToEditorHtml(normalised.spans, multiline);
-    }
+    const origin = editOriginRef.current;
+    draftSpansRef.current = origin.spans;
     setEditing(false);
+    if (
+      origin.text !== normalised.text ||
+      JSON.stringify(origin.spans) !== JSON.stringify(normalised.spans)
+    ) {
+      onChange(origin);
+    }
   }
 
   function onInput() {
-    emit(readSpans());
+    // Keep a local draft only — do not push into the document on every
+    // keystroke so Escape can still restore the pre-edit snapshot (C5).
+    draftSpansRef.current = readSpans();
+  }
+
+  function selectionInsideLink(): boolean {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return false;
+    let node: Node | null = selection.anchorNode;
+    while (node && node !== ref.current) {
+      if (node instanceof HTMLAnchorElement) return true;
+      node = node.parentNode;
+    }
+    return false;
   }
 
   function toggleLink() {
@@ -128,8 +160,8 @@ export function InlineEditableText({
     if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
       return;
     }
-    const existing = document.queryCommandValue("createLink");
-    if (existing && existing !== "false") {
+    // queryCommandValue("createLink") is unsupported in Chromium/WebKit (C11).
+    if (selectionInsideLink()) {
       document.execCommand("unlink");
       emit(readSpans());
       return;
@@ -145,11 +177,24 @@ export function InlineEditableText({
     emit(readSpans());
   }
 
+  function onPaste(event: ClipboardEvent) {
+    if (!editing) return;
+    const plain = event.clipboardData.getData("text/plain");
+    event.preventDefault();
+    document.execCommand("insertText", false, plain);
+    draftSpansRef.current = readSpans();
+  }
+
   function onKeyDown(event: KeyboardEvent) {
     if (!editing) {
-      if (selected && (event.key === "Enter" || event.key === "F2")) {
+      if (
+        canEdit &&
+        selected &&
+        (event.key === "Enter" || event.key === "F2")
+      ) {
         event.preventDefault();
         event.stopPropagation();
+        editOriginRef.current = normalised;
         draftSpansRef.current = normalised.spans;
         setEditing(true);
       }
@@ -168,13 +213,13 @@ export function InlineEditableText({
     if (mod && event.key.toLowerCase() === "b") {
       event.preventDefault();
       document.execCommand("bold");
-      emit(readSpans());
+      draftSpansRef.current = readSpans();
       return;
     }
     if (mod && event.key.toLowerCase() === "i") {
       event.preventDefault();
       document.execCommand("italic");
-      emit(readSpans());
+      draftSpansRef.current = readSpans();
       return;
     }
     if (mod && allowLinks && event.key.toLowerCase() === "k") {
@@ -204,11 +249,15 @@ export function InlineEditableText({
       spellCheck={editing}
       onClick={(event: MouseEvent) => {
         event.stopPropagation();
-        onSelect();
+        onSelect({
+          toggle: event.metaKey || event.ctrlKey,
+          range: event.shiftKey,
+        });
       }}
       onDoubleClick={startEditing}
       onKeyDown={onKeyDown}
       onInput={editing ? onInput : undefined}
+      onPaste={editing ? onPaste : undefined}
       onBlur={() => {
         if (editing) commit();
       }}

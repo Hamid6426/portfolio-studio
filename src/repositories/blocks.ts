@@ -2,7 +2,7 @@ import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { revalidateTag, unstable_cache } from "next/cache";
 
 import { db } from "@/db/client";
-import { blocksTable, pagesTable } from "@/db/schema";
+import { blocksTable, pagesTable, siteSettingsTable } from "@/db/schema";
 import type { BlockDocument, BlockNode } from "@/db/schema.types";
 import { firstIssueField } from "@/lib/api/first-issue-field";
 import {
@@ -25,7 +25,10 @@ import {
   createBlockPayloadSchema,
   updateBlockPayloadSchema,
 } from "@/payloads/blocks";
-import { maybeRecordRevision } from "@/repositories/revisions";
+import {
+  deleteRevisionsForEntity,
+  maybeRecordRevision,
+} from "@/repositories/revisions";
 import type {
   BlockListItem,
   BlockResponse,
@@ -425,14 +428,22 @@ export async function updateBlock(
     const [updated] = await db
       .update(blocksTable)
       .set(updates)
-      .where(eq(blocksTable.id, id))
+      .where(
+        and(
+          eq(blocksTable.id, id),
+          existing.updatedAt
+            ? eq(blocksTable.updatedAt, existing.updatedAt)
+            : isNull(blocksTable.updatedAt),
+        ),
+      )
       .returning();
 
     if (!updated) {
       return {
         success: false,
-        statusCode: 500,
-        message: "Something went wrong while updating the block.",
+        statusCode: 409,
+        message:
+          "This block was changed elsewhere. Reload to see the latest version.",
       };
     }
 
@@ -580,7 +591,22 @@ export async function deleteBlock(id: string): Promise<BlockResponse> {
       };
     }
 
+    const siteDefault = await db.query.siteSettingsTable.findFirst({
+      where: eq(siteSettingsTable.defaultLayoutBlockId, id),
+      columns: { id: true },
+    });
+    if (siteDefault) {
+      return {
+        success: false,
+        statusCode: 400,
+        message:
+          "This block is the site-wide default layout. Choose another default on Themes before deleting.",
+      };
+    }
+
     await db.delete(blocksTable).where(eq(blocksTable.id, id));
+    await deleteRevisionsForEntity("block", id);
+    invalidatePagesUsingBlock(id, []);
 
     return {
       success: true,

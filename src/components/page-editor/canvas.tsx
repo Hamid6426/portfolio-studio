@@ -58,6 +58,7 @@ type CanvasProps = {
   content: BlockNode[];
   selectedId: string | null;
   selectedIds: readonly string[];
+  canEdit?: boolean;
   onSelect: (
     id: string | null,
     options?: { toggle?: boolean; range?: boolean },
@@ -76,6 +77,7 @@ type SortableTreeProps = {
   parentId: string | null;
   selectedId: string | null;
   selectedIds: readonly string[];
+  canEdit: boolean;
   onSelect: (
     id: string,
     options?: { toggle?: boolean; range?: boolean },
@@ -233,12 +235,14 @@ function SortableBlock({
   node,
   selectedId,
   selectedIds,
+  canEdit,
   onSelect,
   onTextChange,
 }: {
   node: BlockNode;
   selectedId: string | null;
   selectedIds: readonly string[];
+  canEdit: boolean;
   onSelect: (
     id: string,
     options?: { toggle?: boolean; range?: boolean },
@@ -249,7 +253,7 @@ function SortableBlock({
   ) => void;
 }) {
   const { listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: node.id });
+    useSortable({ id: node.id, disabled: !canEdit });
   const indicator = useContext(DropIndicatorContext);
 
   const showBefore =
@@ -264,11 +268,14 @@ function SortableBlock({
         transition,
         opacity: isDragging ? 0.4 : 1,
       }}
-      className={cn("relative", isDragging ? "cursor-grabbing" : "cursor-grab")}
+      className={cn(
+        "relative",
+        canEdit && (isDragging ? "cursor-grabbing" : "cursor-grab"),
+      )}
       // Pointer listeners stay on every wrapper so any block can be grabbed
       // directly; dnd-kit marks the native event as captured, so the innermost
       // block wins and nested activators never fight over the same gesture.
-      {...listeners}
+      {...(canEdit ? listeners : {})}
       // Sortable a11y attributes (role, tabIndex, space-to-pick-up) are omitted:
       // this editor uses pointer drag only, and spreading them duplicated tab
       // stops and screen-reader hints down the nested tree.
@@ -295,10 +302,11 @@ function SortableBlock({
             spans={spans}
             multiline={multiline}
             allowLinks={allowLinks}
+            canEdit={canEdit}
             selected={selectedIds.includes(textNode.id)}
             className={className}
             domProps={domProps}
-            onSelect={() => onSelect(textNode.id)}
+            onSelect={(options) => onSelect(textNode.id, options)}
             onChange={(next) => onTextChange(textNode.id, next)}
           />
         ),
@@ -308,6 +316,7 @@ function SortableBlock({
             parentId={parent.id}
             selectedId={selectedId}
             selectedIds={selectedIds}
+            canEdit={canEdit}
             onSelect={onSelect}
             onTextChange={onTextChange}
           />
@@ -323,6 +332,7 @@ function SortableTree({
   parentId,
   selectedId,
   selectedIds,
+  canEdit,
   onSelect,
   onTextChange,
 }: SortableTreeProps) {
@@ -344,6 +354,7 @@ function SortableTree({
             node={node}
             selectedId={selectedId}
             selectedIds={selectedIds}
+            canEdit={canEdit}
             onSelect={onSelect}
             onTextChange={onTextChange}
           />
@@ -368,6 +379,7 @@ export function EditorCanvas({
   content,
   selectedId,
   selectedIds,
+  canEdit = true,
   onSelect,
   onReorder,
   onTextChange,
@@ -389,11 +401,13 @@ export function EditorCanvas({
   }
 
   function handleDragStart(event: DragStartEvent) {
+    if (!canEdit) return;
     setActiveId(String(event.active.id));
     setDrop(null);
   }
 
   function handleDragMove(event: DragMoveEvent) {
+    if (!canEdit) return;
     const { active, over } = event;
     const next = over
       ? resolveDrop(content, String(active.id), over, pointerY(event))
@@ -403,6 +417,10 @@ export function EditorCanvas({
   }
 
   function handleDragEnd(event: DragEndEvent) {
+    if (!canEdit) {
+      reset();
+      return;
+    }
     const { active, over } = event;
     const nodeId = String(active.id);
     const resolved = over
@@ -507,6 +525,7 @@ export function EditorCanvas({
                 parentId={null}
                 selectedId={selectedId}
                 selectedIds={selectedIds}
+                canEdit={canEdit}
                 onSelect={onSelect}
                 onTextChange={onTextChange}
               />

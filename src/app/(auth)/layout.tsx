@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function AuthLayout({
   children,
@@ -24,6 +25,7 @@ export default function AuthLayout({
       />
 
       <main className="relative z-10 w-full max-w-2xl">{children}</main>
+      <Toaster richColors closeButton position="top-center" />
     </div>
   );
 }

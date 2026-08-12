@@ -41,4 +41,37 @@ describe("blockNodeTreeSchema", () => {
     const result = blockNodeTreeSchema.safeParse(deepTree(MAX_BLOCK_NODE_DEPTH));
     expect(result.success).toBe(true);
   });
+
+  it("migrates flat v1 style maps into { base } instead of stripping them", () => {
+    const result = blockNodeTreeSchema.safeParse([
+      {
+        id: "1",
+        type: "text",
+        props: { text: "hi" },
+        styles: { width: "100%", padding: "8px" },
+      },
+    ]);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data[0]?.styles).toEqual({
+      base: { width: "100%", padding: "8px" },
+    });
+  });
+
+  it("keeps responsive v2 styles intact", () => {
+    const result = blockNodeTreeSchema.safeParse([
+      {
+        id: "1",
+        type: "text",
+        props: { text: "hi" },
+        styles: { base: { color: "red" }, md: { color: "blue" } },
+      },
+    ]);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data[0]?.styles).toEqual({
+      base: { color: "red" },
+      md: { color: "blue" },
+    });
+  });
 });

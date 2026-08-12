@@ -22,6 +22,14 @@ in-process for a single-node self-host — no Redis dependency.
 
 ## Recently completed
 
+- **2026-08-12 audit remediation** (`.docs/audit.md`): write-side style
+  normalisation (A2/A3), drizzle snapshots `0014`–`0017` (A1), upload
+  `Content-Length` gate (A4), atomic optimistic concurrency (A5), CI Postgres
+  (B1), Toaster off public CSP (B2), stable JSON stringify (B3), FK
+  `ON DELETE SET NULL` + indexes (`0018`, B4/D), layout publish version guard
+  (B5), document version-before-shape (B6), `canEdit` canvas/sidebar (B7),
+  editor C2–C5/C7–C9/C11, UT delete-by-URL, revision cleanup on entity delete,
+  default-layout delete guard, page cache on theme/layout, README CSP/volume.
 - Editor capability backlog (duplicate, clipboard, block types, autosave,
   history, rich text marks, multi-select).
 - Theme follow-ups: site default layout on apply, light/dark pairs, nonce

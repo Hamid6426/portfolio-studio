@@ -34,24 +34,15 @@ export function toBlockDocument(nodes: BlockNode[]): BlockDocument {
   };
 }
 
-function isBlockDocument(value: unknown): value is BlockDocument {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return false;
-  }
-  const record = value as { version?: unknown; nodes?: unknown };
-  return Array.isArray(record.nodes);
-}
-
 /** Read the stored version without upgrading legacy shapes. */
 export function storedDocumentVersion(raw: unknown): number {
   if (raw == null) return 0;
   if (Array.isArray(raw)) return 0;
-  if (isBlockDocument(raw)) {
-    return typeof raw.version === "number" && Number.isFinite(raw.version)
-      ? raw.version
-      : 0;
-  }
-  return 0;
+  if (!raw || typeof raw !== "object") return 0;
+  const record = raw as { version?: unknown };
+  return typeof record.version === "number" && Number.isFinite(record.version)
+    ? record.version
+    : 0;
 }
 
 /**
@@ -75,7 +66,9 @@ export function refuseWriteIfUnsupported(raw: unknown): string | null {
  * - null / garbage → empty current document
  *
  * Newer-than-this-build documents return `unsupported-version` — they must not
- * be clamped or written back down.
+ * be clamped or written back down. Version is read **before** shape-checking so
+ * a future `{ version: 3, tree: [...] }` cannot fall through as an empty page
+ * (audit B6).
  *
  * Call this on every read path. Writes should go through {@link toBlockDocument}.
  */
@@ -88,15 +81,27 @@ export function migrateBlockDocument(raw: unknown): MigrateResult {
     return migrateNodes(0, raw as BlockNode[]);
   }
 
-  if (isBlockDocument(raw)) {
-    const version =
-      typeof raw.version === "number" && Number.isFinite(raw.version)
-        ? raw.version
-        : 0;
-    return migrateNodes(version, raw.nodes);
+  if (!raw || typeof raw !== "object") {
+    return { ok: true, document: { ...EMPTY_BLOCK_DOCUMENT, nodes: [] } };
   }
 
-  return { ok: true, document: { ...EMPTY_BLOCK_DOCUMENT, nodes: [] } };
+  const record = raw as { version?: unknown; nodes?: unknown };
+  const version =
+    typeof record.version === "number" && Number.isFinite(record.version)
+      ? record.version
+      : 0;
+
+  if (version > CURRENT_BLOCK_DOCUMENT_VERSION) {
+    return { ok: false, reason: "unsupported-version", version };
+  }
+
+  if (!Array.isArray(record.nodes)) {
+    // Known version but unexpected shape — treat as empty rather than
+    // inventing nodes; refuseWriteIfUnsupported still blocks newer versions.
+    return { ok: true, document: { ...EMPTY_BLOCK_DOCUMENT, nodes: [] } };
+  }
+
+  return migrateNodes(version, record.nodes as BlockNode[]);
 }
 
 /** Convenience: migrate then return only the node tree for editors/APIs. */

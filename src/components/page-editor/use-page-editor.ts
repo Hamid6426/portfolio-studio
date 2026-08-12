@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 
 import { useEditorDocument } from "@/components/page-editor/use-editor-document";
@@ -16,12 +16,18 @@ export function usePageEditor(
 ) {
   const serverContent = useMemo(() => page.content ?? [], [page.content]);
   const updateMutation = useUpdatePageMutation();
+  // Track the latest known server `updatedAt` so autosave does not 409 against
+  // our own previous save while the query refetch is still in flight (C8).
+  const updatedAtRef = useRef(page.updatedAt);
+  useEffect(() => {
+    updatedAtRef.current = page.updatedAt;
+  }, [page.updatedAt]);
 
   async function onSave(
     content: BlockNode[],
     saveOptions?: { quiet?: boolean },
   ) {
-    const expectedUpdatedAt = toIsoString(page.updatedAt);
+    const expectedUpdatedAt = toIsoString(updatedAtRef.current);
     if (!expectedUpdatedAt) {
       toast.error("Missing page version — reload and try again.");
       return "error" as const;
@@ -39,6 +45,7 @@ export function usePageEditor(
       toast.error(result.message);
       return "error" as const;
     }
+    updatedAtRef.current = result.data.updatedAt;
     if (!saveOptions?.quiet) {
       toast.success("Page saved.");
     }

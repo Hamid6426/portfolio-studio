@@ -162,7 +162,9 @@ async function cleanupWrittenBytes(
   storedName: string,
   url: string,
 ): Promise<void> {
-  if (isRemoteAssetUrl(url) && isUploadThingEnabled()) {
+  // Backend must follow the row URL, not current env — otherwise removing
+  // UPLOADTHING_TOKEN silently leaks remote objects (audit D).
+  if (isRemoteAssetUrl(url)) {
     await removeUploadThingFile(storedName);
     return;
   }

@@ -37,6 +37,25 @@ export async function POST(request: Request) {
   const auth = await requireButtonPermission(PERMISSIONS.mediaUpload);
   if (isErrorResponse(auth)) return auth;
 
+  // Reject oversized bodies before buffering multipart into memory (audit A4).
+  // Multipart wrappers add overhead — allow a small fixed margin above the file cap.
+  const contentLengthHeader = request.headers.get("content-length");
+  if (contentLengthHeader) {
+    const contentLength = Number(contentLengthHeader);
+    const maxBody = MAX_UPLOAD_BYTES + 256 * 1024;
+    if (Number.isFinite(contentLength) && contentLength > maxBody) {
+      return NextResponse.json(
+        {
+          success: false,
+          statusCode: 413,
+          field: "file",
+          message: `Images must be ${Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024))} MB or smaller.`,
+        },
+        { status: 413 },
+      );
+    }
+  }
+
   let form: FormData;
   try {
     form = await request.formData();

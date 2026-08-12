@@ -21,6 +21,7 @@ import { findParent } from "@/components/page-editor/tree-ops";
 import { Input } from "@/components/ui/input";
 import type { BlockNode } from "@/db/schema.types";
 import {
+  normalizeResponsiveStyles,
   pruneResponsiveStyles,
   type ResponsiveStyles,
   type StyleSliceKey,
@@ -361,11 +362,13 @@ export function StylePanel({ content, selected, onChange }: StylePanelProps) {
     );
   }
 
-  const responsiveStyles = selected.styles ?? {};
+  const responsiveStyles = normalizeResponsiveStyles(selected.styles);
   const styles = responsiveStyles[slice] ?? {};
   const isFlexContainer = isFlexContainerStyles(responsiveStyles.base);
   const parentLoc = findParent(content, selected.id);
-  const isFlexItem = isFlexContainerStyles(parentLoc?.parent?.styles?.base);
+  const isFlexItem = isFlexContainerStyles(
+    normalizeResponsiveStyles(parentLoc?.parent?.styles).base,
+  );
 
   function commitSlice(nextSliceMap: Record<string, string>) {
     const full: ResponsiveStyles = { ...responsiveStyles };

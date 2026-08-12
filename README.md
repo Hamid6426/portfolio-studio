@@ -115,8 +115,9 @@ The app refuses to boot in production when `AUTH_SECRET` equals the `.env.exampl
 - Passwords: async scrypt with cost params (`scrypt$N=…$salt$hash`); placeholder `AUTH_SECRET` refused in production.
 - Login and setup are rate-limited in-memory per process (IP + email). Terminate TLS at a proxy that overwrites `X-Forwarded-For` / `X-Real-IP`.
 - Security headers via `next.config.ts`: `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options: DENY`, CSP `frame-ancestors 'none'`, HSTS in production.
-- Block HTML/styles sanitized at render time (`src/lib/block-sanitize.ts`).
-- No full CSP yet — block styles are inline; a real policy needs `'unsafe-inline'` on `style-src-attr` until the responsive v2 model moves styling to classes.
+- Per-request CSP from `src/proxy.ts`: public routes use nonced `script-src` / `style-src` and `style-src-attr 'none'`; the dashboard keeps `'unsafe-inline'` on styles for editor chrome (dnd-kit). Theme and block `<style>` tags carry the request nonce.
+- Block HTML/styles sanitized at render; public rich text never uses `dangerouslySetInnerHTML` for user content.
+- Local media lives under project-root `upload/`. Mount a persistent volume on that path in production (or set `UPLOADTHING_TOKEN` to use UploadThing). Redeploys that replace the app directory without a volume wipe local files.
 
 ### Backup and restore
 

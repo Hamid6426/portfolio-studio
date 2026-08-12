@@ -1,6 +1,6 @@
 # Current situation
 
-**Last verified: 2026-08-12 (script-src nonces).** Treat this header as an
+**Last verified: 2026-08-12 (audit remediation).** Treat this header as an
 expiry stamp — re-check against the tree before acting on anything critical.
 
 A snapshot of what actually works, what is known-broken, and the design decisions that
@@ -72,7 +72,8 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
 - Vitest: permissions (incl. `requireRoutePermission`), tokens, password, sanitiser,
   depth guard, redirects, document migration, editor reducer; Postgres API matrix
   (`signInAs`) when `portfolio_studio_test` is up (otherwise skipped).
-- CI: lint, typecheck, test, build. Prefer `bun run test` over bare `bun test`.
+- CI: lint, typecheck, **Postgres 16 + `db:migrate`**, test, build. Prefer
+  `bun run test` over bare `bun test`.
 - Error boundaries re-throw `NEXT_*`. Structured `logError` JSON lines with
   correlation `id` and request-scoped `requestId` (`x-request-id` from proxy).
 - `sitemap.ts` / `robots.ts` (disallows `/api/`, `/dashboard/`, auth routes).
@@ -119,15 +120,23 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
 
 ## Known open issues
 
-None from the previous 17-item backlog. Remaining work is planned product depth — see
-[`future-plans.md`](./future-plans.md). Operator follow-up on existing installs:
+Audit `.docs/audit.md` critical/high items and most editor/medium fixes are
+landed (see [`whats-done.md`](./whats-done.md)). Still deferred:
 
-- Run `bun run db:migrate` through **`0017`** if not already applied.
+- **C1** — canvas does not WYSIWYG container layouts / `@container` width the way
+  the public site does (own project).
+- **C6 / C10** — undo while inline-editing; parent/child type rules for lists.
+- Soft-delete assets still remove bytes immediately; no `UPLOAD_DIR` env yet;
+  Fill `url(...)` not validated at write.
+
+Operator follow-up on existing installs:
+
+- Run `bun run db:migrate` through **`0018`** (FK `ON DELETE SET NULL`, indexes).
 - Re-seed with `bun run db:seed -- --force` if rows predate theme CSS variables
   in section seeds (or the flex-wrap seed fix).
 - Ensure the process can write to project-root `upload/` (created on first upload).
 - Optional: create `portfolio_studio_test` and migrate it to exercise the
-  `signInAs` API matrix (`src/test/integration/`).
+  `signInAs` API matrix locally (`src/test/integration/` — CI now runs it).
 
 ---
 
