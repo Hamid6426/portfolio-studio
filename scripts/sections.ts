@@ -7,10 +7,8 @@
  * colours reference those variables so switching themes restyles content without
  * rewriting the block tree.
  *
- * Composition notes — the editor has no list, table or card block, so:
- * - lists are one `text` node per item, prefixed with a bullet glyph (a single
- *   `text` node cannot render line breaks: it becomes one `<p>` and the
- *   allowlist has no `whiteSpace`);
+ * Composition notes — the editor has list / listItem blocks for bullets;
+ * tables and true card primitives are still composed from containers:
  * - "cards" are `container`s with a border/background;
  * - "rows" are `container`s with `flexDirection: row` and `flexWrap: wrap`.
  *   Child tiles/buttons carry a `minWidth` so wrapped rows stay readable on
@@ -43,6 +41,8 @@ import {
   container,
   divider,
   heading,
+  list,
+  listItem,
   section,
   text,
 } from "./seed-blocks";
@@ -189,8 +189,11 @@ function buttonRow(
   return container(links.map(actionButton), styles);
 }
 
-function bullets(items: string[]): BlockNode[] {
-  return items.map((item) => text(`• ${item}`, BODY));
+function bullets(items: string[]): BlockNode {
+  return list(
+    items.map((item) => listItem(item, BODY)),
+    { color: MUTED, width: "100%", maxWidth: "100%" },
+  );
 }
 
 function paragraphs(value: string | string[] | undefined): BlockNode[] {
@@ -420,14 +423,14 @@ function itemListSection(spec: ItemListSection): BlockNode {
   for (const group of spec.groups) {
     if (group.heading) {
       children.push(
-        container(
-          [heading(group.heading, 3, H3), ...bullets(group.items)],
-          { ...CARD, gap: "8px" },
-        ),
+        container([heading(group.heading, 3, H3), bullets(group.items)], {
+          ...CARD,
+          gap: "8px",
+        }),
       );
       continue;
     }
-    children.push(...bullets(group.items));
+    children.push(bullets(group.items));
   }
 
   return panel(children, spec);

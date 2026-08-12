@@ -16,6 +16,8 @@ export type BlockType =
   | "container"
   | "heading"
   | "text"
+  | "list"
+  | "listItem"
   | "image"
   | "button"
   | "divider";
@@ -76,6 +78,29 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     },
   },
   {
+    type: "list",
+    label: "List",
+    canHaveChildren: true,
+    defaultProps: { ordered: false },
+    defaultStyles: {
+      margin: "0",
+      padding: "0 0 0 1.25em",
+      fontSize: "16px",
+      lineHeight: "1.7",
+      width: "100%",
+    },
+  },
+  {
+    type: "listItem",
+    label: "List item",
+    canHaveChildren: false,
+    defaultProps: { text: "List item" },
+    defaultStyles: {
+      margin: "0 0 6px",
+      padding: "0",
+    },
+  },
+  {
     type: "image",
     label: "Image",
     canHaveChildren: false,
@@ -124,13 +149,20 @@ export function createBlockNode(type: BlockType): BlockNode {
     throw new Error(`Unknown block type: ${type}`);
   }
 
-  return {
+  const node: BlockNode = {
     id: crypto.randomUUID(),
     type: def.type,
     props: { ...def.defaultProps },
     styles: def.defaultStyles ? wrapFlatStyles(def.defaultStyles) : undefined,
     children: def.canHaveChildren ? [] : undefined,
   };
+
+  // A bare list is useless in the canvas — seed one editable item.
+  if (type === "list") {
+    node.children = [createBlockNode("listItem")];
+  }
+
+  return node;
 }
 
 export function definitionFor(type: string): BlockDefinition | undefined {
@@ -150,7 +182,7 @@ type RenderOpts = {
    */
   renderEditableText?: (args: {
     node: BlockNode;
-    tag: "h1" | "h2" | "h3" | "h4" | "p" | "span";
+    tag: "h1" | "h2" | "h3" | "h4" | "p" | "span" | "li";
     text: string;
     multiline: boolean;
     className: string;
@@ -287,6 +319,32 @@ function BlockRenderer({
         <p {...common} className={cn(common.className, "whitespace-pre-wrap")}>
           {text}
         </p>
+      );
+    }
+    case "list": {
+      const ordered = Boolean(node.props.ordered);
+      const Tag = ordered ? "ol" : "ul";
+      return <Tag {...common}>{children}</Tag>;
+    }
+    case "listItem": {
+      const text = String(node.props.text ?? "");
+      if (editable && opts.renderEditableText) {
+        return opts.renderEditableText({
+          node,
+          tag: "li",
+          text,
+          multiline: true,
+          className: cn(common.className, "whitespace-pre-wrap"),
+          domProps: {
+            onClick: common.onClick,
+            "data-block-id": node.id,
+          },
+        });
+      }
+      return (
+        <li {...common} className={cn(common.className, "whitespace-pre-wrap")}>
+          {text}
+        </li>
       );
     }
     case "image": {

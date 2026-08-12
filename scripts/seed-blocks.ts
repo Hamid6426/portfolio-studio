@@ -1,5 +1,5 @@
 /**
- * Thin builders over the seven block types the page editor understands.
+ * Thin builders over the block types the page editor understands.
  *
  * Used by `scripts/sections.ts`; datasets never call these directly.
  *
@@ -75,6 +75,18 @@ export function heading(
 
 export function text(value: string, styles: Styles = {}): BlockNode {
   return make("text", { text: value }, styles);
+}
+
+export function list(
+  items: BlockNode[],
+  styles: Styles = {},
+  ordered = false,
+): BlockNode {
+  return make("list", { ordered }, styles, items);
+}
+
+export function listItem(value: string, styles: Styles = {}): BlockNode {
+  return make("listItem", { text: value }, styles);
 }
 
 export function button(

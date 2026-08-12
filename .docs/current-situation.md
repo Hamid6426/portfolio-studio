@@ -1,6 +1,6 @@
 # Current situation
 
-**Last verified: 2026-08-12 (inline canvas text).** Treat this header as an
+**Last verified: 2026-08-12 (list blocks).** Treat this header as an
 expiry stamp — re-check against the tree before acting on anything critical.
 
 A snapshot of what actually works, what is known-broken, and the design decisions that
@@ -23,7 +23,8 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
 ## What works
 
 ### Editing
-- Visual page editor at `/dashboard/pages/edit?slug=` — 7 block types, nested
+- Visual page editor at `/dashboard/pages/edit?slug=` — 9 block types (incl.
+  list / listItem), nested
   drag-and-drop **with reparenting**, drop indicator, `DragOverlay`.
 - Scroll-corrected drop math (`active.rect.current.translated` + live `over.rect`) with
   `MeasuringStrategy.Always`.

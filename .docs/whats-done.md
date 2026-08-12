@@ -288,6 +288,15 @@ future work.
 
 ---
 
+## List / listItem blocks
+
+`list` (`ul`/`ol` via `props.ordered`) holds `listItem` children with `props.text`.
+Palette “List” seeds one item; Settings toggles bulleted vs numbered; items are
+inline-editable like text. Seed `itemList` sections use these instead of `• `
+prefixed text nodes.
+
+---
+
 ## Migrations
 
 | | |

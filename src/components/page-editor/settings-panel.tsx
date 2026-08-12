@@ -131,7 +131,8 @@ export function SettingsPanel({
   const hasText =
     selected.type === "heading" ||
     selected.type === "text" ||
-    selected.type === "button";
+    selected.type === "button" ||
+    selected.type === "listItem";
 
   return (
     <div>
@@ -149,11 +150,11 @@ export function SettingsPanel({
       {hasText ? (
         <Section title="Content">
           <FieldRow label="Text" htmlFor="prop-text">
-            {selected.type === "text" ? (
+            {selected.type === "text" || selected.type === "listItem" ? (
               <textarea
                 id="prop-text"
                 value={String(props.text ?? "")}
-                rows={4}
+                rows={selected.type === "listItem" ? 2 : 4}
                 className="min-h-16 w-full rounded-md border border-input bg-transparent px-2 py-1.5 text-xs shadow-none"
                 onChange={(event) => setProp("text", event.target.value)}
               />
@@ -193,6 +194,24 @@ export function SettingsPanel({
               />
             </FieldRow>
           ) : null}
+        </Section>
+      ) : null}
+
+      {selected.type === "list" ? (
+        <Section title="List">
+          <FieldRow label="Style" htmlFor="prop-ordered">
+            <select
+              id="prop-ordered"
+              className="flex h-7 w-full rounded-md border border-input bg-transparent px-2 text-xs"
+              value={props.ordered ? "ordered" : "bulleted"}
+              onChange={(event) =>
+                setProp("ordered", event.target.value === "ordered")
+              }
+            >
+              <option value="bulleted">Bulleted</option>
+              <option value="ordered">Numbered</option>
+            </select>
+          </FieldRow>
         </Section>
       ) : null}
 

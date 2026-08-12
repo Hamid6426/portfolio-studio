@@ -14,8 +14,8 @@ Stay inside the **self-hosted, single-site** CMS scope.
 1. ~~**Duplicate selected block**~~ — done (Layers / Settings / `Ctrl|Cmd+D`).
 2. ~~**Copy / cut / paste**~~ — done (in-tab + system JSON clipboard; Layers /
    Settings / `Ctrl|Cmd+C|X|V`). **Multi-select** still open.
-3. **More block types** — list (replaces `•` text hacks), then grid, card,
-   spacer, embed as needed.
+3. ~~**List block**~~ — done (`list` + `listItem`; seeds use real lists).
+   Still open under “more block types”: grid, card, spacer, embed as needed.
 4. **Autosave** — debounced or interval save while dirty (policy TBD).
 5. **Version history** — after autosave; heavier than autosave alone.
 6. **Richer text marks** (bold / italic / links) — last among editor items;
