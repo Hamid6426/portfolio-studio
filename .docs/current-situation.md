@@ -1,6 +1,6 @@
 # Current situation
 
-**Last verified: 2026-08-12 (operator polish).** Treat this header as an
+**Last verified: 2026-08-12 (script-src nonces).** Treat this header as an
 expiry stamp — re-check against the tree before acting on anything critical.
 
 A snapshot of what actually works, what is known-broken, and the design decisions that
@@ -63,10 +63,10 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
 - `safeRedirectPath` (control chars, origin check, `/api/*` ban).
 - Async scrypt with cost params; atomic refresh rotation; transactional password-change
   revoke; login+setup rate limits; advisory-lock setup.
-- Security headers; public CSP uses nonce `style-src` plus `style-src-attr 'none'`
-  (block trees and themes use generated `<style>` with the request nonce).
-  Dashboard keeps `'unsafe-inline'` styles for editor chrome.
-- Full script nonce CSP still deferred — see `future-plans.md`.
+- Security headers; public CSP uses nonce `script-src` (`strict-dynamic`, no
+  `'unsafe-inline'`) and nonce `style-src` plus `style-src-attr 'none'`.
+  Dashboard keeps `'unsafe-inline'` styles for editor chrome. Dev-only
+  `'unsafe-eval'` for React stack reconstruction.
 
 ### Infrastructure
 - Vitest: permissions (incl. `requireRoutePermission`), tokens, password, sanitiser,

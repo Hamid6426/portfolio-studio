@@ -245,9 +245,10 @@ site-wide default layout (pages without `blockId`). Applying a theme sets that
 default when a layout block named **Site shell** exists. Public pages and the
 editor canvas both apply the active theme.
 
-Public CSP uses a per-request nonce for `style-src` (theme + block `<style>`
-tags); dashboard keeps `'unsafe-inline'` for editor chrome. Script nonces remain
-deferred.
+Public CSP uses a per-request nonce for `script-src` (`'strict-dynamic'`, no
+`'unsafe-inline'`) and for `style-src` (theme + block `<style>` tags). Dashboard
+keeps `'unsafe-inline'` styles for editor chrome. Dev keeps `'unsafe-eval'` for
+React stack reconstruction.
 
 Migration `0014` creates `site_settings` and grants the themes route to existing
 admin/editor roles. Migration `0017` adds `default_layout_block_id`.

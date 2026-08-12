@@ -22,19 +22,31 @@ function createRequestId(): string {
 }
 
 /**
- * Block trees and themes emit `<style>` elements (not attributes). Public
- * routes harden `style-src` with a per-request nonce and set
- * `style-src-attr 'none'`. Dashboard keeps `'unsafe-inline'` for editor chrome.
+ * Per-request CSP.
  *
- * Script nonces stay deferred — see future-plans operator polish. React/Next
- * need `'unsafe-eval'` in development for stack reconstruction.
+ * - `script-src` uses a nonce + `strict-dynamic` (no `'unsafe-inline'`). Next
+ *   reads the nonce from the *request* CSP and stamps its own script tags.
+ * - Public `style-src` is nonce-only; theme/block `<style>` tags pass the same
+ *   nonce. Dashboard keeps `'unsafe-inline'` for editor chrome (style attrs).
+ * - `'unsafe-eval'` only in development (React stack reconstruction).
  */
-function contentSecurityPolicy(pathname: string, nonce: string): string {
+export function contentSecurityPolicy(
+  pathname: string,
+  nonce: string,
+  options: { isDev?: boolean } = {},
+): string {
   const isDashboard = pathname.startsWith("/dashboard");
-  const scriptSrc =
-    process.env.NODE_ENV === "development"
-      ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'"
-      : "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'";
+  const isDev =
+    options.isDev ?? process.env.NODE_ENV === "development";
+
+  const scriptSrc = [
+    "script-src",
+    "'self'",
+    `'nonce-${nonce}'`,
+    "'strict-dynamic'",
+    "'wasm-unsafe-eval'",
+    ...(isDev ? ["'unsafe-eval'"] : []),
+  ].join(" ");
 
   const styleSrc = isDashboard
     ? "style-src 'self' 'unsafe-inline'"

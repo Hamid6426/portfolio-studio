@@ -11,15 +11,8 @@ Stay inside the **self-hosted, single-site** CMS scope.
 
 ## Now — operator polish
 
-- ~~Postgres integration suite with `signInAs(role)` (401/403/400 matrix)~~ —
-  done (`src/test/integration/`; runs when `portfolio_studio_test` is up).
-- ~~Add `public/og.png`~~ — done; page metadata uses it for Open Graph / Twitter.
-- ~~Request-id middleware that threads into `logError`~~ — done (`x-request-id`
-  from proxy + `bindRequestContext`).
-- ~~Optional object storage~~ — UploadThing via `UPLOADTHING_TOKEN` behind
-  `/api/assets` (local `upload/` remains the default when unset).
-- Tighten `script-src` with nonces once Next’s nonce story is verified end-to-end
-  (public `style-src` already uses nonces; scripts still `'unsafe-inline'`).
+Operator polish backlog is done (auth matrix, OG image, request-id logging,
+UploadThing optional storage, script-src nonces).
 
 **Not product work:** custom domains / Redis. Operators who clone the repo attach
 their hostname in Vercel (or similar) and their DNS provider. Rate limits stay
@@ -33,6 +26,8 @@ in-process for a single-node self-host — no Redis dependency.
   history, rich text marks, multi-select).
 - Theme follow-ups: site default layout on apply, light/dark pairs, nonce
   `style-src` for public theme/block `<style>` (migration `0017`).
+- Operator polish: `signInAs` API matrix, `public/og.png`, request-id →
+  `logError`, optional UploadThing, script-src nonces + `strict-dynamic`.
 
 ---
 
