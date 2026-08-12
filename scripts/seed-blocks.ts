@@ -43,13 +43,13 @@ function make(
   const def = BLOCK_DEFINITIONS.find((item) => item.type === type);
   if (!def) throw new Error(`Unknown block type: ${type}`);
 
-  const merged = styleGuard({ ...def.defaultStyles, ...styles }, type);
+  const flat = styleGuard({ ...def.defaultStyles, ...styles }, type);
 
   return {
     id: randomUUID(),
     type: def.type,
     props: { ...def.defaultProps, ...props },
-    styles: merged,
+    styles: Object.keys(flat).length > 0 ? { base: flat } : undefined,
     children: def.canHaveChildren ? (children ?? []) : undefined,
   };
 }

@@ -10,18 +10,52 @@ import {
 } from "@/lib/blocks/document";
 
 describe("migrateBlockDocument", () => {
-  it("wraps a legacy bare array as v1", () => {
-    const nodes = [{ id: "1", type: "text", props: { text: "hi" } }];
+  it("wraps a legacy bare array and flat styles up to v2", () => {
+    const nodes = [
+      {
+        id: "1",
+        type: "text",
+        props: { text: "hi" },
+        styles: { color: "#fff", padding: "8px" },
+      },
+    ];
     const doc = migrateBlockDocument(nodes);
     expect(doc.ok).toBe(true);
     if (!doc.ok) return;
     expect(doc.document.version).toBe(CURRENT_BLOCK_DOCUMENT_VERSION);
-    expect(doc.document.nodes).toEqual(nodes);
+    expect(doc.document.nodes[0]?.styles).toEqual({
+      base: { color: "#fff", padding: "8px" },
+    });
   });
 
-  it("passes through a current document", () => {
+  it("upgrades an explicit v1 document to v2 styles", () => {
+    const result = migrateBlockDocument({
+      version: 1,
+      nodes: [
+        {
+          id: "1",
+          type: "text",
+          props: { text: "hi" },
+          styles: { fontSize: "16px" },
+        },
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.document.version).toBe(2);
+    expect(result.document.nodes[0]?.styles).toEqual({
+      base: { fontSize: "16px" },
+    });
+  });
+
+  it("passes through a current v2 document", () => {
     const doc = toBlockDocument([
-      { id: "1", type: "text", props: { text: "hi" } },
+      {
+        id: "1",
+        type: "text",
+        props: { text: "hi" },
+        styles: { base: { color: "red" }, sm: { color: "blue" } },
+      },
     ]);
     expect(migrateBlockDocument(doc)).toEqual({ ok: true, document: doc });
   });

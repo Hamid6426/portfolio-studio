@@ -2,10 +2,14 @@ import type { ReactNode } from "react";
 
 import type { BlockNode } from "@/db/schema";
 import {
-  isExternalUrl,
-  sanitizeStyles,
-  sanitizeUrl,
-} from "@/lib/block-sanitize";
+  blockStyleClassName,
+  buildTreeStylesheet,
+  wrapFlatStyles,
+  type ResponsiveStyles,
+  type StylePropertyMap,
+} from "@/lib/blocks/styles";
+import { isExternalUrl, sanitizeUrl } from "@/lib/block-sanitize";
+import { cn } from "@/lib/utils";
 
 export type BlockType =
   | "section"
@@ -21,7 +25,7 @@ export type BlockDefinition = {
   label: string;
   canHaveChildren: boolean;
   defaultProps: Record<string, unknown>;
-  defaultStyles?: Record<string, string>;
+  defaultStyles?: StylePropertyMap;
 };
 
 export const BLOCK_DEFINITIONS: BlockDefinition[] = [
@@ -124,7 +128,7 @@ export function createBlockNode(type: BlockType): BlockNode {
     id: crypto.randomUUID(),
     type: def.type,
     props: { ...def.defaultProps },
-    styles: def.defaultStyles ? { ...def.defaultStyles } : {},
+    styles: def.defaultStyles ? wrapFlatStyles(def.defaultStyles) : undefined,
     children: def.canHaveChildren ? [] : undefined,
   };
 }
@@ -139,15 +143,35 @@ type RenderOpts = {
   editable?: boolean;
   /** Editor canvas: render nested children (e.g. sortable wrappers). */
   renderChildren?: (children: BlockNode[], parent: BlockNode) => ReactNode;
+  /** CSP nonce for the generated stylesheet (public pages). */
+  styleNonce?: string;
 };
 
+/**
+ * Render a block tree with a single generated stylesheet (container queries +
+ * hover). No inline `style` attributes — required for style-src-attr CSP.
+ */
 export function renderBlockTree(
   nodes: BlockNode[],
   opts: RenderOpts = {},
 ): ReactNode {
-  return nodes.map((node) => (
-    <BlockRenderer key={node.id} node={node} opts={opts} />
-  ));
+  const css = buildTreeStylesheet(nodes);
+  return (
+    <>
+      {css ? (
+        <style
+          // Sanitised declarations only — see buildTreeStylesheet / sanitizeStyleMap.
+          dangerouslySetInnerHTML={{ __html: css }}
+          nonce={opts.styleNonce}
+        />
+      ) : null}
+      <div className="ps-tree">
+        {nodes.map((node) => (
+          <BlockRenderer key={node.id} node={node} opts={opts} />
+        ))}
+      </div>
+    </>
+  );
 }
 
 function BlockRenderer({
@@ -172,10 +196,7 @@ function BlockRenderer({
       : "";
 
   const common = {
-    // Block styles come from stored jsonb and are rendered to public visitors:
-    // keep only allowlisted properties with inert values.
-    style: sanitizeStyles(node.styles),
-    className: ring,
+    className: cn(blockStyleClassName(node.id), ring),
     onClick: editable ? onClick : undefined,
     "data-block-id": node.id,
   } as const;
@@ -183,7 +204,11 @@ function BlockRenderer({
   const children =
     opts.renderChildren && node.children
       ? opts.renderChildren(node.children, node)
-      : renderBlockTree(node.children ?? [], opts);
+      : node.children && node.children.length > 0
+        ? node.children.map((child) => (
+            <BlockRenderer key={child.id} node={child} opts={opts} />
+          ))
+        : null;
 
   switch (node.type) {
     case "section": {
@@ -220,7 +245,6 @@ function BlockRenderer({
     case "text":
       return <p {...common}>{String(node.props.text ?? "")}</p>;
     case "image": {
-      // Empty fallback: an unsafe or missing src omits the attribute entirely.
       const src = sanitizeUrl(node.props.src, "");
       return (
         // eslint-disable-next-line @next/next/no-img-element
@@ -242,10 +266,6 @@ function BlockRenderer({
           rel={
             !editable && isExternalUrl(href) ? "noopener noreferrer" : undefined
           }
-          // Must stay `undefined` outside the editor: this renderer also runs
-          // in the public Server Component tree, where passing any function
-          // prop throws "Event handlers cannot be passed to Client Component
-          // props" and 500s the whole page.
           onClick={
             editable
               ? (event) => {
@@ -271,3 +291,5 @@ function BlockRenderer({
       );
   }
 }
+
+export type { ResponsiveStyles };

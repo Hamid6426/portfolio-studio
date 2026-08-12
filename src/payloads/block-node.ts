@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { BlockNode } from "@/db/schema";
+import type { ResponsiveStyles } from "@/lib/blocks/styles";
 
 /**
  * Deepest nesting accepted in a block tree (a root node counts as depth 1).
@@ -9,13 +10,23 @@ import type { BlockNode } from "@/db/schema";
  */
 export const MAX_BLOCK_NODE_DEPTH = 32;
 
+const stylePropertyMapSchema = z.record(z.string(), z.string());
+
+const responsiveStylesSchema: z.ZodType<ResponsiveStyles> = z.object({
+  base: stylePropertyMapSchema.optional(),
+  sm: stylePropertyMapSchema.optional(),
+  md: stylePropertyMapSchema.optional(),
+  lg: stylePropertyMapSchema.optional(),
+  hover: stylePropertyMapSchema.optional(),
+});
+
 /** One recursive editor node, shared by `pages.content` and `blocks.children`. */
 export const blockNodeSchema: z.ZodType<BlockNode> = z.lazy(() =>
   z.object({
     id: z.string().min(1),
     type: z.string().min(1),
     props: z.record(z.string(), z.unknown()),
-    styles: z.record(z.string(), z.string()).optional(),
+    styles: responsiveStylesSchema.optional(),
     children: z.array(blockNodeSchema).optional(),
   }),
 );

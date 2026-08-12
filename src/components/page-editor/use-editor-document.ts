@@ -21,6 +21,7 @@ import {
   updateNodeById,
 } from "@/components/page-editor/tree-ops";
 import type { BlockNode } from "@/db/schema";
+import type { ResponsiveStyles } from "@/lib/blocks/styles";
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -233,15 +234,14 @@ export function useEditorDocument({
         updateNodeById(nodes, selectedId, (node) => ({
           ...node,
           props: patch.props ? { ...node.props, ...patch.props } : node.props,
-          styles: patch.styles
-            ? { ...(node.styles ?? {}), ...patch.styles }
-            : node.styles,
+          styles:
+            patch.styles !== undefined ? patch.styles : node.styles,
         })),
       mergeKey,
     );
   }
 
-  function setSelectedStyles(styles: Record<string, string>) {
+  function setSelectedStyles(styles: ResponsiveStyles) {
     if (!selectedId) return;
     apply(
       (nodes) =>

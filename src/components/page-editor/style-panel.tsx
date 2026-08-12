@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
   AlignCenterIcon,
   AlignHorizontalJustifyCenterIcon,
@@ -20,12 +20,17 @@ import {
 import { findParent } from "@/components/page-editor/tree-ops";
 import { Input } from "@/components/ui/input";
 import type { BlockNode } from "@/db/schema";
+import {
+  pruneResponsiveStyles,
+  type ResponsiveStyles,
+  type StyleSliceKey,
+} from "@/lib/blocks/styles";
 import { cn } from "@/lib/utils";
 
 type StylePanelProps = {
   content: BlockNode[];
   selected: BlockNode | null;
-  onChange: (styles: Record<string, string>) => void;
+  onChange: (styles: ResponsiveStyles) => void;
 };
 
 function parseSides(value: string | undefined): [string, string, string, string] {
@@ -184,6 +189,47 @@ function Segmented({
   );
 }
 
+function SlicePicker({
+  value,
+  onChange,
+}: {
+  value: StyleSliceKey;
+  onChange: (value: StyleSliceKey) => void;
+}) {
+  const options: { value: StyleSliceKey; label: string; title: string }[] = [
+    { value: "base", label: "Base", title: "Base styles" },
+    { value: "sm", label: "SM", title: "Small container (≥640px)" },
+    { value: "md", label: "MD", title: "Medium container (≥768px)" },
+    { value: "lg", label: "LG", title: "Large container (≥1024px)" },
+    { value: "hover", label: "Hover", title: "Hover state" },
+  ];
+  return (
+    <div className="flex h-7 overflow-hidden rounded-md border border-input bg-input/30">
+      {options.map((option) => {
+        const active = value === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            title={option.title}
+            aria-label={option.title}
+            aria-pressed={active}
+            className={cn(
+              "flex flex-1 items-center justify-center px-1 text-[10px] transition-colors",
+              active
+                ? "bg-muted text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            onClick={() => onChange(option.value)}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function SideInputs({
   values,
   onChange,
@@ -304,6 +350,8 @@ function ColorField({
 }
 
 export function StylePanel({ content, selected, onChange }: StylePanelProps) {
+  const [slice, setSlice] = useState<StyleSliceKey>("base");
+
   if (!selected) {
     return (
       <p className="p-3 text-sm text-muted-foreground">
@@ -312,16 +360,31 @@ export function StylePanel({ content, selected, onChange }: StylePanelProps) {
     );
   }
 
-  const styles = selected.styles ?? {};
-  const isFlexContainer = isFlexContainerStyles(styles);
+  const responsiveStyles = selected.styles ?? {};
+  const styles = responsiveStyles[slice] ?? {};
+  const isFlexContainer = isFlexContainerStyles(responsiveStyles.base);
   const parentLoc = findParent(content, selected.id);
-  const isFlexItem = isFlexContainerStyles(parentLoc?.parent?.styles);
+  const isFlexItem = isFlexContainerStyles(parentLoc?.parent?.styles?.base);
+
+  function commitSlice(nextSliceMap: Record<string, string>) {
+    const full: ResponsiveStyles = { ...responsiveStyles };
+    const cleaned: Record<string, string> = {};
+    for (const [key, value] of Object.entries(nextSliceMap)) {
+      if (value.trim()) cleaned[key] = value;
+    }
+    if (Object.keys(cleaned).length === 0) {
+      delete full[slice];
+    } else {
+      full[slice] = cleaned;
+    }
+    onChange(pruneResponsiveStyles(full) ?? {});
+  }
 
   function setField(key: string, value: string) {
     const next = { ...styles };
     if (!value.trim()) delete next[key];
     else next[key] = value;
-    onChange(next);
+    commitSlice(next);
   }
 
   function setBackground(value: string) {
@@ -329,7 +392,7 @@ export function StylePanel({ content, selected, onChange }: StylePanelProps) {
     if (!value.trim()) delete next.background;
     else next.background = value;
     delete next.backgroundColor;
-    onChange(next);
+    commitSlice(next);
   }
 
   function setDimField(key: string, value: string) {
@@ -363,6 +426,10 @@ export function StylePanel({ content, selected, onChange }: StylePanelProps) {
 
   return (
     <div className="pb-1">
+      <Section title="Breakpoint">
+        <SlicePicker value={slice} onChange={setSlice} />
+      </Section>
+
       <Section title="Layout">
         <div className="grid grid-cols-2 gap-2">
           <DimInput

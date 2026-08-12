@@ -13,39 +13,60 @@ function hasAuthCookies(request: NextRequest): boolean {
   );
 }
 
+/**
+ * Block trees no longer use inline style *attributes* on public pages; they
+ * emit a `<style>` element. Public routes set `style-src-attr 'none'`. The
+ * dashboard keeps attribute styles for editor chrome (swatches, Base UI).
+ */
+function contentSecurityPolicy(pathname: string): string {
+  const directives = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https: blob:",
+    "font-src 'self' data:",
+    "connect-src 'self'",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+  ];
+  if (!pathname.startsWith("/dashboard")) {
+    directives.push("style-src-attr 'none'");
+  }
+  return directives.join("; ");
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Optimistic dashboard gate — full JWT checks happen in the dashboard layout.
   if (pathname.startsWith("/dashboard") && !hasAuthCookies(request)) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(loginUrl);
+    const redirectResponse = NextResponse.redirect(loginUrl);
+    redirectResponse.headers.set(
+      "Content-Security-Policy",
+      contentSecurityPolicy(pathname),
+    );
+    return redirectResponse;
   }
 
-  // Do not bounce /login → /dashboard on cookie presence alone. An invalid
-  // access token with no refresh caused an infinite redirect loop; the login
-  // page (and dashboard layout) verify the JWT instead.
-
-  // Forward path (+ query) on the *request* so Server Components can read it
-  // via `headers()` (response headers are not visible there). Query must be
-  // preserved so a refresh bounce from /dashboard/pages/edit?slug=about
-  // returns with the slug intact.
   const requestHeaders = new Headers(request.headers);
   const pathWithSearch = `${pathname}${request.nextUrl.search}`;
   requestHeaders.set("x-pathname", pathWithSearch);
 
-  return NextResponse.next({
+  const response = NextResponse.next({
     request: { headers: requestHeaders },
   });
+  response.headers.set(
+    "Content-Security-Policy",
+    contentSecurityPolicy(pathname),
+  );
+  return response;
 }
 
 export const config = {
   matcher: [
-    /*
-     * Run on app routes; skip static assets and image optimizer.
-     * Keep API routes out — they handle their own 401/refresh.
-     */
     "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif)$).*)",
   ],
 };

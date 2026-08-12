@@ -92,13 +92,13 @@ export function isAllowedStyleProperty(
 }
 
 /**
- * Build a React style object from stored styles, keeping only allowlisted
+ * Build a sanitized property map from stored styles, keeping only allowlisted
  * properties with safe values. Unknown keys and unsafe values are dropped
  * silently so a bad entry degrades one declaration, not the page.
  */
-export function sanitizeStyles(
+export function sanitizeStyleMap(
   styles?: Record<string, string> | null,
-): CSSProperties {
+): Partial<Record<AllowedStyleProperty, string>> {
   if (!styles) return {};
 
   const safe: Partial<Record<AllowedStyleProperty, string>> = {};
@@ -111,9 +111,17 @@ export function sanitizeStyles(
     safe[key] = value;
   }
 
-  // Every key is a `keyof CSSProperties` and every value a plain CSS string;
-  // the cast only widens the string type (e.g. `fontWeight`) after validation.
-  return safe as CSSProperties;
+  return safe;
+}
+
+/**
+ * @deprecated Prefer {@link sanitizeStyleMap} + generated classes. Kept for
+ * the few editor UI affordances that still need a React style object.
+ */
+export function sanitizeStyles(
+  styles?: Record<string, string> | null,
+): CSSProperties {
+  return sanitizeStyleMap(styles) as CSSProperties;
 }
 
 const ALLOWED_URL_PROTOCOLS: ReadonlySet<string> = new Set([

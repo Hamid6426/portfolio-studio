@@ -94,6 +94,12 @@
   html {
     @apply min-h-screen font-sans;
   }
+
+  /* Block trees use @container queries so the editor device-width toggle works. */
+  .ps-tree {
+    container-type: inline-size;
+    width: 100%;
+  }
 }
 
 @keyframes home-rise {

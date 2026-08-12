@@ -164,8 +164,8 @@ previously every page inherited the CMS's own marketing description. Added `site
 **Responsive stop-gap.** Seeded pages overflowed horizontally at 360px, and
 `scrollbar-none` on `html` hid the symptom so it looked like content was cut off.
 Allowlisted `flexWrap`/`minWidth`/`flex`, re-seeded the row builders to wrap, removed the
-scrollbar hiding, and added a canvas device-width toggle. Breakpoints and hover states
-remain impossible by data model — that is the responsive project in `future-plans.md`.
+scrollbar hiding, and added a canvas device-width toggle. Breakpoints and hover later
+landed properly in BlockDocument v2 (see below).
 
 **Infrastructure.** vitest across the pure-function seams (permission matrix, token
 tamper/`alg`-swap/expiry, password legacy format, sanitiser XSS vectors, depth guard at
@@ -207,6 +207,21 @@ Reasoning for each:
 16. **robots disallow** — `/api/`, `/dashboard/`, auth routes. OG image asset deferred
     until `public/og.png` exists (no 404 image URL).
 17. **Re-seed** — operator step: `bun run db:seed -- --force` on existing DBs.
+
+---
+
+## BlockDocument v2 — responsive styles
+
+Flat `styles: Record<string,string>` could not express breakpoints or `:hover` because
+the renderer used inline `style` attributes. Bumped `CURRENT_BLOCK_DOCUMENT_VERSION`
+to **2** with migrate-on-read (v1 flat maps → `{ base: … }`; no SQL rewrite).
+
+- Slices: `base` / `sm` / `md` / `lg` / `hover`
+- Renderer emits one sanitised `<style>` block with **`@container`** queries (so the
+  editor device-width toggle and the public full-width wrapper share one stylesheet)
+  plus `:hover` rules; nodes get stable `ps-*` classes
+- Style panel gained a Base/SM/MD/LG/Hover switcher
+- Public CSP sets `style-src-attr 'none'` (dashboard keeps attribute styles for chrome)
 
 ---
 

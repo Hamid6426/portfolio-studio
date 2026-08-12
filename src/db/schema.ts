@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { baseColumns } from "./base-columns";
+import type { ResponsiveStyles } from "@/lib/blocks/styles";
 
 export const rolesTable = pgTable("roles", {
   ...baseColumns,
@@ -56,7 +57,12 @@ export type BlockNode = {
   id: string;
   type: string;
   props: Record<string, unknown>;
-  styles?: Record<string, string>;
+  /**
+   * Responsive / state style slices (`base`, `sm`, `md`, `lg`, `hover`).
+   * Flat `Record<string,string>` is legacy v1 and is wrapped into `{ base }`
+   * on read via `migrateBlockDocument`.
+   */
+  styles?: ResponsiveStyles;
   children?: BlockNode[];
 };
 

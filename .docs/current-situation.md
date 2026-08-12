@@ -1,6 +1,6 @@
 # Current situation
 
-**Last verified: 2026-08-12 (post open-issue close-out).** Treat this header as an
+**Last verified: 2026-08-12 (BlockDocument v2).** Treat this header as an
 expiry stamp — re-check against the tree before acting on anything critical.
 
 A snapshot of what actually works, what is known-broken, and the design decisions that
@@ -13,7 +13,7 @@ For completed reasoning, see [`whats-done.md`](./whats-done.md).
 
 The core builder loop is complete. The security/correctness remediation and the
 follow-up open-issue backlog are closed. The product is usable for day-to-day
-authoring; remaining work is product depth (responsive model, themes, media), not
+authoring; remaining work is product depth (themes, media, editor capability), not
 blocking bugs.
 
 Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run build`.
@@ -48,8 +48,9 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
 - `safeRedirectPath` (control chars, origin check, `/api/*` ban).
 - Async scrypt with cost params; atomic refresh rotation; transactional password-change
   revoke; login+setup rate limits; advisory-lock setup.
-- Block sanitiser; security headers; `poweredByHeader` off. Full CSP deferred until
-  styles leave inline attributes.
+- Security headers; public CSP includes `style-src-attr 'none'` (block trees use
+  generated classes). Dashboard omits that restriction for editor chrome.
+- Full script nonce CSP still deferred — see `future-plans.md`.
 
 ### Infrastructure
 - Vitest: permissions (incl. `requireRoutePermission`), tokens, password, sanitiser,
@@ -64,8 +65,10 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
 
 - **Single-site, not multi-tenant.**
 - **Blocks only** — no structured content entity tables (dropped in `0010`).
-- **Block trees are versioned** — `{ version, nodes }`; newer-than-current documents are
-  refused, never silently downgraded. Required before any BlockDocument v2 bump.
+- **Block trees are versioned** — `{ version, nodes }`; current version is **2**
+  (`styles` as `{ base, sm, md, lg, hover }`, rendered as classes + `<style>` /
+  `@container`). Newer-than-current documents are refused, never silently
+  downgraded.
 
 ---
 
@@ -83,8 +86,11 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
 5. **Never pass a function prop from `BlockRenderer` when `editable` is false** — public
    Server Components throw on function props.
 6. **Only allowlisted styles survive** (`src/lib/block-sanitize.ts`). Panel control +
-   allowlist must land together.
+   allowlist must land together. Styles are authored per slice (`base`/`sm`/…) and
+   emitted as CSS text — unsafe values are stripped before the stylesheet is built.
 7. **Cache keys must not use `""`** — landing page uses `"__root__"` for the null slug.
+8. **Block breakpoints use `@container`, not viewport `@media`** — the editor’s
+   device-width toggle only works if the tree is a containment context (`.ps-tree`).
 
 ---
 

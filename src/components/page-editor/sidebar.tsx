@@ -13,6 +13,7 @@ import { LayersPanel } from "@/components/page-editor/layers-panel";
 import { SettingsPanel } from "@/components/page-editor/settings-panel";
 import { StylePanel } from "@/components/page-editor/style-panel";
 import type { BlockNode } from "@/db/schema";
+import type { ResponsiveStyles } from "@/lib/blocks/styles";
 import type { BlockListItem } from "@/responses/blocks";
 
 type EditorSidebarProps = {
@@ -23,7 +24,7 @@ type EditorSidebarProps = {
   onAdd: (type: BlockType) => void;
   layoutBlocks: BlockListItem[];
   onInsertLayout: (block: BlockListItem) => void;
-  onStylesChange: (styles: Record<string, string>) => void;
+  onStylesChange: (styles: ResponsiveStyles) => void;
   onPropsChange: (props: Record<string, unknown>) => void;
   onDelete: () => void;
   onMoveUp: () => void;

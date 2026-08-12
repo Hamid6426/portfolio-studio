@@ -1,11 +1,18 @@
 import type { BlockDocument, BlockNode } from "@/db/schema";
+import {
+  normalizeResponsiveStyles,
+  type ResponsiveStyles,
+} from "@/lib/blocks/styles";
 
 /**
  * Current on-disk shape for `pages.content`, `blocks.children`, and
  * `published_snapshot.content`. Bump this when the tree model changes and
  * add a step in {@link migrateBlockDocument}.
+ *
+ * v2: `BlockNode.styles` is {@link ResponsiveStyles} (`base`/`sm`/`md`/`lg`/`hover`)
+ * instead of a flat property map.
  */
-export const CURRENT_BLOCK_DOCUMENT_VERSION = 1;
+export const CURRENT_BLOCK_DOCUMENT_VERSION = 2;
 
 export type MigrateResult =
   | { ok: true; document: BlockDocument }
@@ -104,13 +111,27 @@ export function isUnsupportedStoredDocument(raw: unknown): boolean {
   return !result.ok && result.reason === "unsupported-version";
 }
 
+function migrateV1StylesToV2(nodes: BlockNode[]): BlockNode[] {
+  return nodes.map((node) => {
+    const styles = normalizeResponsiveStyles(node.styles) as ResponsiveStyles;
+    const next: BlockNode = {
+      ...node,
+      styles: Object.keys(styles).length > 0 ? styles : undefined,
+    };
+    if (node.children?.length) {
+      next.children = migrateV1StylesToV2(node.children);
+    }
+    return next;
+  });
+}
+
 /**
- * Version-to-version transforms. v0 → v1 only wraps the array; later bumps
- * land here as pure functions over `nodes`.
+ * Version-to-version transforms. v0 → v1 only wraps the array; v1 → v2 wraps
+ * flat style maps into `{ base }`.
  */
 function migrateNodes(fromVersion: number, nodes: BlockNode[]): MigrateResult {
   let version = fromVersion;
-  const current = nodes;
+  let current = nodes;
 
   if (version < 0) version = 0;
 
@@ -119,7 +140,10 @@ function migrateNodes(fromVersion: number, nodes: BlockNode[]): MigrateResult {
     version = 1;
   }
 
-  // Future: if (version < 2) { current = migrateV1ToV2(current); version = 2; }
+  if (version < 2) {
+    current = migrateV1StylesToV2(current);
+    version = 2;
+  }
 
   if (version > CURRENT_BLOCK_DOCUMENT_VERSION) {
     return { ok: false, reason: "unsupported-version", version };
