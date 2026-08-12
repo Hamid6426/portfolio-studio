@@ -41,6 +41,7 @@ Static gates: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run buil
   `upload/`, URLs at `/upload/…`.
 - Inline canvas editing for heading / text / button (double-click); text blocks
   support line breaks.
+- Duplicate selected block (Layers, Settings, `Ctrl/Cmd+D`) with remapped ids.
 
 ### Publishing
 - `pages.content` draft vs `pages.published_snapshot` public payload.

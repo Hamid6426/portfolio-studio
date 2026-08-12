@@ -5,28 +5,36 @@ What to build next, in order. For the current state see
 [`whats-done.md`](./whats-done.md).
 
 Read `AGENTS.md` first — it is the authority on stack, layering and routes.
+Stay inside the **self-hosted, single-site** CMS scope.
 
 ---
 
-## Now — product surface
+## Now — editor capability (build order)
 
-Inline canvas text editing (heading / text / button) and multiline text blocks
-are done. Stay inside the self-hosted single-site CMS scope.
+1. ~~**Duplicate selected block**~~ — done (Layers / Settings / `Ctrl|Cmd+D`).
+2. **Copy-paste / multi-select** — clipboard of nodes; multi-select is optional
+   until paste feels solid.
+3. **More block types** — list (replaces `•` text hacks), then grid, card,
+   spacer, embed as needed.
+4. **Autosave** — debounced or interval save while dirty (policy TBD).
+5. **Version history** — after autosave; heavier than autosave alone.
+6. **Richer text marks** (bold / italic / links) — last among editor items;
+   needs a real text model beyond plain `props.text` strings.
 
-### Editor capability (remaining)
-- Richer text (marks: bold/italic/links) — still plain strings in `props.text`.
-- Duplicate / copy-paste / multi-select.
-- More block types (list, grid, card, spacer, embed).
-- Autosave and version history.
+---
 
-### Theme follow-ups (optional)
+## Theme follow-ups (optional)
+
 - Theme-driven layout block swap (registry suggests a layout; applying a theme
   can set a site-wide default layout for pages without `blockId`).
 - Per-theme dark/light pair toggled from settings (today each theme is one
   complete token set).
 - Nonce-hardened CSP for the theme `<style>` block once Next nonces are wired.
 
-### Operator polish
+---
+
+## Operator polish
+
 - Postgres integration suite with `signInAs(role)` (401/403/400 matrix).
 - Add `public/og.png` (or a generated OG route) for social cards.
 - Optional request-id middleware that threads into `logError`.

@@ -269,6 +269,15 @@ client-only imports — the canvas injects editing through `renderEditableText`.
 
 ---
 
+## Duplicate selected block
+
+`duplicateNodeAfter` deep-clones with fresh ids and inserts immediately after the
+selection. Exposed in Layers + Settings and via `Ctrl/Cmd+D` (skipped while
+typing / in dialogs). Library insert reuses the same `cloneNodeWithNewIds`
+helper.
+
+---
+
 ## Migrations
 
 | | |

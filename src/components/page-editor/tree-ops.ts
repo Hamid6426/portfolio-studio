@@ -200,3 +200,36 @@ export function flattenTree(
   }
   return result;
 }
+
+/** Deep-clone a node (and descendants) with fresh ids. */
+export function cloneNodeWithNewIds(node: BlockNode): BlockNode {
+  return {
+    ...node,
+    id: crypto.randomUUID(),
+    children: node.children?.map(cloneNodeWithNewIds),
+  };
+}
+
+/**
+ * Insert a deep clone of `nodeId` immediately after it in the same parent.
+ * Returns `null` when the node is missing.
+ */
+export function duplicateNodeAfter(
+  nodes: BlockNode[],
+  nodeId: string,
+): { nodes: BlockNode[]; duplicatedId: string } | null {
+  const original = findNode(nodes, nodeId);
+  const located = findParent(nodes, nodeId);
+  if (!original || !located) return null;
+
+  const clone = cloneNodeWithNewIds(original);
+  return {
+    nodes: insertChild(
+      nodes,
+      located.parent?.id ?? null,
+      clone,
+      located.index + 1,
+    ),
+    duplicatedId: clone.id,
+  };
+}

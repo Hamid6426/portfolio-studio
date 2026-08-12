@@ -19,6 +19,8 @@ import {
   outdentNode,
   removeNodeById,
   updateNodeById,
+  cloneNodeWithNewIds,
+  duplicateNodeAfter,
 } from "@/components/page-editor/tree-ops";
 import type { BlockNode } from "@/db/schema.types";
 import type { ResponsiveStyles } from "@/lib/blocks/styles";
@@ -126,7 +128,7 @@ export function useEditorDocument({
   }
 
   function insertLibraryBlock(libraryChildren: BlockNode[]) {
-    const cloned = structuredClone(libraryChildren).map(remapIds);
+    const cloned = structuredClone(libraryChildren).map(cloneNodeWithNewIds);
     if (cloned.length === 0) return;
     apply((nodes) => {
       const located = selectedId ? findParent(nodes, selectedId) : null;
@@ -154,6 +156,18 @@ export function useEditorDocument({
     if (!selectedId) return;
     deleteBlock(selectedId);
   }
+
+  const duplicateSelected = useCallback(() => {
+    if (!selectedId) return;
+    let duplicatedId: string | null = null;
+    apply((nodes) => {
+      const result = duplicateNodeAfter(nodes, selectedId);
+      if (!result) return nodes;
+      duplicatedId = result.duplicatedId;
+      return result.nodes;
+    });
+    if (duplicatedId) setSelectedId(duplicatedId);
+  }, [apply, selectedId]);
 
   const save = useCallback(async (): Promise<"ok" | "conflict" | "error"> => {
     // Snapshot now so edits made while the request is in flight stay dirty.
@@ -201,12 +215,18 @@ export function useEditorDocument({
       ) {
         event.preventDefault();
         deleteBlock(selectedId);
+        return;
+      }
+
+      if (mod && key === "d" && selectedId && canEdit) {
+        event.preventDefault();
+        duplicateSelected();
       }
     }
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selectedId, deleteBlock, undo, redo, save, canEdit, dirty]);
+  }, [selectedId, deleteBlock, duplicateSelected, undo, redo, save, canEdit, dirty]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -312,6 +332,7 @@ export function useEditorDocument({
     addBlock,
     insertLibraryBlock,
     deleteSelected,
+    duplicateSelected,
     updateSelected,
     setSelectedStyles,
     setSelectedProps,
@@ -329,11 +350,3 @@ export function useEditorDocument({
 
 /** What `EditorShell` needs from whichever document it is driving. */
 export type EditorDocument = ReturnType<typeof useEditorDocument>;
-
-function remapIds(node: BlockNode): BlockNode {
-  return {
-    ...node,
-    id: crypto.randomUUID(),
-    children: node.children?.map(remapIds),
-  };
-}

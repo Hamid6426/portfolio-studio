@@ -307,6 +307,7 @@ export function EditorShell({
           onStylesChange={editor.setSelectedStyles}
           onPropsChange={editor.setSelectedProps}
           onDelete={editor.deleteSelected}
+          onDuplicate={editor.duplicateSelected}
           onMoveUp={editor.moveSelectedUp}
           onMoveDown={editor.moveSelectedDown}
           onOutdent={editor.outdentSelected}

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Trash2Icon } from "lucide-react";
+import { CopyIcon, Trash2Icon } from "lucide-react";
 
 import { MediaPickerButton } from "@/components/media/media-picker";
 import { definitionFor } from "@/components/page-editor/block-registry";
@@ -14,6 +14,7 @@ type SettingsPanelProps = {
   selected: BlockNode | null;
   onChange: (props: Record<string, unknown>) => void;
   onDelete: () => void;
+  onDuplicate: () => void;
 };
 
 function Section({
@@ -83,6 +84,7 @@ export function SettingsPanel({
   selected,
   onChange,
   onDelete,
+  onDuplicate,
 }: SettingsPanelProps) {
   if (!selected) {
     return (
@@ -218,7 +220,17 @@ export function SettingsPanel({
         </Section>
       ) : null}
 
-      <Section title="Danger zone">
+      <Section title="Actions">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={onDuplicate}
+        >
+          <CopyIcon data-icon="inline-start" />
+          Duplicate
+        </Button>
         <Button
           type="button"
           variant="destructive"

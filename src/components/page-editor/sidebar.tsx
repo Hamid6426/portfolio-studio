@@ -27,6 +27,7 @@ type EditorSidebarProps = {
   onStylesChange: (styles: ResponsiveStyles) => void;
   onPropsChange: (props: Record<string, unknown>) => void;
   onDelete: () => void;
+  onDuplicate: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
   onOutdent: () => void;
@@ -44,6 +45,7 @@ export function EditorSidebar({
   onStylesChange,
   onPropsChange,
   onDelete,
+  onDuplicate,
   onMoveUp,
   onMoveDown,
   onOutdent,
@@ -77,6 +79,7 @@ export function EditorSidebar({
             onMoveDown={onMoveDown}
             onOutdent={onOutdent}
             onIndent={onIndent}
+            onDuplicate={onDuplicate}
           />
         </section>
 
@@ -101,6 +104,7 @@ export function EditorSidebar({
             selected={selected}
             onChange={onPropsChange}
             onDelete={onDelete}
+            onDuplicate={onDuplicate}
           />
         </section>
       </div>

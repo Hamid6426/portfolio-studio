@@ -5,6 +5,7 @@ import {
   ArrowLeftIcon,
   ArrowRightIcon,
   ArrowUpIcon,
+  CopyIcon,
 } from "lucide-react";
 
 import { definitionFor } from "@/components/page-editor/block-registry";
@@ -21,6 +22,7 @@ type LayersPanelProps = {
   onMoveDown: () => void;
   onOutdent: () => void;
   onIndent: () => void;
+  onDuplicate: () => void;
 };
 
 function moveAvailability(content: BlockNode[], selectedId: string | null) {
@@ -62,6 +64,7 @@ export function LayersPanel({
   onMoveDown,
   onOutdent,
   onIndent,
+  onDuplicate,
 }: LayersPanelProps) {
   const rows = flattenTree(content);
   const moves = moveAvailability(content, selectedId);
@@ -119,6 +122,16 @@ export function LayersPanel({
             onClick={onIndent}
           >
             <ArrowRightIcon />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            aria-label="Duplicate"
+            title="Duplicate (Ctrl/Cmd+D)"
+            onClick={onDuplicate}
+          >
+            <CopyIcon />
           </Button>
         </div>
       ) : null}
